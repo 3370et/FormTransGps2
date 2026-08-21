@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%236366f1'/%3E%3Cpath d='M18 28 H82 M18 50 H70 M18 72 H82 M18 28 V72' stroke='%23ffffff' stroke-width='8' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3Ccircle cx='82' cy='28' r='4' fill='%2334d399'/%3E%3Ccircle cx='70' cy='50' r='4' fill='%23f87171'/%3E%3C/svg%3E">
+  <title>Panel de monitoreo</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    :root {
+      --bg: #08090d; --bg2: #0e1018; --card: #14171f; --card2: #191d28;
+      --border: #22273a; --fg: #e4e8f1; --fg2: #8891a8; --fg3: #565e74;
+      --accent: #e8913a; --success: #34d399; --danger: #f87171;
+      --info: #60a5fa; --warning: #fbbf24; --purple: #a78bfa;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--fg); min-height: 100vh; }
+    ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: var(--bg); } ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* ===== PANTALLA DE CONTRASEÑA ===== */
+    .login-screen {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .login-box {
+      background: var(--card); border: 1px solid var(--border); border-radius: 18px;
+      padding: 40px 32px; max-width: 380px; width: 100%; text-align: center;
+    }
+    .login-icon {
+      width: 64px; height: 64px; border-radius: 50%;
+      background: rgba(232,145,58,0.08); border: 2px solid rgba(232,145,58,0.2);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px;
+    }
+    .login-icon i { font-size: 24px; color: var(--accent); }
+    .login-box h2 {
+      font-family: 'Space Grotesk', sans-serif; font-size: 20px;
+      font-weight: 700; margin-bottom: 8px;
+    }
+    .login-box p { font-size: 13px; color: var(--fg2); margin-bottom: 24px; line-height: 1.5; }
+    .login-input {
+      width: 100%; background: var(--bg); border: 1.5px solid var(--border);
+      color: var(--fg); border-radius: 10px; padding: 13px 16px;
+      font-family: 'DM Sans', sans-serif; font-size: 15px;
+      outline: none; transition: all 0.25s; margin-bottom: 16px;
+      text-align: center; letter-spacing: 3px;
+    }
+    .login-input::placeholder { letter-spacing: 0.3px; color: var(--fg3); }
+    .login-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(232,145,58,0.12); }
+    .login-btn {
+      width: 100%; padding: 13px; border-radius: 10px; border: none;
+      background: var(--accent); color: #0f1117; font-family: 'DM Sans', sans-serif;
+      font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.25s;
+    }
+    .login-btn:hover { background: #f0a050; box-shadow: 0 4px 20px rgba(232,145,58,0.3); }
+    .login-error {
+      margin-top: 14px; padding: 10px; border-radius: 8px; font-size: 13px;
+      background: rgba(248,113,113,0.06); border: 1px solid rgba(248,113,113,0.15);
+      color: var(--danger); display: none;
+    }
+    .login-error.visible { display: block; }
+
+    /* ===== DASHBOARD ===== */
+    .dashboard { display: none; padding: 24px 16px 60px; max-width: 1200px; margin: auto; }
+    .dashboard.visible { display: block; }
+
+    .dash-header {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 12px;
+      margin-bottom: 24px;
+    }
+    .dash-header h1 {
+      font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700;
+    }
+    .dash-header h1 i { color: var(--accent); margin-right: 8px; }
+    .dash-header-actions { display: flex; gap: 8px; align-items: center; }
+    .dash-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--card); color: var(--fg2); font-family: 'DM Sans', sans-serif;
+      font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .dash-btn:hover { border-color: var(--fg3); color: var(--fg); background: var(--card2); }
+    .dash-btn.actualizando { pointer-events: none; opacity: 0.6; }
+    .dash-btn.actualizando i { animation: spin 1s linear infinite; }
+    .dash-btn.salir { border-color: rgba(248,113,113,0.2); color: var(--danger); }
+    .dash-btn.salir:hover { background: rgba(248,113,113,0.08); border-color: var(--danger); }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pulseBorder {
+      0% { border-color: var(--border); }
+      30% { border-color: var(--accent); }
+      100% { border-color: var(--border); }
+    }
+    @keyframes highlightSection {
+      0% { background: transparent; }
+      20% { background: rgba(232,145,58,0.04); }
+      100% { background: transparent; }
+    }
+
+    /* Tarjetas resumen */
+    .resumen { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 28px; }
+    .resumen-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      padding: 18px 16px; cursor: pointer; transition: all 0.25s; position: relative;
+      user-select: none;
+    }
+    .resumen-card::after {
+      content: ''; position: absolute; bottom: 10px; right: 12px;
+      font-family: 'Font Awesome 6 Free'; font-weight: 900; font-size: 10px;
+      color: var(--fg3); opacity: 0; transition: opacity 0.2s;
+    }
+    .resumen-card:hover { border-color: #3a4060; transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,0.3); }
+    .resumen-card:hover::after { opacity: 0.6; }
+    .resumen-card:active { transform: translateY(0); }
+    .resumen-card.rc-proceso:hover { border-color: rgba(96,165,250,0.4); }
+    .resumen-card.rc-completados:hover { border-color: rgba(52,211,153,0.4); }
+    .resumen-card.rc-gps:hover { border-color: rgba(232,145,58,0.4); }
+    .resumen-card .rc-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--fg3); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .resumen-card .rc-label i { font-size: 12px; }
+    .resumen-card .rc-value { font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 800; line-height: 1; }
+    .resumen-card .rc-sub { font-size: 11px; color: var(--fg3); margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+    .resumen-card .rc-sub i { font-size: 9px; opacity: 0; transition: opacity 0.2s; }
+    .resumen-card:hover .rc-sub i { opacity: 0.6; }
+
+    /* Secciones */
+    .seccion { margin-bottom: 28px; border-radius: 12px; padding: 0; transition: background 0.6s ease; }
+    .seccion.highlight { animation: highlightSection 1.8s ease; }
+    .seccion-titulo {
+      font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 700;
+      color: var(--fg); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+      padding-bottom: 10px; border-bottom: 1px solid var(--border);
+    }
+    .seccion-titulo .st-count {
+      font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px;
+      background: rgba(232,145,58,0.1); color: var(--accent); border: 1px solid rgba(232,145,58,0.2);
+    }
+
+    /* Tarjeta de código */
+    .codigo-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      margin-bottom: 12px; overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    .codigo-card:hover { border-color: #333a52; }
+    .codigo-card.card-highlight { animation: pulseBorder 1.5s ease; }
+    .cc-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 16px; cursor: pointer; gap: 12px;
+      background: var(--bg2);
+    }
+    .cc-header-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .cc-codigo {
+      font-family: 'Space Grotesk', sans-serif; font-size: 16px;
+      font-weight: 800; color: var(--accent);
+    }
+    .cc-estado {
+      font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 99px;
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .cc-estado.proceso { background: rgba(96,165,250,0.1); color: var(--info); border: 1px solid rgba(96,165,250,0.2); }
+    .cc-estado.completado { background: rgba(52,211,153,0.1); color: var(--success); border: 1px solid rgba(52,211,153,0.2); }
+    .cc-estado.gps { background: rgba(232,145,58,0.1); color: var(--accent); border: 1px solid rgba(232,145,58,0.2); }
+    .cc-fecha { font-size: 11px; color: var(--fg3); white-space: nowrap; }
+    .cc-toggle { background: none; border: none; color: var(--fg3); font-size: 14px; cursor: pointer; padding: 4px; transition: transform 0.2s; }
+    .cc-toggle:hover { color: var(--fg); }
+    .cc-body { display: none; padding: 0 16px 16px; }
+    .cc-body.visible { display: block; animation: fadeUp 0.25s ease; }
+
+    /* Tabla dentro de tarjeta */
+    .cc-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .cc-table th {
+      text-align: left; padding: 8px 10px; font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.05em; color: var(--fg3);
+      border-bottom: 1px solid var(--border); background: var(--bg);
+    }
+    .cc-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; color: var(--fg2); }
+    .cc-table tr:last-child td { border-bottom: none; }
+    .cc-table .nombre-item { font-weight: 600; color: var(--fg); }
+    .cc-table .gps-ok { color: var(--success); font-weight: 600; font-size: 11px; }
+    .cc-table .gps-no { color: var(--fg3); font-size: 11px; }
+    .cc-table .gps-link { color: var(--info); text-decoration: none; font-size: 10px; }
+    .cc-table .gps-link:hover { text-decoration: underline; }
+    .cc-table .vacio { color: var(--fg3); font-style: italic; font-size: 11px; }
+    .cc-table .coord-text { font-family: 'Space Grotesk', monospace; font-size: 10px; color: var(--fg3); }
+
+    /* Resumen-inline dentro de cada tarjeta expandida */
+    .cc-resumen-inline {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 8px; margin-bottom: 14px; padding: 12px;
+      background: var(--bg); border-radius: 8px; border: 1px solid var(--border);
+    }
+    .cc-resumen-inline .cri {
+      text-align: center;
+    }
+    .cc-resumen-inline .cri-label {
+      font-size: 9px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--fg3); margin-bottom: 4px;
+    }
+    .cc-resumen-inline .cri-value {
+      font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 800;
+    }
+
+    /* Estado vacío */
+    .sin-datos {
+      text-align: center; padding: 40px 20px; color: var(--fg3);
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    }
+    .sin-datos i { font-size: 32px; opacity: 0.2; display: block; margin-bottom: 12px; }
+    .sin-datos p { font-size: 13px; }
+
+    /* Filtros activos */
+    .filtro-activo {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 12px; border-radius: 99px; font-size: 11px; font-weight: 700;
+      margin-bottom: 12px; cursor: pointer; transition: all 0.2s;
+    }
+    .filtro-activo:hover { opacity: 0.8; }
+    .filtro-activo.fa-proceso { background: rgba(96,165,250,0.1); color: var(--info); border: 1px solid rgba(96,165,250,0.2); }
+    .filtro-activo.fa-completado { background: rgba(52,211,153,0.1); color: var(--success); border: 1px solid rgba(52,211,153,0.2); }
+    .filtro-activo.fa-gps { background: rgba(232,145,58,0.1); color: var(--accent); border: 1px solid rgba(232,145,58,0.2); }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 20px; font-size: 13px; font-weight: 600; color: var(--fg2);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5); z-index: 999;
+      opacity: 0; pointer-events: none; transition: all 0.35s ease;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+    .toast i.ok { color: var(--success); }
+    .toast i.err { color: var(--danger); }
+
+    @media (max-width: 640px) {
+      .dashboard { padding: 16px 10px 40px; }
+      .dash-header { flex-direction: column; align-items: flex-start; }
+      .resumen { grid-template-columns: repeat(2, 1fr); }
+      .resumen-card .rc-value { font-size: 22px; }
+      .cc-header { padding: 12px; flex-wrap: wrap; }
+      .cc-codigo { font-size: 14px; }
+      .cc-body { padding: 0 12px 12px; }
+      .cc-table { font-size: 11px; }
+      .cc-table th, .cc-table td { padding: 6px 7px; }
+      .cc-resumen-inline { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Pantalla de contraseña -->
+  <div class="login-screen" id="loginScreen">
+    <div class="login-box">
+      <div class="login-icon"><i class="fa-solid fa-eye"></i></div>
+      <h2>Panel de monitoreo</h2>
+      <p>Ingresa la clave de acceso para ver el estado de los transportes en tiempo real.</p>
+      <input type="password" class="login-input" id="loginPass" placeholder="Clave de acceso" autocomplete="off">
+      <button class="login-btn" onclick="verificarAcceso()"><i class="fa-solid fa-right-to-bracket"></i> Ingresar</button>
+      <div class="login-error" id="loginError"><i class="fa-solid fa-xmark"></i> Clave incorrecta</div>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div class="dashboard" id="dashboard">
+    <div class="dash-header">
+      <h1><i class="fa-solid fa-satellite-dish"></i> Monitoreo de transportes</h1>
+      <div class="dash-header-actions">
+        <button class="dash-btn" id="btnActualizar" onclick="cargarDatos()"><i class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
+        <button class="dash-btn salir" onclick="cerrarSesion()"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
+      </div>
+    </div>
+
+    <div class="resumen" id="resumenCards">
+      <div class="resumen-card rc-proceso" onclick="navegarA('proceso')" title="Ver sesiones en proceso">
+        <div class="rc-label"><i class="fa-solid fa-list" style="color:var(--info)"></i> En proceso</div>
+        <div class="rc-value" id="rcProceso" style="color:var(--info)">0</div>
+        <div class="rc-sub">Sesiones activas <i class="fa-solid fa-arrow-down"></i></div>
+      </div>
+      <div class="resumen-card rc-completados" onclick="navegarA('completados')" title="Ver sesiones completadas">
+        <div class="rc-label"><i class="fa-solid fa-check-double" style="color:var(--success)"></i> Completados</div>
+        <div class="rc-value" id="rcCompletados" style="color:var(--success)">0</div>
+        <div class="rc-sub">Guardados hoy <i class="fa-solid fa-arrow-down"></i></div>
+      </div>
+      <div class="resumen-card rc-gps" onclick="navegarA('gps')" title="Ver registros con GPS">
+        <div class="rc-label"><i class="fa-solid fa-location-dot" style="color:var(--accent)"></i> Con GPS</div>
+        <div class="rc-value" id="rcGps" style="color:var(--accent)">0</div>
+        <div class="rc-sub">Ubicaciones registradas <i class="fa-solid fa-arrow-down"></i></div>
+      </div>
+      <div class="resumen-card" style="cursor:default;" title="Hora de la última actualización">
+        <div class="rc-label"><i class="fa-solid fa-clock" style="color:var(--warning)"></i> Última carga</div>
+        <div class="rc-value" id="rcUltima" style="color:var(--warning);font-size:16px;">--:--</div>
+        <div class="rc-sub">Actualización</div>
+      </div>
+    </div>
+
+    <!-- Sección: En proceso -->
+    <div class="seccion" id="seccionProceso">
+      <div class="seccion-titulo">
+        <i class="fa-solid fa-spinner" style="color:var(--info);"></i> Sesiones en proceso
+        <span class="st-count" id="countProceso">0</span>
+      </div>
+      <div id="listaProceso"></div>
+    </div>
+
+    <!-- Sección: Completados -->
+    <div class="seccion" id="seccionCompletados">
+      <div class="seccion-titulo">
+        <i class="fa-solid fa-check-circle" style="color:var(--success);"></i> Sesiones completadas
+        <span class="st-count" id="countCompletados">0</span>
+      </div>
+      <div id="listaCompletados"></div>
+    </div>
+
+    <!-- Sección: Con GPS (se muestra al hacer clic en la tarjeta) -->
+    <div class="seccion" id="seccionGps" style="display:none;">
+      <div class="seccion-titulo">
+        <i class="fa-solid fa-location-dot" style="color:var(--accent);"></i> Registros con GPS
+        <span class="st-count" id="countGps">0</span>
+      </div>
+      <div id="listaGps"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"><i class="fa-solid fa-circle-check ok"></i><span id="toastMsg"></span></div>
+
+  <script>
+    /* ============================================================
+       CONFIGURACIÓN
+       Cambia esta clave para proteger el acceso al panel
+       ============================================================ */
+    var CLAVE_ACCESO = 'admin2025';
+    var FIREBASE_URL = 'https://datos-formulario-f3cde-default-rtdb.firebaseio.com/codigosUsados';
+    var INTERVALO_ACTUALIZACION = 15000; // 15 segundos
+
+    var timerAutoActualizar = null;
+
+    /* Datos globales para poder filtrar por GPS desde las tarjetas */
+    var datosGlobales = { procesos: [], completados: [], gpsItems: [], totalGps: 0 };
+
+    /* ========== LOGIN ========== */
+    document.getElementById('loginPass').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') verificarAcceso();
+    });
+
+    function verificarAcceso() {
+      var pass = document.getElementById('loginPass').value;
+      document.getElementById('loginError').classList.remove('visible');
+
+      if (pass === CLAVE_ACCESO) {
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('dashboard').classList.add('visible');
+        document.getElementById('loginPass').value = '';
+        cargarDatos();
+        iniciarAutoActualizar();
+      } else {
+        document.getElementById('loginError').classList.add('visible');
+        document.getElementById('loginPass').value = '';
+        document.getElementById('loginPass').focus();
+      }
+    }
+
+    function cerrarSesion() {
+      detenerAutoActualizar();
+      document.getElementById('dashboard').classList.remove('visible');
+      document.getElementById('loginScreen').style.display = '';
+      document.getElementById('loginPass').focus();
+    }
+
+    /* ========== TOAST ========== */
+    function mostrarToast(texto, tipo) {
+      var t = document.getElementById('toast');
+      var icono = tipo === 'ok' ? 'fa-circle-check ok' : 'fa-circle-xmark err';
+      t.innerHTML = '<i class="fa-solid ' + icono + '"></i><span>' + texto + '</span>';
+      t.classList.add('visible');
+      setTimeout(function() { t.classList.remove('visible'); }, 3000);
+    }
+
+    /* ========== NAVEGACIÓN DESDE TARJETAS DE RESUMEN ========== */
+    function navegarA(seccion) {
+      var target = null;
+      var filtroActual = null;
+
+      if (seccion === 'proceso') {
+        target = document.getElementById('seccionProceso');
+        filtroActual = 'proceso';
+      } else if (seccion === 'completados') {
+        target = document.getElementById('seccionCompletados');
+        filtroActual = 'completado';
+      } else if (seccion === 'gps') {
+        /* Mostrar la sección GPS si está oculta */
+        var seccionGps = document.getElementById('seccionGps');
+        seccionGps.style.display = '';
+        target = seccionGps;
+        filtroActual = 'gps';
+        /* Renderizar los datos GPS si no se ha hecho */
+        renderizarGps(datosGlobales.gpsItems);
+      }
+
+      if (!target) return;
+
+      /* Quitar highlight previo de todas las secciones */
+      document.querySelectorAll('.seccion').forEach(function(s) { s.classList.remove('highlight'); });
+      document.querySelectorAll('.codigo-card').forEach(function(c) { c.classList.remove('card-highlight'); });
+
+      /* Scroll suave a la sección */
+      setTimeout(function() {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 50);
+
+      /* Agregar animación de highlight a la sección */
+      setTimeout(function() {
+        target.classList.add('highlight');
+      }, 350);
+
+      /* Si la sección tiene tarjetas, expandir la primera y agregar highlight */
+      setTimeout(function() {
+        var primeraCard = target.querySelector('.codigo-card');
+        if (primeraCard) {
+          /* Expandir la primera tarjeta */
+          var body = primeraCard.querySelector('.cc-body');
+          var icon = primeraCard.querySelector('.cc-toggle');
+          if (body && !body.classList.contains('visible')) {
+            body.classList.add('visible');
+            if (icon) icon.style.transform = 'rotate(180deg)';
+          }
+          /* Highlight en las primeras 3 tarjetas o las que haya */
+          var cards = target.querySelectorAll('.codigo-card');
+          var limite = Math.min(cards.length, 5);
+          for (var i = 0; i < limite; i++) {
+            (function(card, delay) {
+              setTimeout(function() { card.classList.add('card-highlight'); }, delay);
+            })(cards[i], i * 150);
+          }
+        }
+      }, 600);
+
+      /* Remover highlights después de un tiempo */
+      setTimeout(function() {
+        target.querySelectorAll('.codigo-card').forEach(function(c) { c.classList.remove('card-highlight'); });
+        target.classList.remove('highlight');
+      }, 3000);
+    }
+
+    /* ========== CARGAR DATOS ========== */
+    async function cargarDatos() {
+      var btn = document.getElementById('btnActualizar');
+      btn.classList.add('actualizando');
+      btn.innerHTML = '<i class="fa-solid fa-circle-notch"></i> Actualizando...';
+
+      try {
+        var r = await fetch(FIREBASE_URL + '.json');
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        var data = await r.json();
+
+        if (!data || typeof data !== 'object') {
+          renderizarVacio();
+          return;
+        }
+
+        var procesos = [];
+        var completados = [];
+        var totalGps = 0;
+        var gpsItems = []; /* Items individuales que tienen GPS */
+        var hoy = new Date().toDateString();
+
+        Object.keys(data).forEach(function(codigo) {
+          var entry = data[codigo];
+          if (!entry || typeof entry !== 'object') return;
+
+          var items = entry.datosFormulario || [];
+          var gpsCount = 0;
+          if (Array.isArray(items)) {
+            items.forEach(function(item) {
+              if (item.gps && item.gps.lat !== null && item.gps.lng !== null) {
+                gpsCount++;
+                /* Guardar referencia al item con GPS y su código padre */
+                gpsItems.push({
+                  codigo: codigo,
+                  fechaFin: entry.fechaFin || null,
+                  fechaInicio: entry.fechaInicio || null,
+                  estado: entry.estado || 'desconocido',
+                  item: item
+                });
+              }
+            });
+          }
+
+          var registro = {
+            codigo: codigo,
+            estado: entry.estado || 'desconocido',
+            fechaInicio: entry.fechaInicio || null,
+            fechaFin: entry.fechaFin || null,
+            items: items,
+            gpsCount: gpsCount
+          };
+
+          if (entry.estado === 'en_proceso') {
+            procesos.push(registro);
+          } else if (entry.estado === 'completado') {
+            completados.push(registro);
+            totalGps += gpsCount;
+          }
+        });
+
+        /* Ordenar: procesos por fecha más reciente, completados por fecha más reciente */
+        procesos.sort(function(a, b) { return new Date(b.fechaInicio || 0) - new Date(a.fechaInicio || 0); });
+        completados.sort(function(a, b) { return new Date(b.fechaFin || 0) - new Date(a.fechaFin || 0); });
+
+        /* Ordenar GPS items por fecha del registro más reciente */
+        gpsItems.sort(function(a, b) {
+          var fa = new Date(a.fechaFin || a.fechaInicio || 0);
+          var fb = new Date(b.fechaFin || b.fechaInicio || 0);
+          return fb - fa;
+        });
+
+        /* Guardar datos globalmente */
+        datosGlobales = { procesos: procesos, completados: completados, gpsItems: gpsItems, totalGps: totalGps };
+
+        /* Contar completados de hoy */
+        var completadosHoy = completados.filter(function(e) {
+          return e.fechaFin && new Date(e.fechaFin).toDateString() === hoy;
+        }).length;
+
+        /* Actualizar resumen */
+        document.getElementById('rcProceso').textContent = procesos.length;
+        document.getElementById('rcCompletados').textContent = completadosHoy;
+        document.getElementById('rcGps').textContent = totalGps;
+        document.getElementById('rcUltima').textContent = new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+        /* Renderizar listas */
+        renderizarProcesos(procesos);
+        renderizarCompletados(completados);
+
+        /* Si la sección GPS está visible, actualizarla también */
+        if (document.getElementById('seccionGps').style.display !== 'none') {
+          renderizarGps(gpsItems);
+        }
+
+        if (procesos.length === 0 && completados.length === 0 && gpsItems.length === 0) {
+          renderizarVacio();
+        }
+
+      } catch(e) {
+        console.error('Error al cargar datos:', e);
+        renderizarError('Error de conexión: ' + e.message);
+      } finally {
+        btn.classList.remove('actualizando');
+        btn.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i> Actualizar';
+      }
+    }
+
+    function renderizarVacio() {
+      var html = '<div class="sin-datos"><i class="fa-solid fa-inbox"></i><p>No hay sesiones registradas.</p></div>';
+      document.getElementById('listaProceso').innerHTML = html;
+      document.getElementById('listaCompletados').innerHTML = html;
+      document.getElementById('listaGps').innerHTML = html;
+      document.getElementById('countProceso').textContent = '0';
+      document.getElementById('countCompletados').textContent = '0';
+      document.getElementById('countGps').textContent = '0';
+    }
+
+    function renderizarError(mensaje) {
+      var html = '<div class="sin-datos"><i class="fa-solid fa-triangle-exclamation"></i><p>' + mensaje + '</p></div>';
+      document.getElementById('listaProceso').innerHTML = html;
+      document.getElementById('listaCompletados').innerHTML = '';
+      document.getElementById('listaGps').innerHTML = '';
+    }
+
+    /* ========== RENDERIZAR PROCESOS ========== */
+    function renderizarProcesos(lista) {
+      document.getElementById('countProceso').textContent = lista.length;
+      if (lista.length === 0) {
+        document.getElementById('listaProceso').innerHTML = '<div class="sin-datos"><i class="fa-solid fa-check-circle"></i><p>No hay sesiones en proceso.</p></div>';
+        return;
+      }
+
+      var html = '';
+      lista.forEach(function(reg, idx) {
+        var tiempoInicio = reg.fechaInicio ? tiempoRelativo(reg.fechaInicio) : '—';
+        var inactividadMs = reg.fechaInicio ? Date.now() - new Date(reg.fechaInicio).getTime() : 0;
+        var inactividadMin = Math.floor(inactividadMs / 60000);
+        var inactColor = inactividadMin < 60 ? 'var(--success)' : (inactividadMin < 120 ? 'var(--warning)' : 'var(--danger)');
+        var inactTexto = inactividadMin < 60 ? inactividadMin + ' min' : (Math.floor(inactividadMin / 60) + 'h ' + (inactividadMin % 60) + 'm');
+
+        /* Resumen inline */
+        var resumenInline = construirResumenInline(reg, 'proceso');
+
+        html += '<div class="codigo-card">' +
+          '<div class="cc-header" onclick="toggleCard(this)">' +
+            '<div class="cc-header-left">' +
+              '<span class="cc-codigo">' + reg.codigo + '</span>' +
+              '<span class="cc-estado proceso">En proceso</span>' +
+            '</div>' +
+            '<div style="display:flex;align-items:center;gap:10px;">' +
+              '<span class="cc-fecha">' + tiempoInicio + '</span>' +
+              '<span style="font-size:11px;color:' + inactColor + ';font-weight:600;">' + inactTexto + '</span>' +
+            '</div>' +
+            '<i class="fa-solid fa-chevron-down cc-toggle"></i>' +
+          '</div>' +
+          '<div class="cc-body">' +
+            resumenInline +
+            renderTablaItems(reg) +
+          '</div>' +
+        '</div>';
+      });
+      document.getElementById('listaProceso').innerHTML = html;
+    }
+
+    /* ========== RENDERIZAR COMPLETADOS ========== */
+    function renderizarCompletados(lista) {
+      document.getElementById('countCompletados').textContent = lista.length;
+      if (lista.length === 0) {
+        document.getElementById('listaCompletados').innerHTML = '<div class="sin-datos"><i class="fa-solid fa-check-circle"></i><p>No hay sesiones completadas.</p></div>';
+        return;
+      }
+
+      var html = '';
+      lista.forEach(function(reg, idx) {
+        var tiempoFin = reg.fechaFin ? tiempoRelativo(reg.fechaFin) : '—';
+        var tiempoInicio = reg.fechaInicio ? tiempoRelativo(reg.fechaInicio) : '—';
+
+        /* Calcular duración de la sesión */
+        var duracionTexto = '—';
+        if (reg.fechaInicio && reg.fechaFin) {
+          var diffMs = new Date(reg.fechaFin).getTime() - new Date(reg.fechaInicio).getTime();
+          if (diffMs > 0) {
+            var dMin = Math.floor(diffMs / 60000);
+            if (dMin < 60) duracionTexto = dMin + ' min';
+            else duracionTexto = Math.floor(dMin / 60) + 'h ' + (dMin % 60) + 'm';
+          }
+        }
+
+        /* Resumen inline */
+        var resumenInline = construirResumenInline(reg, 'completado');
+
+        html += '<div class="codigo-card">' +
+          '<div class="cc-header" onclick="toggleCard(this)">' +
+            '<div class="cc-header-left">' +
+              '<span class="cc-codigo">' + reg.codigo + '</span>' +
+              '<span class="cc-estado completado">Completado</span>' +
+            '</div>' +
+            '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' +
+              '<span class="cc-fecha">Fin: ' + tiempoFin + '</span>' +
+              (reg.gpsCount > 0 ? '<span style="font-size:11px;color:var(--success);font-weight:600;"><i class="fa-solid fa-location-dot"></i> ' + reg.gpsCount + ' GPS</span>' : '<span style="font-size:11px;color:var(--fg3);">Sin GPS</span>') +
+            '</div>' +
+            '<i class="fa-solid fa-chevron-down cc-toggle"></i>' +
+          '</div>' +
+          '<div class="cc-body">' +
+            resumenInline +
+            renderTablaItems(reg) +
+          '</div>' +
+        '</div>';
+      });
+      document.getElementById('listaCompletados').innerHTML = html;
+    }
+
+    /* ========== RENDERIZAR GPS ========== */
+    function renderizarGps(gpsItems) {
+      document.getElementById('countGps').textContent = gpsItems.length;
+      if (gpsItems.length === 0) {
+        document.getElementById('listaGps').innerHTML = '<div class="sin-datos"><i class="fa-solid fa-location-crosshairs"></i><p>No hay registros con ubicación GPS.</p></div>';
+        return;
+      }
+
+      /* Agrupar por código para mostrar tarjetas agrupadas */
+      var agrupados = {};
+      gpsItems.forEach(function(gi) {
+        if (!agrupados[gi.codigo]) {
+          agrupados[gi.codigo] = {
+            codigo: gi.codigo,
+            estado: gi.estado,
+            fechaFin: gi.fechaFin,
+            fechaInicio: gi.fechaInicio,
+            itemsGps: []
+          };
+        }
+        agrupados[gi.codigo].itemsGps.push(gi.item);
+      });
+
+      var html = '';
+      Object.values(agrupados).forEach(function(grupo) {
+        var tiempoRef = grupo.fechaFin ? tiempoRelativo(grupo.fechaFin) : (grupo.fechaInicio ? tiempoRelativo(grupo.fechaInicio) : '—');
+
+        /* Resumen inline del grupo GPS */
+        var resumenHtml = '<div class="cc-resumen-inline">' +
+          '<div class="cri"><div class="cri-label">Puntos GPS</div><div class="cri-value" style="color:var(--accent);">' + grupo.itemsGps.length + '</div></div>' +
+          '<div class="cri"><div class="cri-label">Estado</div><div class="cri-value" style="font-size:12px;color:' + (grupo.estado === 'completado' ? 'var(--success)' : 'var(--info)') + ';">' + (grupo.estado === 'completado' ? 'Completado' : (grupo.estado === 'en_proceso' ? 'En proceso' : '—')) + '</div></div>' +
+          '<div class="cri"><div class="cri-label">Referencia</div><div class="cri-value" style="font-size:12px;color:var(--fg2);">' + tiempoRef + '</div></div>' +
+        '</div>';
+
+        /* Tabla solo con los items que tienen GPS */
+        var tablaHtml = '<table class="cc-table"><thead><tr>' +
+          '<th>#</th><th>Nombre</th><th>Sector</th><th>Desde</th><th>Hasta</th><th>GPS</th>' +
+          '</tr></thead><tbody>';
+
+        grupo.itemsGps.forEach(function(item, i) {
+          var gpsHtml = '<div class="gps-ok"><i class="fa-solid fa-location-dot"></i> OK</div>' +
+            '<div class="coord-text">Lat: ' + item.gps.lat.toFixed(6) + '<br>Lng: ' + item.gps.lng.toFixed(6) + (item.gps.accuracy ? '<br>±' + Math.round(item.gps.accuracy) + 'm' : '') + '</div>' +
+            '<a class="gps-link" href="' + (item.gps.mapsUrl || 'https://www.google.com/maps?q=' + item.gps.lat + ',' + item.gps.lng) + '" target="_blank" rel="noopener"><i class="fa-solid fa-up-right-from-square"></i> Ver mapa</a>';
+
+          tablaHtml += '<tr>' +
+            '<td>' + (i + 1) + '</td>' +
+            '<td class="nombre-item">' + (item.item || '—') + '</td>' +
+            '<td>' + (item.sector || '<span class="vacio">—</span>') + '</td>' +
+            '<td>' + (item.inicio || '<span class="vacio">—</span>') + '</td>' +
+            '<td>' + (item.fin || '<span class="vacio">—</span>') + '</td>' +
+            '<td>' + gpsHtml + '</td>' +
+          '</tr>';
+        });
+
+        tablaHtml += '</tbody></table>';
+
+        html += '<div class="codigo-card">' +
+          '<div class="cc-header" onclick="toggleCard(this)">' +
+            '<div class="cc-header-left">' +
+              '<span class="cc-codigo">' + grupo.codigo + '</span>' +
+              '<span class="cc-estado gps">' + grupo.itemsGps.length + ' GPS</span>' +
+            '</div>' +
+            '<div style="display:flex;align-items:center;gap:10px;">' +
+              '<span class="cc-fecha">' + tiempoRef + '</span>' +
+            '</div>' +
+            '<i class="fa-solid fa-chevron-down cc-toggle"></i>' +
+          '</div>' +
+          '<div class="cc-body">' +
+            resumenHtml +
+            tablaHtml +
+          '</div>' +
+        '</div>';
+      });
+
+      document.getElementById('listaGps').innerHTML = html;
+    }
+
+    /* ========== RESUMEN INLINE DENTRO DE TARJETAS ========== */
+    function construirResumenInline(reg, tipo) {
+      var items = reg.items || [];
+      var totalItems = Array.isArray(items) ? items.length : 0;
+      var gpsCount = reg.gpsCount || 0;
+      var conInicio = 0;
+      var conFin = 0;
+      var sectores = {};
+
+      if (Array.isArray(items)) {
+        items.forEach(function(item) {
+          if (item.inicio) conInicio++;
+          if (item.fin) conFin++;
+          if (item.sector) {
+            sectores[item.sector] = (sectores[item.sector] || 0) + 1;
+          }
+        });
+      }
+
+      var sectoresUnicos = Object.keys(sectores).length;
+      var progreso = totalItems > 0 ? Math.round((conFin / totalItems) * 100) : 0;
+      var progresoColor = progreso < 30 ? 'var(--danger)' : (progreso < 70 ? 'var(--warning)' : 'var(--success)');
+
+      var html = '<div class="cc-resumen-inline">';
+
+      /* Total de entregas */
+      html += '<div class="cri"><div class="cri-label">Entregas</div><div class="cri-value" style="color:var(--fg);">' + totalItems + '</div></div>';
+
+      /* Progreso */
+      if (tipo === 'proceso') {
+        html += '<div class="cri"><div class="cri-label">Progreso</div><div class="cri-value" style="color:' + progresoColor + ';">' + progreso + '%</div></div>';
+        html += '<div class="cri"><div class="cri-label">Iniciadas</div><div class="cri-value" style="color:var(--info);">' + conInicio + '</div></div>';
+        html += '<div class="cri"><div class="cri-label">Finalizadas</div><div class="cri-value" style="color:var(--success);">' + conFin + '</div></div>';
+      } else {
+        /* Para completados mostrar duración */
+        var duracionTexto = '—';
+        if (reg.fechaInicio && reg.fechaFin) {
+          var diffMs = new Date(reg.fechaFin).getTime() - new Date(reg.fechaInicio).getTime();
+          if (diffMs > 0) {
+            var dMin = Math.floor(diffMs / 60000);
+            if (dMin < 60) duracionTexto = dMin + ' min';
+            else duracionTexto = Math.floor(dMin / 60) + 'h ' + (dMin % 60) + 'm';
+          }
+        }
+        html += '<div class="cri"><div class="cri-label">Duración</div><div class="cri-value" style="font-size:14px;color:var(--fg2);">' + duracionTexto + '</div></div>';
+        html += '<div class="cri"><div class="cri-label">Con GPS</div><div class="cri-value" style="color:' + (gpsCount > 0 ? 'var(--accent)' : 'var(--fg3)') + ';">' + gpsCount + '</div></div>';
+        html += '<div class="cri"><div class="cri-label">Sectores</div><div class="cri-value" style="color:var(--purple);">' + sectoresUnicos + '</div></div>';
+      }
+
+      /* Barra de progreso visual para procesos */
+      if (tipo === 'proceso' && totalItems > 0) {
+        html += '</div>';
+        html += '<div style="margin-bottom:12px;">';
+        html += '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--fg3);margin-bottom:4px;">';
+        html += '<span>Avance de entregas</span><span>' + conFin + ' / ' + totalItems + '</span>';
+        html += '</div>';
+        html += '<div style="height:6px;background:var(--bg);border-radius:3px;overflow:hidden;">';
+        html += '<div style="height:100%;width:' + progreso + '%;background:' + progresoColor + ';border-radius:3px;transition:width 0.4s ease;"></div>';
+        html += '</div></div>';
+        return html;
+      }
+
+      /* Para completados, mostrar sectores detallados */
+      if (tipo === 'completado' && sectoresUnicos > 0) {
+        html += '</div>';
+        html += '<div style="margin-bottom:12px;display:flex;flex-wrap:wrap;gap:6px;">';
+        Object.keys(sectores).forEach(function(sec) {
+          html += '<span style="font-size:10px;padding:3px 8px;border-radius:6px;background:rgba(167,139,250,0.08);color:var(--purple);border:1px solid rgba(167,139,250,0.15);">' + sec + ' (' + sectores[sec] + ')</span>';
+        });
+        html += '</div>';
+        return html;
+      }
+
+      html += '</div>';
+      return html;
+    }
+
+    /* ========== TABLA DE ÍTEMS ========== */
+    function renderTablaItems(reg) {
+      var items = reg.items || [];
+      if (!Array.isArray(items) || items.length === 0) {
+        return '<div style="padding:10px;color:var(--fg3);font-size:12px;">Sin datos de entrega.</div>';
+      }
+
+      var html = '<table class="cc-table"><thead><tr>' +
+        '<th>#</th><th>Nombre</th><th>Sector</th><th>Desde</th><th>Hasta</th><th>GPS</th>' +
+        '</tr></thead><tbody>';
+
+      items.forEach(function(item, i) {
+        var gpsHtml = '';
+        if (item.gps && item.gps.lat !== null && item.gps.lng !== null) {
+          gpsHtml = '<div class="gps-ok"><i class="fa-solid fa-location-dot"></i> OK</div>' +
+            '<div class="coord-text">Lat: ' + item.gps.lat.toFixed(6) + '<br>Lng: ' + item.gps.lng.toFixed(6) + (item.gps.accuracy ? '<br>±' + Math.round(item.gps.accuracy) + 'm' : '') + '</div>' +
+            '<a class="gps-link" href="' + (item.gps.mapsUrl || 'https://www.google.com/maps?q=' + item.gps.lat + ',' + item.gps.lng) + '" target="_blank" rel="noopener"><i class="fa-solid fa-up-right-from-square"></i> Ver mapa</a>';
+        } else {
+          gpsHtml = '<span class="gps-no">Sin ubicación</span>';
+        }
+
+        html += '<tr>' +
+          '<td>' + (i + 1) + '</td>' +
+          '<td class="nombre-item">' + (item.item || '—') + '</td>' +
+          '<td>' + (item.sector || '<span class="vacio">—</span>') + '</td>' +
+          '<td>' + (item.inicio || '<span class="vacio">—</span>') + '</td>' +
+          '<td>' + (item.fin || '<span class="vacio">—</span>') + '</td>' +
+          '<td>' + gpsHtml + '</td>' +
+        '</tr>';
+      });
+
+      html += '</tbody></table>';
+      return html;
+    }
+
+    /* ========== UTILIDADES ========== */
+    function toggleCard(header) {
+      var body = header.nextElementSibling;
+      var icon = header.querySelector('.cc-toggle');
+      if (body.classList.contains('visible')) {
+        body.classList.remove('visible');
+        icon.style.transform = 'rotate(0deg)';
+      } else {
+        body.classList.add('visible');
+        icon.style.transform = 'rotate(180deg)';
+      }
+    }
+
+    function tiempoRelativo(fechaStr) {
+      try {
+        var fecha = new Date(fechaStr);
+        var ahora = new Date();
+        var diffMs = ahora - fecha;
+        if (diffMs < 0) diffMs = 0;
+
+        var min = Math.floor(diffMs / 60000);
+        if (min < 1) return 'Ahora mismo';
+        if (min < 60) return 'Hace ' + min + ' min';
+
+        var horas = Math.floor(min / 60);
+        min = min % 60;
+        if (horas < 24) return 'Hace ' + horas + 'h ' + min + 'm';
+
+        var dias = Math.floor(horas / 24);
+        horas = horas % 24;
+        if (dias === 1) return 'Ayer';
+        if (dias < 7) return 'Hace ' + dias + 'd ' + horas + 'h';
+
+        return fecha.toLocaleDateString('es-EC', { day: '2-digit', month: 'short' });
+      } catch(e) {
+        return '—';
+      }
+    }
+
+    /* ========== AUTO ACTUALIZAR ========== */
+    function iniciarAutoActualizar() {
+      detenerAutoActualizar();
+      timerAutoActualizar = setInterval(cargarDatos, INTERVALO_ACTUALIZACION);
+    }
+    function detenerAutoActualizar() {
+      if (timerAutoActualizar) { clearInterval(timerAutoActualizar); timerAutoActualizar = null; }
+    }
+  </script>
+</body>
+</html>
