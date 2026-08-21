@@ -38,7 +38,7 @@
     .dash-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:24px}
     .dash-header h1{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700}
     .dash-header h1 i{color:var(--accent);margin-right:8px}
-    .dash-header-actions{display:flex;gap:8px;align-items:center}
+    .dash-header-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
     .dash-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--fg2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap}
     .dash-btn:hover{border-color:var(--fg3);color:var(--fg);background:var(--card2)}
     .dash-btn.actualizando{pointer-events:none;opacity:.6}
@@ -47,6 +47,8 @@
     .dash-btn.salir:hover{background:rgba(248,113,113,.08);border-color:var(--danger)}
     .dash-btn.compartir{border-color:rgba(52,211,153,.2);color:var(--success)}
     .dash-btn.compartir:hover{background:rgba(52,211,153,.08);border-color:var(--success)}
+    .dash-btn.mapa-general{border-color:rgba(232,145,58,.35);color:var(--accent);background:rgba(232,145,58,.06)}
+    .dash-btn.mapa-general:hover{background:rgba(232,145,58,.14);border-color:var(--accent);box-shadow:0 2px 12px rgba(232,145,58,.15)}
 
     @keyframes spin{to{transform:rotate(360deg)}}
     @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
@@ -123,7 +125,6 @@
     .toast i.ok{color:var(--success)}
     .toast i.err{color:var(--danger)}
 
-    /* ===== MODAL COMPARTIR ===== */
     .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .3s ease}
     .modal-overlay.visible{opacity:1;pointer-events:auto}
     .modal-box{background:var(--card);border:1px solid var(--border);border-radius:18px;width:100%;max-width:960px;max-height:88vh;display:flex;flex-direction:column;transform:scale(.94);transition:transform .35s cubic-bezier(.16,1,.3,1);overflow:hidden}
@@ -159,7 +160,7 @@
     .modal-btn{display:inline-flex;align-items:center;gap:6px;padding:10px 18px;border-radius:8px;border:none;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .25s;white-space:nowrap}
     .modal-btn:active{transform:scale(.97)}
     .modal-btn.copiar{background:var(--accent);color:#0f1117}
-    .modal-btn.copiar:hover{background:var(--accent-hover,#f0a050);box-shadow:0 4px 16px rgba(232,145,58,.3)}
+    .modal-btn.copiar:hover{background:#f0a050;box-shadow:0 4px 16px rgba(232,145,58,.3)}
     .modal-btn.copiar.copiado{background:var(--success);pointer-events:none}
     .modal-btn.csv{background:rgba(96,165,250,.1);color:var(--info);border:1px solid rgba(96,165,250,.25)}
     .modal-btn.csv:hover{background:rgba(96,165,250,.18);border-color:var(--info)}
@@ -169,6 +170,8 @@
     @media(max-width:640px){
       .dashboard{padding:16px 10px 40px}
       .dash-header{flex-direction:column;align-items:flex-start}
+      .dash-header-actions{width:100%;flex-wrap:wrap}
+      .dash-btn.mapa-general{order:-1;flex:1;justify-content:center}
       .resumen{grid-template-columns:repeat(2,1fr)}
       .resumen-card .rc-value{font-size:22px}
       .cc-header{padding:12px;flex-wrap:wrap}
@@ -203,7 +206,6 @@
     </div>
   </div>
 
-  <!-- Modal Compartir -->
   <div class="modal-overlay" id="modalCompartir">
     <div class="modal-box">
       <div class="modal-head">
@@ -228,6 +230,7 @@
     <div class="dash-header">
       <h1><i class="fa-solid fa-satellite-dish"></i> Monitoreo de transportes</h1>
       <div class="dash-header-actions">
+        <button class="dash-btn mapa-general" onclick="verMapaGeneral()"><i class="fa-solid fa-map-location-dot"></i> Mapa general</button>
         <button class="dash-btn compartir" id="btnCompartir" onclick="abrirCompartir()"><i class="fa-solid fa-share-nodes"></i> Compartir</button>
         <button class="dash-btn" id="btnActualizar" onclick="cargarDatos()"><i class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
         <button class="dash-btn salir" onclick="cerrarSesion()"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
@@ -250,10 +253,10 @@
         <div class="rc-value" id="rcGps" style="color:var(--accent)">0</div>
         <div class="rc-sub">Ubicaciones registradas <i class="fa-solid fa-arrow-down"></i></div>
       </div>
-      <div class="resumen-card" style="cursor:default" title="Hora de la última actualización">
-        <div class="rc-label"><i class="fa-solid fa-clock" style="color:var(--warning)"></i> Última carga</div>
+      <div class="resumen-card" style="cursor:default" title="Hora de la ultima actualizacion">
+        <div class="rc-label"><i class="fa-solid fa-clock" style="color:var(--warning)"></i> Ultima carga</div>
         <div class="rc-value" id="rcUltima" style="color:var(--warning);font-size:16px">--:--</div>
-        <div class="rc-sub">Actualización</div>
+        <div class="rc-sub">Actualizacion</div>
       </div>
     </div>
 
@@ -274,15 +277,27 @@
   <div class="toast" id="toast"><i class="fa-solid fa-circle-check ok"></i><span id="toastMsg"></span></div>
 
   <script>
+    /* ===== CONSTANTES ===== */
     var CLAVE_ACCESO = 'admin2025';
     var FIREBASE_URL = 'https://datos-formulario-f3cde-default-rtdb.firebaseio.com/codigosUsados';
     var INTERVALO_ACTUALIZACION = 15000;
+    var COLORES_MAPA = [
+      '#e8913a','#34d399','#60a5fa','#f87171','#a78bfa',
+      '#fbbf24','#f472b6','#2dd4bf','#fb923c','#818cf8',
+      '#4ade80','#e879f9','#38bdf8','#fb7185','#a3e635',
+      '#c084fc','#fca5a5','#67e8f9','#fdba74','#86efac'
+    ];
+
+    /* ===== ESTADO ===== */
     var timerAutoActualizar = null;
     var datosGlobales = { procesos: [], completados: [], gpsItems: [], totalGps: 0 };
     var registrosPorCodigo = {};
 
-    /* ==================== LOGIN ==================== */
-    document.getElementById('loginPass').addEventListener('keydown', function(e) { if (e.key === 'Enter') verificarAcceso(); });
+    /* ===== LOGIN ===== */
+    document.getElementById('loginPass').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') verificarAcceso();
+    });
+
     function verificarAcceso() {
       var pass = document.getElementById('loginPass').value;
       document.getElementById('loginError').classList.remove('visible');
@@ -290,13 +305,15 @@
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('dashboard').classList.add('visible');
         document.getElementById('loginPass').value = '';
-        cargarDatos(); iniciarAutoActualizar();
+        cargarDatos();
+        iniciarAutoActualizar();
       } else {
         document.getElementById('loginError').classList.add('visible');
         document.getElementById('loginPass').value = '';
         document.getElementById('loginPass').focus();
       }
     }
+
     function cerrarSesion() {
       detenerAutoActualizar();
       document.getElementById('dashboard').classList.remove('visible');
@@ -304,16 +321,54 @@
       document.getElementById('loginPass').focus();
     }
 
-    /* ==================== TOAST ==================== */
+    /* ===== AUTO ACTUALIZAR ===== */
+    function iniciarAutoActualizar() {
+      detenerAutoActualizar();
+      timerAutoActualizar = setInterval(cargarDatos, INTERVALO_ACTUALIZACION);
+    }
+    function detenerAutoActualizar() {
+      if (timerAutoActualizar) { clearInterval(timerAutoActualizar); timerAutoActualizar = null; }
+    }
+
+    /* ===== TOAST ===== */
     function mostrarToast(texto, tipo) {
       var t = document.getElementById('toast');
-      t.innerHTML = '<i class="fa-solid ' + (tipo === 'ok' ? 'fa-circle-check ok' : 'fa-circle-xmark err') + '"></i><span>' + texto + '</span>';
+      var iconCls = tipo === 'ok' ? 'fa-circle-check ok' : 'fa-circle-xmark err';
+      t.innerHTML = '<i class="fa-solid ' + iconCls + '"></i><span>' + texto + '</span>';
       t.classList.add('visible');
       setTimeout(function() { t.classList.remove('visible'); }, 3000);
     }
 
-    /* ==================== COMPARTIR ==================== */
-    /* Extrae todos los items de proceso + completados en un array plano */
+    /* ===== TIEMPO RELATIVO ===== */
+    function tiempoRelativo(fechaStr) {
+      if (!fechaStr) return '\u2014';
+      var fecha = new Date(fechaStr);
+      if (isNaN(fecha.getTime())) return '\u2014';
+      var diff = Date.now() - fecha.getTime();
+      var min = Math.floor(diff / 60000);
+      if (min < 1) return 'Ahora';
+      if (min < 60) return 'Hace ' + min + ' min';
+      var hrs = Math.floor(min / 60);
+      if (hrs < 24) return 'Hace ' + hrs + 'h ' + (min % 60) + 'm';
+      var dias = Math.floor(hrs / 24);
+      if (dias < 7) return 'Hace ' + dias + 'd';
+      return fecha.toLocaleDateString('es-EC', { day: '2-digit', month: 'short' });
+    }
+
+    /* ===== TOGGLE CARD ===== */
+    function toggleCard(headerEl) {
+      var body = headerEl.nextElementSibling;
+      var icon = headerEl.querySelector('.cc-toggle');
+      if (body.classList.contains('visible')) {
+        body.classList.remove('visible');
+        if (icon) icon.style.transform = '';
+      } else {
+        body.classList.add('visible');
+        if (icon) icon.style.transform = 'rotate(180deg)';
+      }
+    }
+
+    /* ===== COMPARTIR ===== */
     function obtenerTodosLosDatos() {
       var todos = [];
       datosGlobales.procesos.forEach(function(reg) {
@@ -343,72 +398,40 @@
       var datos = obtenerTodosLosDatos();
       var nProc = datosGlobales.procesos.reduce(function(s, r) { return s + (r.items || []).length; }, 0);
       var nComp = datosGlobales.completados.reduce(function(s, r) { return s + (r.items || []).length; }, 0);
-
       document.getElementById('msProceso').textContent = nProc + ' proceso';
       document.getElementById('msCompletado').textContent = nComp + ' completados';
       document.getElementById('msTotal').textContent = datos.length + ' total';
-
-      /* Resetear botón copiar */
       var btnCop = document.getElementById('btnCopiar');
       btnCop.classList.remove('copiado');
       btnCop.innerHTML = '<i class="fa-regular fa-clipboard"></i> Copiar texto';
-
       if (!datos.length) {
         document.getElementById('modalBody').innerHTML = '<div class="sin-datos"><i class="fa-solid fa-inbox"></i><p>No hay datos para compartir.</p></div>';
       } else {
-        var html = '<table class="modal-table"><thead><tr>' +
-          '<th>#</th><th>Código</th><th>Estado</th><th>Cliente</th><th>Sector</th><th>Desde</th><th>Hasta</th><th>GPS</th>' +
-          '</tr></thead><tbody>';
+        var h = '<table class="modal-table"><thead><tr><th>#</th><th>Codigo</th><th>Estado</th><th>Cliente</th><th>Sector</th><th>Desde</th><th>Hasta</th><th>GPS</th></tr></thead><tbody>';
         datos.forEach(function(d, i) {
-          var gpsHtml = '';
-          if (d.lat !== '') {
-            gpsHtml = '<span class="mt-gps-ok"><i class="fa-solid fa-location-dot"></i> OK</span> <span class="mt-gps">' + Number(d.lat).toFixed(6) + ', ' + Number(d.lng).toFixed(6) + (d.precision ? ' ±' + d.precision : '') + '</span>';
-          } else {
-            gpsHtml = '<span class="mt-vacio">Sin GPS</span>';
-          }
-          var estClass = d.estado === 'En proceso' ? 'ep' : 'ec';
-          html += '<tr>' +
-            '<td class="mt-num">' + (i + 1) + '</td>' +
-            '<td class="mt-codigo">' + d.codigo + '</td>' +
-            '<td><span class="mt-estado ' + estClass + '">' + d.estado + '</span></td>' +
-            '<td class="mt-nombre">' + (d.cliente || '<span class="mt-vacio">—</span>') + '</td>' +
-            '<td>' + (d.sector || '<span class="mt-vacio">—</span>') + '</td>' +
-            '<td>' + (d.desde || '<span class="mt-vacio">—</span>') + '</td>' +
-            '<td>' + (d.hasta || '<span class="mt-vacio">—</span>') + '</td>' +
-            '<td>' + gpsHtml + '</td>' +
-            '</tr>';
+          var gpsH = d.lat !== ''
+            ? '<span class="mt-gps-ok"><i class="fa-solid fa-location-dot"></i> OK</span> <span class="mt-gps">' + Number(d.lat).toFixed(6) + ', ' + Number(d.lng).toFixed(6) + (d.precision ? ' \u00b1' + d.precision : '') + '</span>'
+            : '<span class="mt-vacio">Sin GPS</span>';
+          var ec = d.estado === 'En proceso' ? 'ep' : 'ec';
+          h += '<tr><td class="mt-num">' + (i+1) + '</td><td class="mt-codigo">' + d.codigo + '</td><td><span class="mt-estado ' + ec + '">' + d.estado + '</span></td><td class="mt-nombre">' + (d.cliente || '<span class="mt-vacio">\u2014</span>') + '</td><td>' + (d.sector || '<span class="mt-vacio">\u2014</span>') + '</td><td>' + (d.desde || '<span class="mt-vacio">\u2014</span>') + '</td><td>' + (d.hasta || '<span class="mt-vacio">\u2014</span>') + '</td><td>' + gpsH + '</td></tr>';
         });
-        html += '</tbody></table>';
-        document.getElementById('modalBody').innerHTML = html;
+        h += '</tbody></table>';
+        document.getElementById('modalBody').innerHTML = h;
       }
-
       document.getElementById('modalCompartir').classList.add('visible');
     }
 
-    function cerrarCompartir() {
-      document.getElementById('modalCompartir').classList.remove('visible');
-    }
+    function cerrarCompartir() { document.getElementById('modalCompartir').classList.remove('visible'); }
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') cerrarCompartir(); });
+    document.getElementById('modalCompartir').addEventListener('click', function(e) { if (e.target === this) cerrarCompartir(); });
 
-    /* Cerrar modal con Escape */
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') cerrarCompartir();
-    });
-    /* Cerrar modal al clic fuera */
-    document.getElementById('modalCompartir').addEventListener('click', function(e) {
-      if (e.target === this) cerrarCompartir();
-    });
-
-    /* Genera texto tabulado para pegar en Excel/Sheets/WhatsApp */
     function generarTextoPlano() {
       var datos = obtenerTodosLosDatos();
       if (!datos.length) return '';
-      var sep = '\t';
-      var lineas = [];
-      lineas.push(['#', 'Código', 'Estado', 'Cliente', 'Sector', 'Desde', 'Hasta', 'Latitud', 'Longitud', 'Precisión GPS'].join(sep));
+      var sep = '\t', lineas = [];
+      lineas.push(['#','Codigo','Estado','Cliente','Sector','Desde','Hasta','Latitud','Longitud','Precision GPS'].join(sep));
       datos.forEach(function(d, i) {
-        var lat = d.lat !== '' ? Number(d.lat).toFixed(6) : '';
-        var lng = d.lng !== '' ? Number(d.lng).toFixed(6) : '';
-        lineas.push([i + 1, d.codigo, d.estado, d.cliente, d.sector, d.desde, d.hasta, lat, lng, d.precision].join(sep));
+        lineas.push([i+1, d.codigo, d.estado, d.cliente, d.sector, d.desde, d.hasta, d.lat !== '' ? Number(d.lat).toFixed(6) : '', d.lng !== '' ? Number(d.lng).toFixed(6) : '', d.precision].join(sep));
       });
       return lineas.join('\n');
     }
@@ -416,82 +439,44 @@
     function copiarDatos() {
       var texto = generarTextoPlano();
       if (!texto) { mostrarToast('No hay datos para copiar', 'err'); return; }
-      var btnCop = document.getElementById('btnCopiar');
-
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(texto).then(function() {
-          btnCop.classList.add('copiado');
-          btnCop.innerHTML = '<i class="fa-solid fa-check"></i> Copiado';
-          mostrarToast('Datos copiados al portapapeles', 'ok');
-          setTimeout(function() { btnCop.classList.remove('copiado'); btnCop.innerHTML = '<i class="fa-regular fa-clipboard"></i> Copiar texto'; }, 3000);
-        }).catch(function() { copiarFallback(texto, btnCop); });
-      } else {
-        copiarFallback(texto, btnCop);
+      var btn = document.getElementById('btnCopiar');
+      function ok() {
+        btn.classList.add('copiado'); btn.innerHTML = '<i class="fa-solid fa-check"></i> Copiado';
+        mostrarToast('Datos copiados al portapapeles', 'ok');
+        setTimeout(function() { btn.classList.remove('copiado'); btn.innerHTML = '<i class="fa-regular fa-clipboard"></i> Copiar texto'; }, 3000);
       }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(texto).then(ok).catch(function() { fallbackCopy(texto, ok); });
+      } else { fallbackCopy(texto, ok); }
     }
 
-    function copiarFallback(texto, btnCop) {
+    function fallbackCopy(texto, cb) {
       var ta = document.createElement('textarea');
-      ta.value = texto; ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0';
+      ta.value = texto; ta.style.cssText = 'position:fixed;left:-9999px;opacity:0';
       document.body.appendChild(ta); ta.select();
-      try {
-        document.execCommand('copy');
-        btnCop.classList.add('copiado');
-        btnCop.innerHTML = '<i class="fa-solid fa-check"></i> Copiado';
-        mostrarToast('Datos copiados al portapapeles', 'ok');
-        setTimeout(function() { btnCop.classList.remove('copiado'); btnCop.innerHTML = '<i class="fa-regular fa-clipboard"></i> Copiar texto'; }, 3000);
-      } catch(e) { mostrarToast('No se pudo copiar', 'err'); }
+      try { document.execCommand('copy'); cb(); } catch(e) { mostrarToast('No se pudo copiar', 'err'); }
       document.body.removeChild(ta);
     }
 
     function descargarCSV() {
       var datos = obtenerTodosLosDatos();
       if (!datos.length) { mostrarToast('No hay datos para descargar', 'err'); return; }
-
-      /* Generar CSV con BOM para que Excel reconozca acentos */
-      var bom = '\uFEFF';
-      var lineas = [];
-      lineas.push(['#', 'Codigo', 'Estado', 'Cliente', 'Sector', 'Desde', 'Hasta', 'Latitud', 'Longitud', 'Precision GPS'].join(','));
+      var lineas = ['\uFEFF' + ['#','Codigo','Estado','Cliente','Sector','Desde','Hasta','Latitud','Longitud','Precision GPS'].join(',')];
+      function esc(v) { var s = String(v||''); return (s.indexOf(',')>-1||s.indexOf('"')>-1||s.indexOf('\n')>-1) ? '"'+s.replace(/"/g,'""')+'"' : s; }
       datos.forEach(function(d, i) {
-        var lat = d.lat !== '' ? Number(d.lat).toFixed(6) : '';
-        var lng = d.lng !== '' ? Number(d.lng).toFixed(6) : '';
-        lineas.push([
-          i + 1,
-          csvEsc(d.codigo),
-          csvEsc(d.estado),
-          csvEsc(d.cliente),
-          csvEsc(d.sector),
-          csvEsc(d.desde),
-          csvEsc(d.hasta),
-          lat,
-          lng,
-          csvEsc(d.precision)
-        ].join(','));
+        lineas.push([i+1, esc(d.codigo), esc(d.estado), esc(d.cliente), esc(d.sector), esc(d.desde), esc(d.hasta), d.lat!=='' ? Number(d.lat).toFixed(6) : '', d.lng!=='' ? Number(d.lng).toFixed(6) : '', esc(d.precision)].join(','));
       });
-
-      var csvContent = bom + lineas.join('\r\n');
-      var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      var blob = new Blob([lineas.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
       var url = URL.createObjectURL(blob);
-      var a = document.createElement('a');
-      a.href = url;
-      var fecha = new Date();
-      a.download = 'transportes_' + fecha.getFullYear() + '-' + String(fecha.getMonth() + 1).padStart(2, '0') + '-' + String(fecha.getDate()).padStart(2, '0') + '_' + String(fecha.getHours()).padStart(2, '0') + String(fecha.getMinutes()).padStart(2, '0') + '.csv';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      var a = document.createElement('a'); a.href = url;
+      var f = new Date();
+      a.download = 'transportes_' + f.getFullYear() + '-' + String(f.getMonth()+1).padStart(2,'0') + '-' + String(f.getDate()).padStart(2,'0') + '_' + String(f.getHours()).padStart(2,'0') + String(f.getMinutes()).padStart(2,'0') + '.csv';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(url);
       mostrarToast('CSV descargado', 'ok');
     }
 
-    function csvEsc(val) {
-      var s = String(val || '');
-      if (s.indexOf(',') !== -1 || s.indexOf('"') !== -1 || s.indexOf('\n') !== -1) {
-        return '"' + s.replace(/"/g, '""') + '"';
-      }
-      return s;
-    }
-
-    /* ==================== NAVEGAR DESDE RESUMEN ==================== */
+    /* ===== NAVEGAR DESDE RESUMEN ===== */
     function navegarA(seccion) {
       var target = null;
       if (seccion === 'proceso') target = document.getElementById('seccionProceso');
@@ -508,13 +493,18 @@
           var b = pc.querySelector('.cc-body'), ic = pc.querySelector('.cc-toggle');
           if (b && !b.classList.contains('visible')) { b.classList.add('visible'); if (ic) ic.style.transform = 'rotate(180deg)'; }
           var cards = target.querySelectorAll('.codigo-card');
-          for (var i = 0; i < Math.min(cards.length, 5); i++) (function(c, d) { setTimeout(function() { c.classList.add('card-highlight'); }, d); })(cards[i], i * 150);
+          for (var i = 0; i < Math.min(cards.length, 5); i++) {
+            (function(c, d) { setTimeout(function() { c.classList.add('card-highlight'); }, d); })(cards[i], i * 150);
+          }
         }
       }, 600);
-      setTimeout(function() { target.querySelectorAll('.codigo-card').forEach(function(c) { c.classList.remove('card-highlight'); }); target.classList.remove('highlight'); }, 3000);
+      setTimeout(function() {
+        target.querySelectorAll('.codigo-card').forEach(function(c) { c.classList.remove('card-highlight'); });
+        target.classList.remove('highlight');
+      }, 3000);
     }
 
-    /* ==================== CARGAR DATOS ==================== */
+    /* ===== CARGAR DATOS ===== */
     async function cargarDatos() {
       var btn = document.getElementById('btnActualizar');
       btn.classList.add('actualizando'); btn.innerHTML = '<i class="fa-solid fa-circle-notch"></i> Actualizando...';
@@ -564,9 +554,11 @@
         if (document.getElementById('seccionGps').style.display !== 'none') renderizarGps(gpsItems);
         if (procesos.length === 0 && completados.length === 0 && gpsItems.length === 0) renderizarVacio();
       } catch(e) {
-        console.error('Error:', e); renderizarError('Error de conexión: ' + e.message);
+        console.error('Error:', e);
+        renderizarError('Error de conexion: ' + e.message);
       } finally {
-        btn.classList.remove('actualizando'); btn.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i> Actualizar';
+        btn.classList.remove('actualizando');
+        btn.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i> Actualizar';
       }
     }
 
@@ -579,58 +571,59 @@
       document.getElementById('countCompletados').textContent = '0';
       document.getElementById('countGps').textContent = '0';
     }
+
     function renderizarError(mensaje) {
       document.getElementById('listaProceso').innerHTML = '<div class="sin-datos"><i class="fa-solid fa-triangle-exclamation"></i><p>' + mensaje + '</p></div>';
       document.getElementById('listaCompletados').innerHTML = '';
       document.getElementById('listaGps').innerHTML = '';
     }
 
-    /* ==================== RENDERIZAR PROCESOS ==================== */
+    /* ===== RENDERIZAR PROCESOS ===== */
     function renderizarProcesos(lista) {
       document.getElementById('countProceso').textContent = lista.length;
       if (!lista.length) { document.getElementById('listaProceso').innerHTML = '<div class="sin-datos"><i class="fa-solid fa-check-circle"></i><p>No hay sesiones en proceso.</p></div>'; return; }
       var html = '';
       lista.forEach(function(reg) {
-        var tI = reg.fechaInicio ? tiempoRelativo(reg.fechaInicio) : '—';
+        var tI = reg.fechaInicio ? tiempoRelativo(reg.fechaInicio) : '\u2014';
         var iMs = reg.fechaInicio ? Date.now() - new Date(reg.fechaInicio).getTime() : 0;
         var iMin = Math.floor(iMs / 60000);
         var iCol = iMin < 60 ? 'var(--success)' : (iMin < 120 ? 'var(--warning)' : 'var(--danger)');
         var iTxt = iMin < 60 ? iMin + ' min' : Math.floor(iMin / 60) + 'h ' + (iMin % 60) + 'm';
         var rBtn = reg.gpsCount > 0 ? '<button class="cc-ruta-btn" onclick="event.stopPropagation();verRutaEnMapa(\'' + reg.codigo + '\')"><i class="fa-solid fa-route"></i> Ruta</button>' : '';
-        html += '<div class="codigo-card"><div class="cc-header" onclick="toggleCard(this)">' +
-          '<div class="cc-header-left"><span class="cc-codigo">' + reg.codigo + '</span><span class="cc-estado proceso">En proceso</span></div>' +
-          '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">' + rBtn +
-          '<span class="cc-fecha">' + tI + '</span><span style="font-size:11px;color:' + iCol + ';font-weight:600">' + iTxt + '</span></div>' +
-          '<i class="fa-solid fa-chevron-down cc-toggle"></i></div><div class="cc-body">' +
-          construirResumenInline(reg, 'proceso') + renderTablaItems(reg) +
-          (reg.gpsCount > 0 ? construirBloqueRuta(reg.codigo) : '') +
-          '</div></div>';
+        html += '<div class="codigo-card"><div class="cc-header" onclick="toggleCard(this)">'
+          + '<div class="cc-header-left"><span class="cc-codigo">' + reg.codigo + '</span><span class="cc-estado proceso">En proceso</span></div>'
+          + '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">' + rBtn
+          + '<span class="cc-fecha">' + tI + '</span><span style="font-size:11px;color:' + iCol + ';font-weight:600">' + iTxt + '</span></div>'
+          + '<i class="fa-solid fa-chevron-down cc-toggle"></i></div><div class="cc-body">'
+          + construirResumenInline(reg, 'proceso') + renderTablaItems(reg)
+          + (reg.gpsCount > 0 ? construirBloqueRuta(reg.codigo) : '')
+          + '</div></div>';
       });
       document.getElementById('listaProceso').innerHTML = html;
     }
 
-    /* ==================== RENDERIZAR COMPLETADOS ==================== */
+    /* ===== RENDERIZAR COMPLETADOS ===== */
     function renderizarCompletados(lista) {
       document.getElementById('countCompletados').textContent = lista.length;
       if (!lista.length) { document.getElementById('listaCompletados').innerHTML = '<div class="sin-datos"><i class="fa-solid fa-check-circle"></i><p>No hay sesiones completadas.</p></div>'; return; }
       var html = '';
       lista.forEach(function(reg) {
-        var tF = reg.fechaFin ? tiempoRelativo(reg.fechaFin) : '—';
+        var tF = reg.fechaFin ? tiempoRelativo(reg.fechaFin) : '\u2014';
         var rBtn = reg.gpsCount > 0 ? '<button class="cc-ruta-btn" onclick="event.stopPropagation();verRutaEnMapa(\'' + reg.codigo + '\')"><i class="fa-solid fa-route"></i> Ruta</button>' : '';
-        html += '<div class="codigo-card"><div class="cc-header" onclick="toggleCard(this)">' +
-          '<div class="cc-header-left"><span class="cc-codigo">' + reg.codigo + '</span><span class="cc-estado completado">Completado</span></div>' +
-          '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">' + rBtn +
-          '<span class="cc-fecha">Fin: ' + tF + '</span>' +
-          (reg.gpsCount > 0 ? '<span style="font-size:11px;color:var(--success);font-weight:600"><i class="fa-solid fa-location-dot"></i> ' + reg.gpsCount + ' GPS</span>' : '<span style="font-size:11px;color:var(--fg3)">Sin GPS</span>') +
-          '</div><i class="fa-solid fa-chevron-down cc-toggle"></i></div><div class="cc-body">' +
-          construirResumenInline(reg, 'completado') + renderTablaItems(reg) +
-          (reg.gpsCount > 0 ? construirBloqueRuta(reg.codigo) : '') +
-          '</div></div>';
+        html += '<div class="codigo-card"><div class="cc-header" onclick="toggleCard(this)">'
+          + '<div class="cc-header-left"><span class="cc-codigo">' + reg.codigo + '</span><span class="cc-estado completado">Completado</span></div>'
+          + '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">' + rBtn
+          + '<span class="cc-fecha">Fin: ' + tF + '</span>'
+          + (reg.gpsCount > 0 ? '<span style="font-size:11px;color:var(--success);font-weight:600"><i class="fa-solid fa-location-dot"></i> ' + reg.gpsCount + ' GPS</span>' : '<span style="font-size:11px;color:var(--fg3)">Sin GPS</span>')
+          + '</div><i class="fa-solid fa-chevron-down cc-toggle"></i></div><div class="cc-body">'
+          + construirResumenInline(reg, 'completado') + renderTablaItems(reg)
+          + (reg.gpsCount > 0 ? construirBloqueRuta(reg.codigo) : '')
+          + '</div></div>';
       });
       document.getElementById('listaCompletados').innerHTML = html;
     }
 
-    /* ==================== RENDERIZAR GPS ==================== */
+    /* ===== RENDERIZAR GPS ===== */
     function renderizarGps(gpsItems) {
       document.getElementById('countGps').textContent = gpsItems.length;
       if (!gpsItems.length) { document.getElementById('listaGps').innerHTML = '<div class="sin-datos"><i class="fa-solid fa-location-crosshairs"></i><p>No hay registros con GPS.</p></div>'; return; }
@@ -641,34 +634,34 @@
       });
       var html = '';
       Object.values(agrupados).forEach(function(grupo) {
-        var tR = grupo.fechaFin ? tiempoRelativo(grupo.fechaFin) : (grupo.fechaInicio ? tiempoRelativo(grupo.fechaInicio) : '—');
+        var tR = grupo.fechaFin ? tiempoRelativo(grupo.fechaFin) : (grupo.fechaInicio ? tiempoRelativo(grupo.fechaInicio) : '\u2014');
         var rHtml = '<div class="cc-resumen-inline"><div class="cri"><div class="cri-label">Puntos GPS</div><div class="cri-value" style="color:var(--accent)">' + grupo.itemsGps.length + '</div></div><div class="cri"><div class="cri-label">Estado</div><div class="cri-value" style="font-size:12px;color:' + (grupo.estado === 'completado' ? 'var(--success)' : 'var(--info)') + '">' + (grupo.estado === 'completado' ? 'Completado' : 'En proceso') + '</div></div><div class="cri"><div class="cri-label">Referencia</div><div class="cri-value" style="font-size:12px;color:var(--fg2)">' + tR + '</div></div></div>';
         var tHtml = '<table class="cc-table"><thead><tr><th>#</th><th>Nombre</th><th>Sector</th><th>Desde</th><th>Hasta</th><th>GPS</th></tr></thead><tbody>';
         grupo.itemsGps.forEach(function(item, i) {
-          var gH = '<div class="gps-ok"><i class="fa-solid fa-location-dot"></i> OK</div><div class="coord-text">' + item.gps.lat.toFixed(6) + ', ' + item.gps.lng.toFixed(6) + (item.gps.accuracy ? '<br>±' + Math.round(item.gps.accuracy) + 'm' : '') + '</div><a class="gps-link" href="https://www.google.com/maps?q=' + item.gps.lat + ',' + item.gps.lng + '" target="_blank" rel="noopener"><i class="fa-solid fa-up-right-from-square"></i> Ver</a>';
-          tHtml += '<tr><td>' + (i + 1) + '</td><td class="nombre-item">' + (item.item || '—') + '</td><td>' + (item.sector || '<span class="vacio">—</span>') + '</td><td>' + (item.inicio || '<span class="vacio">—</span>') + '</td><td>' + (item.fin || '<span class="vacio">—</span>') + '</td><td>' + gH + '</td></tr>';
+          var gH = '<div class="gps-ok"><i class="fa-solid fa-location-dot"></i> OK</div><div class="coord-text">' + item.gps.lat.toFixed(6) + ', ' + item.gps.lng.toFixed(6) + (item.gps.accuracy ? '<br>\u00b1' + Math.round(item.gps.accuracy) + 'm' : '') + '</div><a class="gps-link" href="https://www.google.com/maps?q=' + item.gps.lat + ',' + item.gps.lng + '" target="_blank" rel="noopener"><i class="fa-solid fa-up-right-from-square"></i> Ver</a>';
+          tHtml += '<tr><td>' + (i+1) + '</td><td class="nombre-item">' + (item.item || '\u2014') + '</td><td>' + (item.sector || '<span class="vacio">\u2014</span>') + '</td><td>' + (item.inicio || '<span class="vacio">\u2014</span>') + '</td><td>' + (item.fin || '<span class="vacio">\u2014</span>') + '</td><td>' + gH + '</td></tr>';
         });
         tHtml += '</tbody></table>';
-        html += '<div class="codigo-card"><div class="cc-header" onclick="toggleCard(this)">' +
-          '<div class="cc-header-left"><span class="cc-codigo">' + grupo.codigo + '</span><span class="cc-estado gps">' + grupo.itemsGps.length + ' GPS</span></div>' +
-          '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">' +
-          '<button class="cc-ruta-btn" onclick="event.stopPropagation();verRutaEnMapa(\'' + grupo.codigo + '\')"><i class="fa-solid fa-route"></i> Ruta</button>' +
-          '<span class="cc-fecha">' + tR + '</span></div>' +
-          '<i class="fa-solid fa-chevron-down cc-toggle"></i></div><div class="cc-body">' +
-          rHtml + tHtml + construirBloqueRuta(grupo.codigo) +
-          '</div></div>';
+        html += '<div class="codigo-card"><div class="cc-header" onclick="toggleCard(this)">'
+          + '<div class="cc-header-left"><span class="cc-codigo">' + grupo.codigo + '</span><span class="cc-estado gps">' + grupo.itemsGps.length + ' GPS</span></div>'
+          + '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">'
+          + '<button class="cc-ruta-btn" onclick="event.stopPropagation();verRutaEnMapa(\'' + grupo.codigo + '\')"><i class="fa-solid fa-route"></i> Ruta</button>'
+          + '<span class="cc-fecha">' + tR + '</span></div>'
+          + '<i class="fa-solid fa-chevron-down cc-toggle"></i></div><div class="cc-body">'
+          + rHtml + tHtml + construirBloqueRuta(grupo.codigo)
+          + '</div></div>';
       });
       document.getElementById('listaGps').innerHTML = html;
     }
 
-    /* ==================== BLOQUE RUTA ==================== */
+    /* ===== BLOQUE RUTA ===== */
     function construirBloqueRuta(codigo) {
-      return '<div class="cc-ruta-block">' +
-        '<button class="cc-ruta-btn-lg" onclick="verRutaEnMapa(\'' + codigo + '\')"><i class="fa-solid fa-map-location-dot"></i> Mapa con nombres y horas</button>' +
-        '<button class="cc-ruta-btn-lg gmaps" onclick="abrirGoogleMapsRuta(\'' + codigo + '\')"><i class="fa-brands fa-google"></i> Abrir en Google Maps</button></div>';
+      return '<div class="cc-ruta-block">'
+        + '<button class="cc-ruta-btn-lg" onclick="verRutaEnMapa(\'' + codigo + '\')"><i class="fa-solid fa-map-location-dot"></i> Mapa con nombres y horas</button>'
+        + '<button class="cc-ruta-btn-lg gmaps" onclick="abrirGoogleMapsRuta(\'' + codigo + '\')"><i class="fa-brands fa-google"></i> Abrir en Google Maps</button></div>';
     }
 
-    /* ==================== RESUMEN INLINE ==================== */
+    /* ===== RESUMEN INLINE ===== */
     function construirResumenInline(reg, tipo) {
       var items = reg.items || [], total = Array.isArray(items) ? items.length : 0, gps = reg.gpsCount || 0;
       var cI = 0, cF = 0, secs = {};
@@ -680,19 +673,26 @@
         h += '<div class="cri"><div class="cri-label">Progreso</div><div class="cri-value" style="color:' + pC + '">' + prog + '%</div></div>';
         h += '<div class="cri"><div class="cri-label">Iniciadas</div><div class="cri-value" style="color:var(--info)">' + cI + '</div></div>';
         h += '<div class="cri"><div class="cri-label">Finalizadas</div><div class="cri-value" style="color:var(--success)">' + cF + '</div></div></div>';
-        if (total > 0) { h += '<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:10px;color:var(--fg3);margin-bottom:4px"><span>Avance</span><span>' + cF + '/' + total + '</span></div><div style="height:6px;background:var(--bg);border-radius:3px;overflow:hidden"><div style="height:100%;width:' + prog + '%;background:' + pC + ';border-radius:3px;transition:width .4s"></div></div></div>'; }
+        if (total > 0) {
+          h += '<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:10px;color:var(--fg3);margin-bottom:4px"><span>Avance</span><span>' + cF + '/' + total + '</span></div>'
+            + '<div style="height:6px;background:var(--bg);border-radius:3px;overflow:hidden"><div style="height:100%;width:' + prog + '%;background:' + pC + ';border-radius:3px;transition:width .4s"></div></div></div>';
+        }
         return h;
       }
-      var dT = '—';
+      var dT = '\u2014';
       if (reg.fechaInicio && reg.fechaFin) { var d = Math.floor((new Date(reg.fechaFin) - new Date(reg.fechaInicio)) / 60000); dT = d < 60 ? d + ' min' : Math.floor(d / 60) + 'h ' + (d % 60) + 'm'; }
-      h += '<div class="cri"><div class="cri-label">Duración</div><div class="cri-value" style="font-size:14px;color:var(--fg2)">' + dT + '</div></div>';
+      h += '<div class="cri"><div class="cri-label">Duracion</div><div class="cri-value" style="font-size:14px;color:var(--fg2)">' + dT + '</div></div>';
       h += '<div class="cri"><div class="cri-label">Con GPS</div><div class="cri-value" style="color:' + (gps > 0 ? 'var(--accent)' : 'var(--fg3)') + '">' + gps + '</div></div>';
       h += '<div class="cri"><div class="cri-label">Sectores</div><div class="cri-value" style="color:var(--purple)">' + sU + '</div></div></div>';
-      if (sU > 0) { h += '<div style="margin-bottom:12px;display:flex;flex-wrap:wrap;gap:6px">'; Object.keys(secs).forEach(function(s) { h += '<span style="font-size:10px;padding:3px 8px;border-radius:6px;background:rgba(167,139,250,.08);color:var(--purple);border:1px solid rgba(167,139,250,.15)">' + s + ' (' + secs[s] + ')</span>'; }); h += '</div>'; }
+      if (sU > 0) {
+        h += '<div style="margin-bottom:12px;display:flex;flex-wrap:wrap;gap:6px">';
+        Object.keys(secs).forEach(function(s) { h += '<span style="font-size:10px;padding:3px 8px;border-radius:6px;background:rgba(167,139,250,.08);color:var(--purple);border:1px solid rgba(167,139,250,.15)">' + s + ' (' + secs[s] + ')</span>'; });
+        h += '</div>';
+      }
       return h;
     }
 
-    /* ==================== TABLA ITEMS ==================== */
+    /* ===== TABLA ITEMS ===== */
     function renderTablaItems(reg) {
       var items = reg.items || [];
       if (!Array.isArray(items) || !items.length) return '<div style="padding:10px;color:var(--fg3);font-size:12px">Sin datos de entrega.</div>';
@@ -700,98 +700,229 @@
       items.forEach(function(it, i) {
         var gH = '';
         if (it.gps && it.gps.lat !== null && it.gps.lng !== null) {
-          gH = '<div class="gps-ok"><i class="fa-solid fa-location-dot"></i> OK</div><div class="coord-text">' + it.gps.lat.toFixed(6) + ', ' + it.gps.lng.toFixed(6) + (it.gps.accuracy ? '<br>±' + Math.round(it.gps.accuracy) + 'm' : '') + '</div>';
-        } else gH = '<span class="gps-no">Sin ubicación</span>';
-        h += '<tr><td>' + (i + 1) + '</td><td class="nombre-item">' + (it.item || '—') + '</td><td>' + (it.sector || '<span class="vacio">—</span>') + '</td><td>' + (it.inicio || '<span class="vacio">—</span>') + '</td><td>' + (it.fin || '<span class="vacio">—</span>') + '</td><td>' + gH + '</td></tr>';
+          gH = '<div class="gps-ok"><i class="fa-solid fa-location-dot"></i> OK</div><div class="coord-text">' + it.gps.lat.toFixed(6) + ', ' + it.gps.lng.toFixed(6) + (it.gps.accuracy ? '<br>\u00b1' + Math.round(it.gps.accuracy) + 'm' : '') + '</div>';
+        } else { gH = '<span class="gps-no">Sin ubicacion</span>'; }
+        h += '<tr><td>' + (i+1) + '</td><td class="nombre-item">' + (it.item || '\u2014') + '</td><td>' + (it.sector || '<span class="vacio">\u2014</span>') + '</td><td>' + (it.inicio || '<span class="vacio">\u2014</span>') + '</td><td>' + (it.fin || '<span class="vacio">\u2014</span>') + '</td><td>' + gH + '</td></tr>';
       });
       return h + '</tbody></table>';
     }
 
-    /* ==================== GOOGLE MAPS RUTA ==================== */
+    /* ===== GOOGLE MAPS RUTA ===== */
     function abrirGoogleMapsRuta(codigo) {
       var reg = registrosPorCodigo[codigo];
-      if (!reg) { mostrarToast('Sesión no encontrada', 'err'); return; }
-      var items = reg.items || [], puntos = [];
-      items.forEach(function(it) { if (it.gps && it.gps.lat !== null && it.gps.lng !== null) puntos.push({ lat: it.gps.lat, lng: it.gps.lng }); });
-      if (!puntos.length) { mostrarToast('No hay puntos GPS', 'err'); return; }
-      var url = 'https://www.google.com/maps/dir/';
-      puntos.forEach(function(p, i) { url += p.lat + ',' + p.lng; if (i < puntos.length - 1) url += '/'; });
-      window.open(url, '_blank');
-    }
-
-    /* ==================== MAPA DETALLADO ==================== */
-    function verRutaEnMapa(codigo) {
-      var reg = registrosPorCodigo[codigo];
-      if (!reg) { mostrarToast('Sesión no encontrada', 'err'); return; }
-      var items = reg.items || [], puntos = [];
-      items.forEach(function(it) { if (it.gps && it.gps.lat !== null && it.gps.lng !== null) puntos.push({ nombre: it.item || 'Sin nombre', sector: it.sector || '—', hora: it.fin || it.inicio || '—', lat: it.gps.lat, lng: it.gps.lng, accuracy: it.gps.accuracy || null }); });
-      if (!puntos.length) { mostrarToast('No hay puntos GPS', 'err'); return; }
-      var distTotal = 0;
-      for (var i = 1; i < puntos.length; i++) distTotal += haversine(puntos[i - 1].lat, puntos[i - 1].lng, puntos[i].lat, puntos[i].lng);
-      var distTxt = distTotal < 1 ? Math.round(distTotal * 1000) + ' m' : distTotal.toFixed(1) + ' km';
-      var page = generarPaginaMapa(codigo, reg, puntos, distTxt);
-      var blob = new Blob([page], { type: 'text/html; charset=utf-8' });
-      window.open(URL.createObjectURL(blob), '_blank');
-    }
-
-    function haversine(a1, o1, a2, o2) {
-      var R = 6371, dA = (a2 - a1) * Math.PI / 180, dO = (o2 - o1) * Math.PI / 180;
-      var a = Math.sin(dA / 2) * Math.sin(dA / 2) + Math.cos(a1 * Math.PI / 180) * Math.cos(a2 * Math.PI / 180) * Math.sin(dO / 2) * Math.sin(dO / 2);
-      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    }
-    function esc(s) { return s ? String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;') : ''; }
-
-    function generarPaginaMapa(codigo, reg, puntos, distTxt) {
-      var estTxt = reg.estado === 'completado' ? 'Completado' : (reg.estado === 'en_proceso' ? 'En proceso' : reg.estado);
-      var estCol = reg.estado === 'completado' ? '#34d399' : (reg.estado === 'en_proceso' ? '#60a5fa' : '#8891a8');
-      var ptsJSON = JSON.stringify(puntos);
-      var listaH = '';
-      puntos.forEach(function(p, i) {
-        var col = i === 0 ? '#34d399' : (i === puntos.length - 1 ? '#f87171' : '#e8913a');
-        var lbl = i === 0 ? 'Inicio' : (i === puntos.length - 1 ? 'Fin' : String(i + 1));
-        listaH += '<div class="stop" onclick="volarA(' + i + ')" data-i="' + i + '"><div class="sn" style="background:' + col + '">' + lbl + '</div><div class="si"><div class="sname">' + esc(p.nombre) + '</div><div class="smeta"><i class="fa-regular fa-clock"></i> ' + esc(p.hora) + (p.sector !== '—' ? ' &middot; <i class="fa-solid fa-tag"></i> ' + esc(p.sector) : '') + '</div><div class="scoord">' + p.lat.toFixed(6) + ', ' + p.lng.toFixed(6) + '</div></div></div>';
-        if (i < puntos.length - 1) listaH += '<div class="sconn"></div>';
+      if (!reg) { mostrarToast('Sesion no encontrada', 'err'); return; }
+      var puntos = [];
+      (reg.items || []).forEach(function(it) {
+        if (it.gps && it.gps.lat !== null && it.gps.lng !== null) puntos.push(it.gps.lat + ',' + it.gps.lng);
       });
-
-      return '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Ruta ' + esc(codigo) + '</title>' +
-        '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">' +
-        '<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:"DM Sans",sans-serif;background:#08090d;color:#e4e8f1;overflow:hidden;height:100vh}#map{position:absolute;inset:0;z-index:1}.pnl{position:absolute;top:0;left:0;width:350px;height:100vh;background:rgba(14,16,24,.95);backdrop-filter:blur(16px);z-index:1000;display:flex;flex-direction:column;border-right:1px solid #22273a;transition:transform .35s ease}.pnl.hid{transform:translateX(-100%)}.ptog{position:absolute;top:14px;left:14px;z-index:1001;width:40px;height:40px;border-radius:10px;border:1px solid #22273a;background:rgba(14,16,24,.92);backdrop-filter:blur(12px);color:#e4e8f1;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .25s}.ptog:hover{background:rgba(30,34,48,.95);border-color:#3a4060}.ph{padding:18px 18px 14px;border-bottom:1px solid #22273a;flex-shrink:0}.ph h2{font-family:"Space Grotesk",sans-serif;font-size:15px;font-weight:800;color:#e8913a;margin-bottom:10px;display:flex;align-items:center;gap:8px}.mg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}.mi{text-align:center;padding:7px 4px;background:#08090d;border-radius:7px;border:1px solid #22273a}.mi .ml{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#565e74;margin-bottom:3px}.mi .mv{font-family:"Space Grotesk",sans-serif;font-size:15px;font-weight:800}.pb{flex:1;overflow-y:auto;padding:14px 18px 18px}.pb::-webkit-scrollbar{width:4px}.pb::-webkit-scrollbar-thumb{background:#22273a;border-radius:2px}.stop{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:7px;cursor:pointer;transition:background .2s}.stop:hover{background:rgba(232,145,58,.06)}.stop.act{background:rgba(232,145,58,.1);outline:1px solid rgba(232,145,58,.2)}.sn{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:800;color:#08090d;flex-shrink:0}.si{flex:1;min-width:0}.sname{font-weight:700;font-size:12px;color:#e4e8f1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.smeta{font-size:10px;color:#8891a8;margin-top:2px;display:flex;align-items:center;gap:4px;flex-wrap:wrap}.smeta i{font-size:9px}.scoord{font-family:"Space Grotesk",monospace;font-size:9px;color:#565e74;margin-top:2px}.sconn{width:2px;height:10px;background:#22273a;margin-left:25px}.pf{padding:10px 18px;border-top:1px solid #22273a;flex-shrink:0;display:flex;gap:8px}.bex{flex:1;padding:9px 8px;border-radius:7px;border:1px solid rgba(232,145,58,.25);background:rgba(232,145,58,.08);color:#e8913a;font-family:"DM Sans",sans-serif;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:all .2s}.bex:hover{background:rgba(232,145,58,.16);border-color:#e8913a}.bex.gm{border-color:rgba(96,165,250,.25);background:rgba(96,165,250,.08);color:#60a5fa}.bex.gm:hover{background:rgba(96,165,250,.16);border-color:#60a5fa}.leaflet-popup-content-wrapper{background:#14171f!important;color:#e4e8f1!important;border:1px solid #22273a!important;border-radius:10px!important;box-shadow:0 8px 32px rgba(0,0,0,.5)!important}.leaflet-popup-tip{background:#14171f!important}.leaflet-popup-content{margin:10px 14px!important;font-family:"DM Sans",sans-serif!important;font-size:12px!important;line-height:1.5!important}.pt{font-weight:700;font-size:13px;color:#e8913a;margin-bottom:5px}.pr{display:flex;align-items:center;gap:5px;color:#8891a8;font-size:11px;margin-top:2px}.pr i{width:13px;text-align:center;font-size:9px}.pb2{display:inline-block;padding:2px 7px;border-radius:99px;font-size:9px;font-weight:700;margin-top:5px}.mn{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:"Space Grotesk",sans-serif;font-size:12px;font-weight:800;color:#08090d;border:3px solid rgba(255,255,255,.3);box-shadow:0 2px 10px rgba(0,0,0,.4);transition:transform .2s}.mn:hover{transform:scale(1.15)}@media(max-width:640px){.pnl{width:100%;height:42vh;top:auto;bottom:0;border-right:none;border-top:1px solid #22273a;border-radius:14px 14px 0 0}.pnl.hid{transform:translateY(100%)}.ptog{top:auto;bottom:14px;left:50%;transform:translateX(-50%)}.pf{flex-direction:column}}</style></head><body>' +
-        '<div id="map"></div><button class="ptog" id="ptog" onclick="togP()"><i class="fa-solid fa-bars"></i></button>' +
-        '<div class="pnl" id="pnl"><div class="ph"><h2><i class="fa-solid fa-route"></i> ' + esc(codigo) + '</h2><div class="mg"><div class="mi"><div class="ml">Paradas</div><div class="mv" style="color:#e8913a">' + puntos.length + '</div></div><div class="mi"><div class="ml">Distancia</div><div class="mv" style="color:#60a5fa;font-size:13px">' + distTxt + '</div></div><div class="mi"><div class="ml">Estado</div><div class="mv" style="color:' + estCol + ';font-size:10px">' + estTxt + '</div></div></div></div><div class="pb" id="sl">' + listaH + '</div><div class="pf"><button class="bex gm" onclick="aGM()"><i class="fa-brands fa-google"></i> Google Maps</button><button class="bex" onclick="aGMDir()"><i class="fa-solid fa-diamond-turn-right"></i> Ruta GMaps</button></div></div>' +
-        '<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script><script>' +
-        'var P=' + ptsJSON + ',mk=[];var m=L.map("map",{zoomControl:false});L.control.zoom({position:"bottomright"}).addTo(m);L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{attribution:"OSM CARTO",maxZoom:19}).addTo(m);var ll=[];' +
-        'P.forEach(function(p,i){ll.push([p.lat,p.lng]);var c=i===0?"#34d399":(i===P.length-1?"#f87171":"#e8913a");var lb=i===0?"Inicio":(i===P.length-1?"Fin":String(i+1));var ic=L.divIcon({className:"",html:\'<div class="mn" style="background:\'+c+\'">\'+lb+"</div>",iconSize:[30,30],iconAnchor:[15,15],popupAnchor:[0,-20]});' +
-        'var ph="<div class=\\"pt\\">"+p.nombre.replace(/</g,"&lt;").replace(/>/g,"&gt;")+"</div>"+"<div class=\\"pr\\"><i class=\\"fa-regular fa-clock\\" style=\\"color:#fbbf24\\"></i> "+p.hora+"</div>"+"<div class=\\"pr\\"><i class=\\"fa-solid fa-tag\\" style=\\"color:#a78bfa\\"></i> "+p.sector+"</div>"+"<div class=\\"pr\\"><i class=\\"fa-solid fa-location-dot\\" style=\\"color:#e8913a\\"></i> "+p.lat.toFixed(6)+", "+p.lng.toFixed(6)+"</div>"+"<span class=\\"pb2\\" style=\\"background:' + (i === 0 ? 'rgba(52,211,153,.15);color:#34d399;border:1px solid rgba(52,211,153,.3)' : (i === puntos.length - 1 ? 'rgba(248,113,113,.15);color:#f87171;border:1px solid rgba(248,113,113,.3)' : 'rgba(232,145,58,.15);color:#e8913a;border:1px solid rgba(232,145,58,.3)')) + '\\">Parada ' + (i + 1) + ' de ' + puntos.length + '</span>";' +
-        'mk.push(L.marker([p.lat,p.lng],{icon:ic}).addTo(m).bindPopup(ph));});' +
-        'if(ll.length>1){L.polyline(ll,{color:"#e8913a",weight:4,opacity:.7,dashArray:"10 8",lineCap:"round",lineJoin:"round"}).addTo(m);L.polyline(ll,{color:"#e8913a",weight:2,opacity:.25}).addTo(m);}' +
-        'if(ll.length===1)m.setView(ll[0],15);else m.fitBounds(L.latLngBounds(ll).pad(.15));' +
-        'function volarA(i){m.flyTo([P[i].lat,P[i].lng],16,{duration:.8});mk[i].openPopup();document.querySelectorAll(".stop").forEach(function(s){s.classList.remove("act")});var e=document.querySelector(\'.stop[data-i="\'+i+\'"]\');if(e){e.classList.add("act");e.scrollIntoView({behavior:"smooth",block:"nearest"});}}' +
-        'var pv=true;function togP(){pv=!pv;var p=document.getElementById("pnl"),b=document.getElementById("ptog");if(pv){p.classList.remove("hid");b.innerHTML=\'<i class="fa-solid fa-bars"></i>\';}else{p.classList.add("hid");b.innerHTML=\'<i class="fa-solid fa-route"></i>\';}setTimeout(function(){m.invalidateSize()},400);}' +
-        'function aGM(){if(!P.length)return;window.open("https://www.google.com/maps?q="+P[0].lat+","+P[0].lng,"_blank");}' +
-        'function aGMDir(){if(!P.length)return;var u="https://www.google.com/maps/dir/";P.forEach(function(p,i){u+=p.lat+","+p.lng;if(i<P.length-1)u+="/";});window.open(u,"_blank");}' +
-        'if(mk.length>0)setTimeout(function(){mk[0].openPopup()},500);<\/script></body></html>';
+      if (!puntos.length) { mostrarToast('No hay puntos GPS', 'err'); return; }
+      window.open('https://www.google.com/maps/dir/' + puntos.join('/') + '/', '_blank');
     }
 
-    /* ==================== UTILIDADES ==================== */
-    function toggleCard(header) {
-      var b = header.nextElementSibling, ic = header.querySelector('.cc-toggle');
-      if (b.classList.contains('visible')) { b.classList.remove('visible'); if (ic) ic.style.transform = 'rotate(0deg)'; }
-      else { b.classList.add('visible'); if (ic) ic.style.transform = 'rotate(180deg)'; }
+    /* ====================================================================
+       MAPA GENERAL — NUEVA PESTAÑA
+       La clave: toda la HTML dinámica (sidebar, popups) se construye
+       DENTRO del script de la nueva pestaña, no aquí. Así no hay
+       comillas anidadas que rompan el parseo.
+    ==================================================================== */
+
+    function recopilarDatosMapa(soloCodigo) {
+      var transportes = [], idx = 0;
+      var keys = soloCodigo ? [soloCodigo] : Object.keys(registrosPorCodigo);
+      keys.forEach(function(codigo) {
+        var reg = registrosPorCodigo[codigo];
+        if (!reg) return;
+        var puntos = [];
+        (reg.items || []).forEach(function(item) {
+          if (item.gps && item.gps.lat !== null && item.gps.lng !== null) {
+            puntos.push({
+              nombre: item.item || 'Sin nombre',
+              sector: item.sector || '',
+              hora: item.fin || item.inicio || '',
+              lat: item.gps.lat,
+              lng: item.gps.lng,
+              precision: item.gps.accuracy ? Math.round(item.gps.accuracy) + 'm' : ''
+            });
+          }
+        });
+        if (puntos.length > 0) {
+          transportes.push({ codigo: reg.codigo, color: COLORES_MAPA[idx % COLORES_MAPA.length], estado: reg.estado, puntos: puntos });
+          idx++;
+        }
+      });
+      return transportes;
     }
-    function tiempoRelativo(fs) {
-      try {
-        var f = new Date(fs), a = new Date(), d = a - f; if (d < 0) d = 0;
-        var mn = Math.floor(d / 60000);
-        if (mn < 1) return 'Ahora mismo'; if (mn < 60) return 'Hace ' + mn + ' min';
-        var h = Math.floor(mn / 60); mn %= 60;
-        if (h < 24) return 'Hace ' + h + 'h ' + mn + 'm';
-        var di = Math.floor(h / 24); h %= 24;
-        if (di === 1) return 'Ayer'; if (di < 7) return 'Hace ' + di + 'd ' + h + 'h';
-        return f.toLocaleDateString('es-EC', { day: '2-digit', month: 'short' });
-      } catch(e) { return '—'; }
+
+    function verMapaGeneral() {
+      var transportes = recopilarDatosMapa(null);
+      if (!transportes.length) { mostrarToast('No hay transportes con GPS para mostrar', 'err'); return; }
+      abrirPaginaMapa(transportes, false);
     }
-    function iniciarAutoActualizar() { detenerAutoActualizar(); timerAutoActualizar = setInterval(cargarDatos, INTERVALO_ACTUALIZACION); }
-    function detenerAutoActualizar() { if (timerAutoActualizar) { clearInterval(timerAutoActualizar); timerAutoActualizar = null; } }
+
+    function verRutaEnMapa(codigo) {
+      var transportes = recopilarDatosMapa(codigo);
+      if (!transportes.length) { mostrarToast('No hay puntos GPS para este transporte', 'err'); return; }
+      abrirPaginaMapa(transportes, true);
+    }
+
+    function abrirPaginaMapa(transportes, esIndividual) {
+      var jsonStr = JSON.stringify(transportes).replace(/<\//g, '<\\/');
+      var titulo = esIndividual ? ('Ruta: ' + transportes[0].codigo) : 'Mapa general de transportes';
+      var subtitulo = esIndividual ? transportes[0].codigo : 'Todos los transportes';
+
+      /* Solo incrustamos el JSON. Todo lo demás lo construye el script de la nueva pestaña. */
+      var page = '<!DOCTYPE html>\n'
+        + '<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">\n'
+        + '<title>' + titulo + '</title>\n'
+        + '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>\n'
+        + '<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\\/script>\n'
+        + '<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">\n'
+        + '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">\n'
+        + '<style>\n'
+        + '*{box-sizing:border-box;margin:0;padding:0}\n'
+        + 'body{font-family:"DM Sans",sans-serif;background:#08090d;color:#e4e8f1;height:100vh;overflow:hidden;display:flex}\n'
+        + '::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:#0e1018}::-webkit-scrollbar-thumb{background:#22273a;border-radius:2px}\n'
+        + '#sidebar{width:310px;min-width:310px;background:#0e1018;border-right:1px solid #22273a;display:flex;flex-direction:column;height:100vh;z-index:1000;transition:transform .3s ease}\n'
+        + '#sidebar.hidden{transform:translateX(-100%);min-width:0;width:0;overflow:hidden}\n'
+        + '.sb-head{padding:18px 16px 14px;border-bottom:1px solid #22273a;flex-shrink:0}\n'
+        + '.sb-head h2{font-family:"Space Grotesk",sans-serif;font-size:14px;font-weight:800;display:flex;align-items:center;gap:8px}\n'
+        + '.sb-head h2 i{color:#e8913a;font-size:13px}\n'
+        + '.sb-stats{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}\n'
+        + '.sb-stat{font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px}\n'
+        + '.sb-stat.s-tr{background:rgba(232,145,58,.1);color:#e8913a;border:1px solid rgba(232,145,58,.2)}\n'
+        + '.sb-stat.s-gp{background:rgba(52,211,153,.1);color:#34d399;border:1px solid rgba(52,211,153,.2)}\n'
+        + '.sb-stat.s-pr{background:rgba(96,165,250,.1);color:#60a5fa;border:1px solid rgba(96,165,250,.2)}\n'
+        + '.sb-btn-fit{width:100%;margin-top:10px;padding:8px;border-radius:8px;border:1px solid #22273a;background:#14171f;color:#8891a8;font-family:"DM Sans",sans-serif;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px}\n'
+        + '.sb-btn-fit:hover{border-color:#e8913a;color:#e8913a;background:rgba(232,145,58,.06)}\n'
+        + '.sb-list{flex:1;overflow-y:auto;padding:8px}\n'
+        + '.sb-item{display:flex;align-items:stretch;border-radius:10px;margin-bottom:6px;overflow:hidden;border:1px solid #22273a;cursor:pointer;transition:all .2s;background:#14171f}\n'
+        + '.sb-item:hover{border-color:#333a52;background:#191d28}\n'
+        + '.sb-item.active{border-color:#e8913a;background:rgba(232,145,58,.04)}\n'
+        + '.sb-bar{width:5px;flex-shrink:0}\n'
+        + '.sb-content{flex:1;padding:10px 12px;min-width:0}\n'
+        + '.sb-top{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:4px}\n'
+        + '.sb-codigo{font-family:"Space Grotesk",sans-serif;font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n'
+        + '.sb-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;text-transform:uppercase;letter-spacing:.03em;flex-shrink:0;white-space:nowrap}\n'
+        + '.sb-badge.bp{background:rgba(96,165,250,.1);color:#60a5fa;border:1px solid rgba(96,165,250,.2)}\n'
+        + '.sb-badge.bc{background:rgba(52,211,153,.1);color:#34d399;border:1px solid rgba(52,211,153,.2)}\n'
+        + '.sb-meta{font-size:11px;color:#565e74}\n'
+        + '.sb-meta i{font-size:10px;margin-right:3px}\n'
+        + '.sb-eye{width:30px;display:flex;align-items:center;justify-content:center;color:#565e74;font-size:11px;cursor:pointer;transition:color .2s;flex-shrink:0;border:none;background:none}\n'
+        + '.sb-eye:hover{color:#e4e8f1}\n'
+        + '.sb-eye.off{color:#2a2f40}\n'
+        + '#map{flex:1;height:100vh;z-index:1}\n'
+        + '.leaflet-container{background:#08090d !important}\n'
+        + '#sbToggle{display:none;position:fixed;top:12px;left:12px;z-index:1100;width:38px;height:38px;border-radius:10px;border:1px solid #22273a;background:rgba(14,16,24,.92);backdrop-filter:blur(8px);color:#8891a8;font-size:15px;cursor:pointer;align-items:center;justify-content:center;transition:all .2s}\n'
+        + '#sbToggle:hover{border-color:#e8913a;color:#e8913a}\n'
+        + '.mk{background:none !important;border:none !important}\n'
+        + '.mk-dot{width:28px;height:28px;border-radius:50%;border:2.5px solid #fff;display:flex;align-items:center;justify-content:center;color:#fff;font-family:"Space Grotesk",sans-serif;font-size:11px;font-weight:800;box-shadow:0 2px 8px rgba(0,0,0,.45);transition:transform .2s,box-shadow .2s;cursor:pointer}\n'
+        + '.mk-dot:hover{transform:scale(1.25);box-shadow:0 4px 14px rgba(0,0,0,.6)}\n'
+        + '.mk-dot.hl{transform:scale(1.3);box-shadow:0 0 0 4px rgba(255,255,255,.25),0 4px 14px rgba(0,0,0,.5)}\n'
+        + '.leaflet-popup-content-wrapper{background:#14171f !important;color:#e4e8f1 !important;border:1px solid #22273a !important;border-radius:12px !important;box-shadow:0 8px 28px rgba(0,0,0,.5) !important;padding:0 !important}\n'
+        + '.leaflet-popup-tip{background:#14171f !important;border:1px solid #22273a !important;border-top:none !important;border-left:none !important}\n'
+        + '.leaflet-popup-close-button{color:#565e74 !important;font-size:18px !important;top:6px !important;right:8px !important}\n'
+        + '.leaflet-popup-close-button:hover{color:#e4e8f1 !important}\n'
+        + '.pp{padding:12px 14px;min-width:180px}\n'
+        + '.pp-num{font-size:9px;color:#565e74;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}\n'
+        + '.pp-nombre{font-size:14px;font-weight:700;margin-bottom:6px;line-height:1.3}\n'
+        + '.pp-row{display:flex;align-items:center;gap:5px;font-size:11px;color:#8891a8;margin-bottom:2px}\n'
+        + '.pp-row i{width:13px;text-align:center;font-size:9px;color:#565e74}\n'
+        + '.pp-coord{font-family:"Space Grotesk",monospace;font-size:10px;color:#565e74;margin-top:5px;padding-top:5px;border-top:1px solid #22273a}\n'
+        + '@media(max-width:768px){#sidebar{position:fixed;left:0;top:0;height:100vh;box-shadow:8px 0 32px rgba(0,0,0,.5)}#sidebar.hidden{transform:translateX(-100%)}#sbToggle{display:flex}}\n'
+        + '</style></head><body>\n'
+        + '<button id="sbToggle" onclick="document.getElementById(\'sidebar\').classList.toggle(\'hidden\')"><i class="fa-solid fa-bars"></i></button>\n'
+        + '<aside id="sidebar"><div class="sb-head"><h2><i class="fa-solid fa-map-location-dot"></i> ' + subtitulo + '</h2><div class="sb-stats" id="sbStats"></div><button class="sb-btn-fit" onclick="fitAll()"><i class="fa-solid fa-expand"></i> Ajustar vista</button></div><div class="sb-list" id="sbList"></div></aside>\n'
+        + '<div id="map"></div>\n'
+        + '<script>\n'
+        + 'var T=' + jsonStr + ';\n'
+        + 'var map,groups={},allBounds=[];\n'
+        + 'function esc(s){var d=document.createElement("div");d.textContent=s;return d.innerHTML}\n'
+        + 'function init(){\n'
+        + '  map=L.map("map",{zoomControl:false});\n'
+        + '  L.control.zoom({position:"bottomright"}).addTo(map);\n'
+        + '  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{\n'
+        + '    attribution:"\\u00a9 OSM \\u00a9 CARTO",subdomains:"abcd",maxZoom:19\n'
+        + '  }).addTo(map);\n'
+        + '  var totalPt=0,nProc=0;\n'
+        + '  T.forEach(function(t){totalPt+=t.puntos.length;if(t.estado==="en_proceso")nProc++});\n'
+        + '  var statsHtml=\'<span class="sb-stat s-tr">\'+T.length+\' transporte\'+(T.length!==1?"s":"")+\'</span>\';\n'
+        + '  statsHtml+=\'<span class="sb-stat s-gp">\'+totalPt+\' puntos</span>\';\n'
+        + '  if(nProc>0)statsHtml+=\'<span class="sb-stat s-pr">\'+nProc+\' activo\'+(nProc!==1?"s":"")+\'</span>\';\n'
+        + '  document.getElementById("sbStats").innerHTML=statsHtml;\n'
+        + '  var listHtml="";\n'
+        + '  T.forEach(function(t,idx){\n'
+        + '    var g=L.layerGroup().addTo(map);\n'
+        + '    groups[t.codigo]=g;\n'
+        + '    var coords=[];\n'
+        + '    t.puntos.forEach(function(p,i){\n'
+        + '      var icon=L.divIcon({className:"mk",html:\'<div class="mk-dot" style="background:\'+t.color+\'">\'+(i+1)+\'</div>\',iconSize:[28,28],iconAnchor:[14,14],popupAnchor:[0,-16]});\n'
+        + '      var m=L.marker([p.lat,p.lng],{icon:icon});\n'
+        + '      var ph=\'<div class="pp">\';\n'
+        + '      ph+=\'<div class="pp-num">Punto \'+(i+1)+\' &middot; \'+esc(t.codigo)+\'</div>\';\n'
+        + '      ph+=\'<div class="pp-nombre" style="color:\'+t.color+\'">\'+esc(p.nombre)+\'</div>\';\n'
+        + '      if(p.sector)ph+=\'<div class="pp-row"><i class="fa-solid fa-tag"></i>\'+esc(p.sector)+\'</div>\';\n'
+        + '      if(p.hora)ph+=\'<div class="pp-row"><i class="fa-regular fa-clock"></i>\'+esc(p.hora)+\'</div>\';\n'
+        + '      if(p.precision)ph+=\'<div class="pp-row"><i class="fa-solid fa-crosshairs"></i>Precision: \'+esc(p.precision)+\'</div>\';\n'
+        + '      ph+=\'<div class="pp-coord">\'+p.lat.toFixed(6)+\', \'+p.lng.toFixed(6)+\'</div>\';\n'
+        + '      ph+=\'</div>\';\n'
+        + '      m.bindPopup(ph,{maxWidth:260});\n'
+        + '      m.addTo(g);\n'
+        + '      coords.push([p.lat,p.lng]);\n'
+        + '      allBounds.push([p.lat,p.lng]);\n'
+        + '    });\n'
+        + '    if(coords.length>1){L.polyline(coords,{color:t.color,weight:3.5,opacity:0.5,lineJoin:"round",lineCap:"round"}).addTo(g)}\n'
+        + '    var ec=t.estado==="en_proceso"?"bp":"bc";\n'
+        + '    var et=t.estado==="en_proceso"?"En proceso":"Completado";\n'
+        + '    listHtml+=\'<div class="sb-item" data-cod="\'+t.codigo+\'" onclick="zoomT(\\\'\'+t.codigo+\'\\\')" onmouseenter="hlT(\\\'\'+t.codigo+\'\\\')" onmouseleave="uhlT(\\\'\'+t.codigo+\'\\\')">\'\n'
+        + '      +\'<div class="sb-bar" style="background:\'+t.color+\'"></div>\'\n'
+        + '      +\'<div class="sb-content"><div class="sb-top"><span class="sb-codigo" style="color:\'+t.color+\'">\'+esc(t.codigo)+\'</span><span class="sb-badge \'+ec+\'">\'+et+\'</span></div>\'\n'
+        + '      +\'<div class="sb-meta"><i class="fa-solid fa-location-dot"></i>\'+t.puntos.length+\' puntos</div></div>\'\n'
+        + '      +\'<button class="sb-eye" onclick="event.stopPropagation();togVis(\\\'\'+t.codigo+\'\\\',this)" title="Mostrar/ocultar"><i class="fa-solid fa-eye"></i></button></div>\';\n'
+        + '  });\n'
+        + '  document.getElementById("sbList").innerHTML=listHtml;\n'
+        + '  if(allBounds.length>0)map.fitBounds(L.latLngBounds(allBounds),{padding:[40,40],maxZoom:16});\n'
+        + '}\n'
+        + 'function zoomT(c){\n'
+        + '  var g=groups[c];if(!g)return;var b=[];\n'
+        + '  g.eachLayer(function(l){if(l.getLatLng)b.push(l.getLatLng())});\n'
+        + '  if(b.length)map.fitBounds(L.latLngBounds(b),{padding:[50,50],maxZoom:17});\n'
+        + '  document.querySelectorAll(".sb-item").forEach(function(el){el.classList.remove("active")});\n'
+        + '  var el=document.querySelector(\'.sb-item[data-cod="\'+c+\'"]\');\n'
+        + '  if(el)el.classList.add("active");\n'
+        + '}\n'
+        + 'function hlT(c){\n'
+        + '  var g=groups[c];if(!g)return;\n'
+        + '  g.eachLayer(function(l){\n'
+        + '    if(l instanceof L.Polyline)l.setStyle({weight:6,opacity:1});\n'
+        + '    if(l instanceof L.Marker){var el=l.getElement();if(el){var d=el.querySelector(".mk-dot");if(d)d.classList.add("hl")}}\n'
+        + '  });\n'
+        + '}\n'
+        + 'function uhlT(c){\n'
+        + '  var g=groups[c];if(!g)return;\n'
+        + '  g.eachLayer(function(l){\n'
+        + '    if(l instanceof L.Polyline)l.setStyle({weight:3.5,opacity:0.5});\n'
+        + '    if(l instanceof L.Marker){var el=l.getElement();if(el){var d=el.querySelector(".mk-dot");if(d)d.classList.remove("hl")}}\n'
+        + '  });\n'
+        + '}\n'
+        + 'function togVis(c,btn){\n'
+        + '  var g=groups[c];if(!g)return;\n'
+        + '  if(map.hasLayer(g)){map.removeLayer(g);btn.classList.add("off");btn.innerHTML=\'<i class="fa-solid fa-eye-slash"></i>\'}\n'
+        + '  else{g.addTo(map);btn.classList.remove("off");btn.innerHTML=\'<i class="fa-solid fa-eye"></i>\'}\n'
+        + '}\n'
+        + 'function fitAll(){\n'
+        + '  var b=[];\n'
+        + '  Object.keys(groups).forEach(function(k){if(!map.hasLayer(groups[k]))return;groups[k].eachLayer(function(l){if(l.getLatLng)b.push(l.getLatLng())})});\n'
+        + '  if(b.length)map.fitBounds(L.latLngBounds(b),{padding:[40,40],maxZoom:16});\n'
+        + '}\n'
+        + 'document.addEventListener("DOMContentLoaded",init);\n'
+        + '<\\/script>\n'
+        + '</body></html>';
+
+      var blob = new Blob([page], { type: 'text/html;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      setTimeout(function() { URL.revokeObjectURL(url); }, 10000);
+    }
   </script>
 </body>
 </html>
