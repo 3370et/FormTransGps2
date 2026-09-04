@@ -4,8 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
-  <!-- ★ NUEVO: favicon camión con ET en la caja ★ -->
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23e8913a'/%3E%3Crect x='10' y='22' width='54' height='42' rx='6' fill='%23ffffff'/%3E%3Ctext x='37' y='51' text-anchor='middle' font-family='Arial Black, Arial, sans-serif' font-weight='900' font-size='22' fill='%23e8913a'%3EET%3C/text%3E%3Cpath d='M66 30 L80 30 L90 41 L90 64 L66 64 Z' fill='%23ffffff'/%3E%3Cpath d='M70 36 L78 36 L85 44 L70 44 Z' fill='%23e8913a'/%3E%3Ccircle cx='26' cy='66' r='9' fill='%23ffffff'/%3E%3Ccircle cx='26' cy='66' r='4' fill='%23e8913a'/%3E%3Ccircle cx='78' cy='66' r='9' fill='%23ffffff'/%3E%3Ccircle cx='78' cy='66' r='4' fill='%23e8913a'/%3E%3C/svg%3E">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 100'%3E%3Crect width='120' height='100' rx='22' fill='%2313161f'/%3E%3Cpath d='M44 20 L84 20 Q88 20 88 24 L88 56 Q88 60 84 60 L44 60 L34 56 L44 53 L23 49 L44 46 L32 42 L44 39 L20 35 L44 32 L28 28 L44 25 L21 21 Z' fill='%23e8913a'/%3E%3Ctext x='66' y='44' text-anchor='middle' font-family='Arial Black, Arial, sans-serif' font-weight='900' font-size='20' fill='%230f1117'%3EET%3C/text%3E%3Cpath d='M92 24 L106 24 L114 38 L114 60 L92 60 Z' fill='%23e8913a'/%3E%3Cpath d='M97 30 L104 30 L109 38 L97 38 Z' fill='%230f1117'/%3E%3Ccircle cx='48' cy='64' r='9' fill='%23ffffff'/%3E%3Ccircle cx='48' cy='64' r='4' fill='%230f1117'/%3E%3Ccircle cx='104' cy='64' r='9' fill='%23ffffff'/%3E%3Ccircle cx='104' cy='64' r='4' fill='%230f1117'/%3E%3Cg stroke='%23ffffff' stroke-width='4' stroke-linecap='round' opacity='0.75' fill='none'%3E%3Cpath d='M40 24 H78'/%3E%3Cpath d='M42 52 H74'/%3E%3Cpath d='M95 47 H111'/%3E%3C/g%3E%3C/svg%3E">
   <title>Lista con código de transporte</title>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -26,8 +25,13 @@
     .container { max-width: 1100px; margin: auto; position: relative; z-index: 1; }
     .page-header { text-align: center; margin-bottom: 32px; }
     .page-header .badge { display: inline-flex; align-items: center; gap: 7px; padding: 5px 14px; border-radius: 999px; background: var(--card); border: 1px solid var(--border); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-muted); margin-bottom: 14px; }
-    /* ★ NUEVO: camión perfilado con ET dentro de la caja ★ */
-    .et-truck { width: 30px; height: auto; flex-shrink: 0; display: block; filter: drop-shadow(0 2px 4px rgba(232,145,58,0.18)); }
+    /* ★ Camión naranja, ET negro, 6 dientes agresivos + líneas de velocidad ★ */
+    .et-truck { width: 40px; height: auto; flex-shrink: 0; display: block; filter: drop-shadow(0 2px 6px rgba(232,145,58,0.35)); }
+    .et-truck .speed-lines line { stroke-dasharray: 5 7; animation: speedFlow 0.45s linear infinite; }
+    .et-truck .speed-lines .sl-2 { animation-delay: 0.16s; }
+    .et-truck .speed-lines .sl-3 { animation-delay: 0.32s; }
+    @keyframes speedFlow { to { stroke-dashoffset: 12; } }
+    @media (prefers-reduced-motion: reduce) { .et-truck .speed-lines line { animation: none; } }
     .page-header h1 { font-family: 'Space Grotesk', sans-serif; font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; }
     .page-header h1 span { color: var(--accent); }
     .status { display: flex; align-items: center; gap: 10px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; margin-bottom: 24px; font-size: 13px; font-weight: 500; color: var(--fg-muted); animation: fadeUp 0.4s ease; }
@@ -141,7 +145,7 @@
       .gps-cell { min-width: 120px; } .btn-gps { font-size: 10px; padding: 5px 9px; } .gps-mini { font-size: 9px; } .gps-error-detail { font-size: 9px; }
       .gps-modal { padding: 22px 18px; } .gps-modal h3 { font-size: 16px; }
       .info-sector, .info-horario { font-size: 11px; }
-      .et-truck { width: 26px; }
+      .et-truck { width: 34px; }
     }
   </style>
 </head>
@@ -192,15 +196,25 @@
 
   <div class="container" id="mainContent">
     <header class="page-header">
-      <!-- ★ NUEVO: camión perfilado con ET integrado en la caja ★ -->
       <div class="badge">
-        <svg class="et-truck" viewBox="0 0 94 56" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <rect x="3" y="4" width="56" height="40" rx="6" fill="#ffffff"/>
-          <text x="31" y="31" text-anchor="middle" font-family="Space Grotesk, Arial, sans-serif" font-weight="700" font-size="21" fill="#e8913a">ET</text>
-          <path d="M61 12 L77 12 L91 27 L91 44 L61 44 Z" fill="#ffffff"/>
-          <path d="M66 18 L75 18 L84 28 L66 28 Z" fill="#e8913a"/>
-          <circle cx="20" cy="48" r="8" fill="#ffffff"/><circle cx="20" cy="48" r="3.5" fill="#e8913a"/>
-          <circle cx="82" cy="48" r="8" fill="#ffffff"/><circle cx="82" cy="48" r="3.5" fill="#e8913a"/>
+        <svg class="et-truck" viewBox="-8 0 116 56" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path class="camion-body" fill="#e8913a"
+            d="M22 4 L74 4 Q78 4 78 8 L78 40 Q78 44 74 44 L22 44 L12 40 L22 37 L1 33 L22 30 L10 26 L22 23 L-2 19 L22 16 L6 12 L22 9 L-1 5 Z">
+            <animate attributeName="d" dur="0.45s" repeatCount="indefinite"
+              values="M22 4 L74 4 Q78 4 78 8 L78 40 Q78 44 74 44 L22 44 L12 40 L22 37 L1 33 L22 30 L10 26 L22 23 L-2 19 L22 16 L6 12 L22 9 L-1 5 Z;
+                      M22 4 L74 4 Q78 4 78 8 L78 40 Q78 44 74 44 L22 44 L10 40 L22 37 L-3 33 L22 30 L8 26 L22 23 L-6 19 L22 16 L1 12 L22 9 L-2 5 Z;
+                      M22 4 L74 4 Q78 4 78 8 L78 40 Q78 44 74 44 L22 44 L12 40 L22 37 L1 33 L22 30 L10 26 L22 23 L-2 19 L22 16 L6 12 L22 9 L-1 5 Z"/>
+          </path>
+          <path d="M78 12 L94 12 L102 27 L102 44 L78 44 Z" fill="#e8913a"/>
+          <path d="M83 18 L90 18 L95 27 L83 27 Z" fill="#0f1117"/>
+          <text x="50" y="31" text-anchor="middle" font-family="Space Grotesk, Arial, sans-serif" font-weight="700" font-size="20" fill="#0f1117">ET</text>
+          <circle cx="36" cy="48" r="8" fill="#ffffff"/><circle cx="36" cy="48" r="3.5" fill="#0f1117"/>
+          <circle cx="94" cy="48" r="8" fill="#ffffff"/><circle cx="94" cy="48" r="3.5" fill="#0f1117"/>
+          <g class="speed-lines" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity="0.7">
+            <line class="sl-1" x1="28" y1="10" x2="68" y2="10"/>
+            <line class="sl-2" x1="30" y1="36" x2="66" y2="36"/>
+            <line class="sl-3" x1="82" y1="33" x2="98" y2="33"/>
+          </g>
         </svg>
         Gestión de entregas
       </div>
@@ -210,7 +224,6 @@
     <div class="code-section">
       <div class="code-section-label"><i class="fa-solid fa-key"></i> Introduce tu código de transporte</div>
       <div class="code-row">
-        <!-- ★ NUEVO: sin placeholder "Ej: 102" ★ -->
         <input type="text" class="code-input" id="codigoTransporteInput" autocomplete="off" spellcheck="false">
         <button class="btn btn-cargar" id="btnCargar" onclick="filtrarPorCodigo()"><i class="fa-solid fa-magnifying-glass"></i> Cargar datos</button>
       </div>
@@ -250,6 +263,15 @@
     </div>
   </div>
 
+  <!-- ★ Pantalla de bloqueo por diseño alterado ★ -->
+  <div class="expired-container hidden" id="tamperedScreen">
+    <div class="expired-card">
+      <div class="expired-icon"><i class="fa-solid fa-shield-halved"></i></div>
+      <h2>Diseño no autorizado</h2>
+      <p>Este formulario ha sido modificado y no puede continuar.<br>Comunícate con el administrador del sistema.</p>
+    </div>
+  </div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script>
     var FIREBASE_DB_URL_CONFIG = "https://datos-formulario-f3cde-default-rtdb.firebaseio.com/formConfig.json";
@@ -273,8 +295,94 @@
     var LS_KEY = 'transporte_sesion';
     var LS_DEVICE_KEY = 'transporte_dispositivo_id';
 
-    /* Códigos válidos (solo los existentes pueden usarse) */
     var codigosValidosMap = {};
+
+    /* ============================================================
+       ★ SEGURO DE DISEÑO — si el logo/camión se altera, la app queda inutilizable ★
+       Verifica la huella exacta del SVG (6 dientes, colores, ET,
+       líneas, ruedas, favicon y texto del badge).
+       ============================================================ */
+    var disenoIntacto = null;
+    function normAtt(s) { return (s || '').replace(/\s+/g, ''); }
+    function verificarDiseno() {
+      try {
+        var svg = document.querySelector('.et-truck');
+        if (!svg) return false;
+        if ((svg.getAttribute('viewBox') || '') !== '-8 0 116 56') return false;
+
+        var paths = svg.querySelectorAll('path');
+        if (paths.length !== 3) return false;
+
+        var body = svg.querySelector('.camion-body');
+        if (!body || body.getAttribute('fill') !== '#e8913a') return false;
+        var anim = body.querySelector('animate');
+        if (!anim) return false;
+        var vals = normAtt(anim.getAttribute('values')).split(';');
+        if (vals.length !== 3 || vals[0] !== vals[2]) return false;
+
+        var d = vals[0];
+        if (d.indexOf('M224L744') === -1) return false;                    /* caja */
+        var dientes = ['L1240','L133','L1026','L-219','L612','L-15Z'];     /* 6 picos exactos */
+        for (var i = 0; i < dientes.length; i++) { if (d.indexOf(dientes[i]) === -1) return false; }
+        var valles = d.match(/L22\d+/g) || [];
+        if (valles.length !== 6) return false;                             /* 6 valles */
+        var d2 = vals[1];
+        if (d2.indexOf('L-619') === -1 || d2.indexOf('L-25Z') === -1) return false; /* dientes extendidos */
+
+        if (normAtt(paths[1].getAttribute('d')) !== 'M7812L9412L10227L10244L7844Z' || paths[1].getAttribute('fill') !== '#e8913a') return false; /* cabina */
+        if (normAtt(paths[2].getAttribute('d')) !== 'M8318L9018L9527L8327Z' || paths[2].getAttribute('fill') !== '#0f1117') return false;           /* ventana */
+
+        var txt = svg.querySelector('text');
+        if (!txt || txt.textContent !== 'ET' || txt.getAttribute('fill') !== '#0f1117' || txt.getAttribute('font-size') !== '20') return false;
+
+        var circles = svg.querySelectorAll('circle');
+        if (circles.length !== 4) return false;
+        var r8 = 0, r35 = 0;
+        for (var c = 0; c < circles.length; c++) {
+          var r = circles[c].getAttribute('r'), f = circles[c].getAttribute('fill');
+          if (r === '8') { if (f !== '#ffffff') return false; r8++; }
+          else if (r === '3.5') { if (f !== '#0f1117') return false; r35++; }
+          else return false;
+        }
+        if (r8 !== 2 || r35 !== 2) return false;
+
+        var g = svg.querySelector('g.speed-lines');
+        if (!g || g.getAttribute('stroke') !== '#ffffff') return false;
+        var lines = g.querySelectorAll('line');
+        if (lines.length !== 3) return false;
+        var coords = [[28,10,68,10],[30,36,66,36],[82,33,98,33]];
+        for (var l = 0; l < lines.length; l++) {
+          var ln = lines[l];
+          if (ln.getAttribute('class') !== 'sl-' + (l + 1)) return false;
+          if (parseInt(ln.getAttribute('x1'),10) !== coords[l][0] || parseInt(ln.getAttribute('y1'),10) !== coords[l][1] ||
+              parseInt(ln.getAttribute('x2'),10) !== coords[l][2] || parseInt(ln.getAttribute('y2'),10) !== coords[l][3]) return false;
+        }
+
+        var badge = document.querySelector('.page-header .badge');
+        if (!badge || normAtt(badge.textContent) !== 'ETGestióndeentregas') return false;
+
+        var ico = document.querySelector('link[rel="icon"]');
+        if (!ico) return false;
+        var ih = ico.getAttribute('href') || '';
+        if (ih.indexOf('%23e8913a') === -1 || ih.indexOf('%230f1117') === -1 || ih.indexOf('ET') === -1) return false;
+
+        return true;
+      } catch (e) { return false; }
+    }
+    function activarBloqueoDiseno() {
+      if (disenoIntacto === false) return;
+      disenoIntacto = false;
+      codigoTransporteActual = '';
+      fechaInicioSesion = null;
+      detenerTimerInactividad();
+      try { localStorage.removeItem(LS_KEY); } catch(e) {}
+      document.getElementById('mainContent').classList.add('hidden');
+      document.getElementById('expiredScreen').classList.add('hidden');
+      document.getElementById('tamperedScreen').classList.remove('hidden');
+    }
+    /* Re-verificación permanente: cada 5 s y al enfocar la ventana */
+    setInterval(function() { if (disenoIntacto === true && !verificarDiseno()) activarBloqueoDiseno(); }, 5000);
+    window.addEventListener('focus', function() { if (disenoIntacto === true && !verificarDiseno()) activarBloqueoDiseno(); });
 
     /* ============================================================
        IDENTIFICADOR ÚNICO DE DISPOSITIVO (bloqueo multi-dispositivo)
@@ -376,7 +484,6 @@
       }
     }
 
-    /* Detectar actividad del usuario */
     document.addEventListener('input', function(e) {
       if (!codigoTransporteActual) return;
       if (e.target.closest('#codigoTransporteInput')) return;
@@ -392,14 +499,14 @@
        GUARDADO AUTOMÁTICO AL CERRAR PÁGINA
        ============================================================ */
     window.addEventListener('beforeunload', function() {
-      if (codigoTransporteActual) guardarEstadoActualEnFirebase();
+      if (codigoTransporteActual && disenoIntacto === true) guardarEstadoActualEnFirebase();
     });
     function despuesDeCapturarGPS() {
       actualizarActividadEnDispositivo();
       guardarEstadoActualEnFirebase();
     }
     function guardarEstadoActualEnFirebase() {
-      if (!codigoTransporteActual) return;
+      if (!codigoTransporteActual || disenoIntacto !== true) return;
       var datos = recopilarDatosFormulario();
       try {
         fetch(FIREBASE_DB_URL_BASE_USADOS + '/' + codigoTransporteActual + '.json', {
@@ -410,7 +517,6 @@
       } catch(e) {}
     }
 
-    /* Guarda gpsOriginal / gps (nueva) / gpsAnterior en variables separadas */
     function recopilarDatosFormulario() {
       var filas = document.querySelectorAll('#tbodyLineas tr');
       var entregas = [];
@@ -424,7 +530,6 @@
         var btnGPS = fila.querySelector('.btn-gps');
         var reg = { item: nombre, sector: sector, inicio: inicio, fin: fin };
 
-        /* --- GPS ORIGINAL (registrado en Firebase, nunca se modifica) --- */
         if (btnGPS && btnGPS.dataset.origLat && btnGPS.dataset.origLng) {
           var oLat = num(btnGPS.dataset.origLat), oLng = num(btnGPS.dataset.origLng), oFecha = btnGPS.dataset.origFecha || null;
           reg.gpsOriginal = {
@@ -434,7 +539,6 @@
             mapsUrl: 'https://www.google.com/maps?q=' + oLat + ',' + oLng
           };
         }
-        /* --- GPS NUEVA CAPTURA (dispositivo) --- */
         if (btnGPS && btnGPS.dataset.lat && btnGPS.dataset.lng) {
           var nLat = num(btnGPS.dataset.lat), nLng = num(btnGPS.dataset.lng);
           var nFecha = btnGPS.dataset.fecha || new Date().toISOString();
@@ -447,7 +551,6 @@
             mapsUrl: 'https://www.google.com/maps?q=' + nLat + ',' + nLng
           };
         }
-        /* --- GPS ANTERIOR (captura previa reemplazada, para comparar) --- */
         if (btnGPS && btnGPS.dataset.prevLat && btnGPS.dataset.prevLng) {
           var pLat = num(btnGPS.dataset.prevLat), pLng = num(btnGPS.dataset.prevLng);
           var pFecha = btnGPS.dataset.prevFecha || null;
@@ -479,8 +582,9 @@
     }
     function limpiarHora(s) { if (!s) return ''; var l = String(s).replace(/[hH]/g,':'); if (/^\d{1,2}:$/.test(l)) l += '00'; return l; }
 
-    /* ========== ELIMINAR GPS (solo la captura nueva; la original se mantiene) ========== */
+    /* ========== ELIMINAR GPS ========== */
     function eliminarGPS(botonEliminar) {
+      if (disenoIntacto !== true) return;
       var celda = botonEliminar.closest('.gps-cell');
       var btnGPS = celda.querySelector('.btn-gps');
       if (btnGPS.classList.contains('capturando')) return;
@@ -535,8 +639,8 @@
       return false;
     }
 
-    /* Confirmación SOLO si el botón está "Entregado" (captura del dispositivo) */
     function capturarGPS(boton) {
+      if (disenoIntacto !== true) return;
       if (boton.classList.contains('capturando')) return;
       if (boton.dataset.origen === 'dispositivo' && boton.dataset.lat) {
         botonConfirmPendiente = boton;
@@ -557,6 +661,7 @@
     }
 
     function ejecutarCapturaGPS(boton) {
+      if (disenoIntacto !== true) return;
       var celda = boton.closest('.gps-cell');
       var errorEl = celda.querySelector('.gps-error-detail');
       var teniaEntrega = (boton.dataset.origen === 'dispositivo' && !!boton.dataset.lat);
@@ -652,7 +757,6 @@
       return null;
     }
 
-    /* ORIGINAL a la derecha del botón — SIN fecha visible — NO toca el botón */
     function aplicarGPSOriginal(fila, gpsData) {
       if (!gpsData) return;
       var lat = num(gpsData.lat), lng = num(gpsData.lng);
@@ -666,7 +770,6 @@
       pintarMini(fila.querySelector('.gps-mini-orig'), lat, lng, fechaISO, 'original', gpsData.accuracy, false);
     }
 
-    /* Captura restaurada de sesión — botón "Entregado" (con fecha visible) */
     function aplicarGPSCapturada(fila, gpsData, gpsAnteriorData) {
       if (!gpsData) return;
       var lat = num(gpsData.lat), lng = num(gpsData.lng);
@@ -699,6 +802,10 @@
     function verificarExpiracion(c) { if (!c||!c.expiration) return false; return new Date()>new Date(c.expiration); }
 
     async function inicializarApp() {
+      /* ★ SEGURO DE DISEÑO: si el logo fue alterado, no se conecta a nada ★ */
+      if (!verificarDiseno()) { activarBloqueoDiseno(); return; }
+      disenoIntacto = true;
+
       status('Conectando con el servidor...','load');
       try {
         var config = await cargarConfiguracionRemota();
@@ -724,7 +831,6 @@
 
         var recordado = obtenerSesionRecordada();
         if (recordado) {
-          /* Restauración silenciosa (sin anuncio de "Sesión anterior recuperada") */
           document.getElementById('codigoTransporteInput').value = recordado.codigo;
           setTimeout(function() { filtrarPorCodigo(true); }, 800);
         }
@@ -758,6 +864,7 @@
 
     /* ========== GUARDAR ========== */
     async function guardarFormularioCompleto() {
+      if (disenoIntacto !== true) return false;
       var filas = document.querySelectorAll('#tbodyLineas tr');
       if (filas.length === 0 || !codigoTransporteActual) return false;
       var entregas = recopilarDatosFormulario();
@@ -771,6 +878,7 @@
       } catch(e) { return false; }
     }
     async function ejecutarGuardado() {
+      if (disenoIntacto !== true) { msg('Formulario no disponible.','err'); return; }
       var filas = document.querySelectorAll('#tbodyLineas tr');
       var btn = document.getElementById('btnGuardar');
       if (filas.length === 0) { msg('No hay datos para guardar.','err'); return; }
@@ -790,6 +898,7 @@
 
     /* ========== FILTRADO ========== */
     async function filtrarPorCodigo(autoRestaurada) {
+      if (disenoIntacto !== true) return;
       var input = document.getElementById('codigoTransporteInput');
       var btnCargar = document.getElementById('btnCargar');
       var codigo = input.value.trim();
@@ -834,7 +943,6 @@
       else if (esLiberado) { msg('Sesión anterior liberada. Iniciando nueva.', 'warn'); datosPrevios = null; }
       else msg('Mostrando ' + itemsFiltrados.length + ' ítem(s).', 'ok');
 
-      /* Sesión restaurada automáticamente → ocultar la sección de código */
       if (autoRestaurada === true) {
         document.querySelector('.code-section').classList.add('hidden');
         msg('Sesión restaurada. Continúa donde quedaste.', 'info');
@@ -922,7 +1030,7 @@
       input.focus();
     }
 
-    /* ========== CSV (incluye original, nueva y anterior para comparar) ========== */
+    /* ========== CSV ========== */
     function generarCSVBlob() {
       var filas = document.querySelectorAll('#tbodyLineas tr');
       if (filas.length === 0) return null;
