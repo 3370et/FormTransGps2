@@ -25,7 +25,6 @@
     .container { max-width: 1100px; margin: auto; position: relative; z-index: 1; }
     .page-header { text-align: center; margin-bottom: 32px; }
     .page-header .badge { display: inline-flex; align-items: center; gap: 7px; padding: 5px 14px; border-radius: 999px; background: var(--card); border: 1px solid var(--border); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-muted); margin-bottom: 14px; }
-    /* ★ Camión naranja, ET negro, 6 dientes agresivos + líneas de velocidad ★ */
     .et-truck { width: 40px; height: auto; flex-shrink: 0; display: block; filter: drop-shadow(0 2px 6px rgba(232,145,58,0.35)); }
     .et-truck .speed-lines line { stroke-dasharray: 5 7; animation: speedFlow 0.45s linear infinite; }
     .et-truck .speed-lines .sl-2 { animation-delay: 0.16s; }
@@ -69,7 +68,14 @@
     td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 14px; vertical-align: middle; }
     tbody tr { transition: background 0.2s ease; } tbody tr:nth-child(even) { background: var(--row-alt); } tbody tr:hover { background: var(--card-hover); } tbody tr:last-child td { border-bottom: none; }
     .row-num { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 13px; color: var(--fg-muted); background: var(--bg); border-radius: 6px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; }
-    .item-name-text { font-weight: 500; color: var(--fg); }
+    /* ★ Nombre: máx. 2 líneas ★ */
+    td.celda-nombre { max-width: 300px; }
+    td.celda-nombre .item-name-text { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.35; word-wrap: break-word; font-weight: 500; color: var(--fg); }
+    /* ★ Sector y horario más juntos ★ */
+    td.celda-sector { padding-right: 4px; padding-left: 8px; }
+    td.celda-horario { padding-left: 4px; padding-right: 8px; }
+    th.th-sector { padding-right: 4px; padding-left: 8px; }
+    th.th-horario { padding-left: 4px; padding-right: 8px; }
     .info-sector { color: #ffffff; font-size: 12.5px; font-weight: 600; letter-spacing: 0.03em; white-space: nowrap; }
     .info-horario { color: #ffffff; font-size: 12.5px; font-weight: 500; font-family: 'Space Grotesk', sans-serif; white-space: nowrap; }
     .gps-cell { display: flex; flex-direction: column; gap: 5px; min-width: 140px; }
@@ -85,10 +91,11 @@
     .gps-mini { display: none; align-items: center; gap: 4px; font-family: 'Space Grotesk', monospace; font-size: 10px; line-height: 1.3; text-decoration: none; white-space: nowrap; }
     .gps-mini.on { display: inline-flex; }
     .gps-mini:hover { text-decoration: underline; }
-    .gps-mini-orig, .gps-mini-orig:hover { color: var(--purple); }
+    /* ★ Ubicación original en NARANJA (antes morado) ★ */
+    .gps-mini-orig, .gps-mini-orig:hover { color: var(--accent); }
     .gps-mini-nueva, .gps-mini-nueva:hover { color: var(--success); }
     .gps-mini .mini-tag { font-weight: 700; font-size: 9px; padding: 1px 4px; border-radius: 3px; }
-    .gps-mini-orig .mini-tag { background: rgba(167,139,250,0.15); color: var(--purple); }
+    .gps-mini-orig .mini-tag { background: var(--accent-glow); color: var(--accent); }
     .gps-mini-nueva .mini-tag { background: rgba(52,211,153,0.15); color: var(--success); }
     .gps-error-detail { font-size: 10px; color: var(--danger); line-height: 1.5; padding: 5px 7px; background: rgba(248,113,113,0.04); border-radius: 5px; border: 1px solid rgba(248,113,113,0.12); display: none; animation: fadeUp 0.3s ease; }
     .gps-error-detail.visible { display: block; }
@@ -139,10 +146,10 @@
     .toast-guardado.visible { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; } .toast-guardado i { font-size: 18px; }
     @media (max-width: 640px) {
       body { padding: 16px 10px 40px; } .code-row { flex-direction: column; } .btn { width: 100%; justify-content: center; } .acciones { flex-direction: column; }
-      th, td { padding: 4px 8px; font-size: 12px; }
-      td.celda-nombre { max-width: 160px; }
-      .celda-sector, th.th-sector { padding-right: 1px; padding-left: 1px; }
-      .celda-horario, th.th-horario { padding-left: 1px; padding-right: 1px; }
+      th, td { padding: 8px 8px; font-size: 12px; }
+      td.celda-sector, th.th-sector { padding-right: 2px; padding-left: 6px; }
+      td.celda-horario, th.th-horario { padding-left: 2px; padding-right: 6px; }
+      td.celda-nombre { max-width: 170px; }
       .expired-card { padding: 36px 20px; } .expired-card h2 { font-size: 22px; }
       .toast-guardado { left: 16px; right: 16px; transform: translateX(0) translateY(20px); } .toast-guardado.visible { transform: translateX(0) translateY(0); }
       .gps-cell { min-width: 120px; } .btn-gps { font-size: 10px; padding: 5px 9px; } .gps-mini { font-size: 9px; } .gps-error-detail { font-size: 9px; }
@@ -242,10 +249,10 @@
         <table id="tablaItems">
           <thead><tr>
             <th style="width:44px">#</th>
-            <th><i class="fa-solid fa-box"></i> Nombre</th>
+            <th style="width:300px"><i class="fa-solid fa-box"></i> Nombre</th>
             <th><i class="fa-solid fa-satellite-dish"></i> Entrega</th>
-            <th><i class="fa-solid fa-location-dot"></i> Sector</th>
-            <th><i class="fa-regular fa-clock"></i> Desde – Hasta</th>
+            <th class="th-sector"><i class="fa-solid fa-location-dot"></i> Sector</th>
+            <th class="th-horario"><i class="fa-regular fa-clock"></i> Desde – Hasta</th>
           </tr></thead>
           <tbody id="tbodyLineas"></tbody>
         </table>
@@ -266,7 +273,6 @@
     </div>
   </div>
 
-  <!-- ★ Pantalla de bloqueo por diseño alterado ★ -->
   <div class="expired-container hidden" id="tamperedScreen">
     <div class="expired-card">
       <div class="expired-icon"><i class="fa-solid fa-shield-halved"></i></div>
@@ -301,9 +307,7 @@
     var codigosValidosMap = {};
 
     /* ============================================================
-       ★ SEGURO DE DISEÑO — si el logo/camión se altera, la app queda inutilizable ★
-       Verifica la huella exacta del SVG (6 dientes, colores, ET,
-       líneas, ruedas, favicon y texto del badge).
+       SEGURO DE DISEÑO — si el logo/camión se altera, la app queda inutilizable
        ============================================================ */
     var disenoIntacto = null;
     function normAtt(s) { return (s || '').replace(/\s+/g, ''); }
@@ -324,16 +328,16 @@
         if (vals.length !== 3 || vals[0] !== vals[2]) return false;
 
         var d = vals[0];
-        if (d.indexOf('M224L744') === -1) return false;                    /* caja */
-        var dientes = ['L1240','L133','L1026','L-219','L612','L-15Z'];     /* 6 picos exactos */
+        if (d.indexOf('M224L744') === -1) return false;
+        var dientes = ['L1240','L133','L1026','L-219','L612','L-15Z'];
         for (var i = 0; i < dientes.length; i++) { if (d.indexOf(dientes[i]) === -1) return false; }
         var valles = d.match(/L22\d+/g) || [];
-        if (valles.length !== 6) return false;                             /* 6 valles */
+        if (valles.length !== 6) return false;
         var d2 = vals[1];
-        if (d2.indexOf('L-619') === -1 || d2.indexOf('L-25Z') === -1) return false; /* dientes extendidos */
+        if (d2.indexOf('L-619') === -1 || d2.indexOf('L-25Z') === -1) return false;
 
-        if (normAtt(paths[1].getAttribute('d')) !== 'M7812L9412L10227L10244L7844Z' || paths[1].getAttribute('fill') !== '#e8913a') return false; /* cabina */
-        if (normAtt(paths[2].getAttribute('d')) !== 'M8318L9018L9527L8327Z' || paths[2].getAttribute('fill') !== '#0f1117') return false;           /* ventana */
+        if (normAtt(paths[1].getAttribute('d')) !== 'M7812L9412L10227L10244L7844Z' || paths[1].getAttribute('fill') !== '#e8913a') return false;
+        if (normAtt(paths[2].getAttribute('d')) !== 'M8318L9018L9527L8327Z' || paths[2].getAttribute('fill') !== '#0f1117') return false;
 
         var txt = svg.querySelector('text');
         if (!txt || txt.textContent !== 'ET' || txt.getAttribute('fill') !== '#0f1117' || txt.getAttribute('font-size') !== '20') return false;
@@ -383,7 +387,6 @@
       document.getElementById('expiredScreen').classList.add('hidden');
       document.getElementById('tamperedScreen').classList.remove('hidden');
     }
-    /* Re-verificación permanente: cada 5 s y al enfocar la ventana */
     setInterval(function() { if (disenoIntacto === true && !verificarDiseno()) activarBloqueoDiseno(); }, 5000);
     window.addEventListener('focus', function() { if (disenoIntacto === true && !verificarDiseno()) activarBloqueoDiseno(); });
 
@@ -805,7 +808,6 @@
     function verificarExpiracion(c) { if (!c||!c.expiration) return false; return new Date()>new Date(c.expiration); }
 
     async function inicializarApp() {
-      /* ★ SEGURO DE DISEÑO: si el logo fue alterado, no se conecta a nada ★ */
       if (!verificarDiseno()) { activarBloqueoDiseno(); return; }
       disenoIntacto = true;
 
@@ -998,7 +1000,7 @@
 
         fila.innerHTML =
           '<td><span class="row-num">' + contador + '</span></td>' +
-          '<td><span class="item-name-text">' + item.name + '</span></td>' +
+          '<td class="celda-nombre"><span class="item-name-text">' + item.name + '</span></td>' +
           '<td><div class="gps-cell">' +
             '<div class="gps-btn-row">' +
               '<button type="button" class="btn-gps" onclick="capturarGPS(this)"><i class="fa-solid fa-satellite-dish"></i> Entrega Pendiente</button>' +
