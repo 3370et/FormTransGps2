@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%236366f1'/%3E%3Cpath d='M30 22 H70 M30 50 H60 M30 78 H70 M30 22 V78' stroke='%23ffffff' stroke-width='12' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
+  <!-- ★ NUEVO: favicon camión con ET en la caja ★ -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23e8913a'/%3E%3Crect x='10' y='22' width='54' height='42' rx='6' fill='%23ffffff'/%3E%3Ctext x='37' y='51' text-anchor='middle' font-family='Arial Black, Arial, sans-serif' font-weight='900' font-size='22' fill='%23e8913a'%3EET%3C/text%3E%3Cpath d='M66 30 L80 30 L90 41 L90 64 L66 64 Z' fill='%23ffffff'/%3E%3Cpath d='M70 36 L78 36 L85 44 L70 44 Z' fill='%23e8913a'/%3E%3Ccircle cx='26' cy='66' r='9' fill='%23ffffff'/%3E%3Ccircle cx='26' cy='66' r='4' fill='%23e8913a'/%3E%3Ccircle cx='78' cy='66' r='9' fill='%23ffffff'/%3E%3Ccircle cx='78' cy='66' r='4' fill='%23e8913a'/%3E%3C/svg%3E">
   <title>Lista con código de transporte</title>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -24,8 +25,9 @@
     ::-webkit-scrollbar { width: 5px; height: 5px; } ::-webkit-scrollbar-track { background: var(--bg); } ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
     .container { max-width: 1100px; margin: auto; position: relative; z-index: 1; }
     .page-header { text-align: center; margin-bottom: 32px; }
-    .page-header .badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; border-radius: 999px; background: var(--card); border: 1px solid var(--border); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-muted); margin-bottom: 14px; }
-    .page-header .badge i { color: var(--accent); }
+    .page-header .badge { display: inline-flex; align-items: center; gap: 7px; padding: 5px 14px; border-radius: 999px; background: var(--card); border: 1px solid var(--border); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-muted); margin-bottom: 14px; }
+    /* ★ NUEVO: camión perfilado con ET dentro de la caja ★ */
+    .et-truck { width: 30px; height: auto; flex-shrink: 0; display: block; filter: drop-shadow(0 2px 4px rgba(232,145,58,0.18)); }
     .page-header h1 { font-family: 'Space Grotesk', sans-serif; font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; }
     .page-header h1 span { color: var(--accent); }
     .status { display: flex; align-items: center; gap: 10px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; margin-bottom: 24px; font-size: 13px; font-weight: 500; color: var(--fg-muted); animation: fadeUp 0.4s ease; }
@@ -56,7 +58,7 @@
     .inactividad-bar .inact-time { font-family: 'Space Grotesk', monospace; font-weight: 700; }
     .table-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 24px; animation: fadeUp 0.45s ease 0.1s both; }
     .table-scroll { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; min-width: 640px; }
+    table { width: 100%; border-collapse: collapse; min-width: 720px; }
     thead { background: var(--bg-surface); }
     th { padding: 12px 12px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-muted); border-bottom: 1px solid var(--border); white-space: nowrap; }
     th i { margin-right: 4px; font-size: 10px; opacity: 0.7; }
@@ -64,8 +66,8 @@
     tbody tr { transition: background 0.2s ease; } tbody tr:nth-child(even) { background: var(--row-alt); } tbody tr:hover { background: var(--card-hover); } tbody tr:last-child td { border-bottom: none; }
     .row-num { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 13px; color: var(--fg-muted); background: var(--bg); border-radius: 6px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; }
     .item-name-text { font-weight: 500; color: var(--fg); }
-    /* ★ NUEVO: sector+horario en un solo campo, blanco puro ★ */
-    .info-combinada { color: #ffffff; font-size: 12.5px; font-weight: 500; letter-spacing: 0.02em; white-space: nowrap; }
+    .info-sector { color: #ffffff; font-size: 12.5px; font-weight: 600; letter-spacing: 0.03em; white-space: nowrap; }
+    .info-horario { color: #ffffff; font-size: 12.5px; font-weight: 500; font-family: 'Space Grotesk', sans-serif; white-space: nowrap; }
     .gps-cell { display: flex; flex-direction: column; gap: 5px; min-width: 140px; }
     .gps-btn-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
     .btn-gps { display: inline-flex; align-items: center; gap: 5px; font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 11px; padding: 6px 12px; border-radius: 7px; border: 1.5px solid rgba(96,165,250,0.25); background: rgba(96,165,250,0.08); color: var(--info); cursor: pointer; transition: all 0.25s ease; white-space: nowrap; width: fit-content; }
@@ -76,7 +78,6 @@
     .btn-gps-eliminar { display: none; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 5px; border: 1px solid rgba(248,113,113,0.25); background: rgba(248,113,113,0.06); color: var(--danger); cursor: pointer; transition: all 0.2s ease; font-size: 9px; flex-shrink: 0; }
     .btn-gps-eliminar:hover { background: rgba(248,113,113,0.18); border-color: var(--danger); transform: scale(1.15); }
     .gps-btn-row.tiene-gps .btn-gps-eliminar { display: inline-flex; }
-    /* ★ NUEVO: mini info a la derecha del botón — original (morado) y nueva (verde) ★ */
     .gps-mini { display: none; align-items: center; gap: 4px; font-family: 'Space Grotesk', monospace; font-size: 10px; line-height: 1.3; text-decoration: none; white-space: nowrap; }
     .gps-mini.on { display: inline-flex; }
     .gps-mini:hover { text-decoration: underline; }
@@ -139,7 +140,8 @@
       .toast-guardado { left: 16px; right: 16px; transform: translateX(0) translateY(20px); } .toast-guardado.visible { transform: translateX(0) translateY(0); }
       .gps-cell { min-width: 120px; } .btn-gps { font-size: 10px; padding: 5px 9px; } .gps-mini { font-size: 9px; } .gps-error-detail { font-size: 9px; }
       .gps-modal { padding: 22px 18px; } .gps-modal h3 { font-size: 16px; }
-      .info-combinada { font-size: 11px; white-space: normal; }
+      .info-sector, .info-horario { font-size: 11px; }
+      .et-truck { width: 26px; }
     }
   </style>
 </head>
@@ -190,14 +192,26 @@
 
   <div class="container" id="mainContent">
     <header class="page-header">
-      <div class="badge"><i class="fa-solid fa-truck-fast"></i> Gestión de entregas</div>
+      <!-- ★ NUEVO: camión perfilado con ET integrado en la caja ★ -->
+      <div class="badge">
+        <svg class="et-truck" viewBox="0 0 94 56" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="3" y="4" width="56" height="40" rx="6" fill="#ffffff"/>
+          <text x="31" y="31" text-anchor="middle" font-family="Space Grotesk, Arial, sans-serif" font-weight="700" font-size="21" fill="#e8913a">ET</text>
+          <path d="M61 12 L77 12 L91 27 L91 44 L61 44 Z" fill="#ffffff"/>
+          <path d="M66 18 L75 18 L84 28 L66 28 Z" fill="#e8913a"/>
+          <circle cx="20" cy="48" r="8" fill="#ffffff"/><circle cx="20" cy="48" r="3.5" fill="#e8913a"/>
+          <circle cx="82" cy="48" r="8" fill="#ffffff"/><circle cx="82" cy="48" r="3.5" fill="#e8913a"/>
+        </svg>
+        Gestión de entregas
+      </div>
       <h1>* <span>Transporte</span></h1>
     </header>
     <div class="status load" id="estadoServidor"><i class="fa-solid fa-circle-notch"></i><span>Conectando con el servidor...</span></div>
     <div class="code-section">
       <div class="code-section-label"><i class="fa-solid fa-key"></i> Introduce tu código de transporte</div>
       <div class="code-row">
-        <input type="text" class="code-input" id="codigoTransporteInput" placeholder="Ej: 102" autocomplete="off" spellcheck="false">
+        <!-- ★ NUEVO: sin placeholder "Ej: 102" ★ -->
+        <input type="text" class="code-input" id="codigoTransporteInput" autocomplete="off" spellcheck="false">
         <button class="btn btn-cargar" id="btnCargar" onclick="filtrarPorCodigo()"><i class="fa-solid fa-magnifying-glass"></i> Cargar datos</button>
       </div>
     </div>
@@ -214,7 +228,8 @@
             <th style="width:44px">#</th>
             <th><i class="fa-solid fa-box"></i> Nombre</th>
             <th><i class="fa-solid fa-satellite-dish"></i> Entrega</th>
-            <th><i class="fa-solid fa-circle-info"></i> Sector · Horario</th>
+            <th><i class="fa-solid fa-location-dot"></i> Sector</th>
+            <th><i class="fa-regular fa-clock"></i> Desde – Hasta</th>
           </tr></thead>
           <tbody id="tbodyLineas"></tbody>
         </table>
@@ -395,16 +410,17 @@
       } catch(e) {}
     }
 
-    /* ★ NUEVO: guarda gpsOriginal / gps (nueva) / gpsAnterior en variables separadas ★ */
+    /* Guarda gpsOriginal / gps (nueva) / gpsAnterior en variables separadas */
     function recopilarDatosFormulario() {
       var filas = document.querySelectorAll('#tbodyLineas tr');
       var entregas = [];
       filas.forEach(function(fila) {
         var nombre = fila.querySelector('.item-name-text') ? fila.querySelector('.item-name-text').textContent.trim() : '';
-        var comboEl = fila.querySelector('.info-combinada');
-        var sector = comboEl ? (comboEl.dataset.sector || '') : '';
-        var inicio = comboEl ? (comboEl.dataset.inicio || '') : '';
-        var fin = comboEl ? (comboEl.dataset.fin || '') : '';
+        var sectorEl = fila.querySelector('.info-sector');
+        var sector = sectorEl ? (sectorEl.dataset.sector || '') : '';
+        var horEl = fila.querySelector('.info-horario');
+        var inicio = horEl ? (horEl.dataset.inicio || '') : '';
+        var fin = horEl ? (horEl.dataset.fin || '') : '';
         var btnGPS = fila.querySelector('.btn-gps');
         var reg = { item: nombre, sector: sector, inicio: inicio, fin: fin };
 
@@ -471,7 +487,6 @@
       var errorEl = celda.querySelector('.gps-error-detail');
       var btnRow = celda.querySelector('.gps-btn-row');
 
-      /* Botón vuelve a "Entrega Pendiente" */
       btnGPS.classList.remove('capturado', 'error-gps', 'capturando');
       btnGPS.innerHTML = '<i class="fa-solid fa-satellite-dish"></i> Entrega Pendiente';
       delete btnGPS.dataset.lat;
@@ -482,7 +497,6 @@
       delete btnGPS.dataset.prevLat;
       delete btnGPS.dataset.prevLng;
       delete btnGPS.dataset.prevFecha;
-      /* La mini ORIGINAL no se toca */
       var miniNueva = celda.querySelector('.gps-mini-nueva');
       if (miniNueva) { miniNueva.classList.remove('on'); miniNueva.innerHTML = ''; miniNueva.removeAttribute('href'); }
       errorEl.classList.remove('visible');
@@ -506,7 +520,6 @@
       document.getElementById('gpsModal').classList.remove('visible');
       if (botonGPSPendiente) {
         botonGPSPendiente.classList.remove('capturando');
-        /* restaurar texto según estado */
         if (botonGPSPendiente.dataset.origen === 'dispositivo' && botonGPSPendiente.dataset.lat) botonGPSPendiente.innerHTML = '<i class="fa-solid fa-check"></i> Entregado';
         else botonGPSPendiente.innerHTML = '<i class="fa-solid fa-satellite-dish"></i> Entrega Pendiente';
       }
@@ -522,7 +535,7 @@
       return false;
     }
 
-    /* ★ NUEVO 1: confirmación SOLO si el botón está "Entregado" (captura del dispositivo) ★ */
+    /* Confirmación SOLO si el botón está "Entregado" (captura del dispositivo) */
     function capturarGPS(boton) {
       if (boton.classList.contains('capturando')) return;
       if (boton.dataset.origen === 'dispositivo' && boton.dataset.lat) {
@@ -530,7 +543,6 @@
         document.getElementById('confirmModal').classList.add('visible');
         return;
       }
-      /* "Entrega Pendiente" → captura directa, sin preguntar (aunque haya original a la derecha) */
       ejecutarCapturaGPS(boton);
     }
     function cerrarConfirmRecaptura() {
@@ -547,7 +559,7 @@
     function ejecutarCapturaGPS(boton) {
       var celda = boton.closest('.gps-cell');
       var errorEl = celda.querySelector('.gps-error-detail');
-      var teniaEntrega = (boton.dataset.origen === 'dispositivo' && !!boton.dataset.lat); /* ¿estaba "Entregado"? */
+      var teniaEntrega = (boton.dataset.origen === 'dispositivo' && !!boton.dataset.lat);
       boton.classList.remove('capturado','error-gps');
       boton.classList.add('capturando');
       boton.innerHTML = '<i class="fa-solid fa-circle-notch"></i> Ubicando...';
@@ -556,7 +568,6 @@
       if (!window.isSecureContext) { boton.classList.remove('capturando'); boton.classList.add('error-gps'); boton.innerHTML = '<i class="fa-solid fa-lock"></i> Sin HTTPS'; errorEl.innerHTML = '<div class="gps-error-title perm-denied"><i class="fa-solid fa-lock"></i> Sin HTTPS</div>'; errorEl.classList.add('visible'); return; }
       navigator.geolocation.getCurrentPosition(
         function(pos) {
-          /* ★ NUEVO 4: si ya estaba "Entregado", la captura anterior pasa a prev* (comparación) ★ */
           if (teniaEntrega) {
             boton.dataset.prevLat = boton.dataset.lat;
             boton.dataset.prevLng = boton.dataset.lng;
@@ -568,8 +579,7 @@
           boton.dataset.lat = pos.coords.latitude; boton.dataset.lng = pos.coords.longitude; boton.dataset.accuracy = pos.coords.accuracy;
           boton.dataset.origen = 'dispositivo';
           boton.dataset.fecha = fechaCapturaISO;
-          /* Mini info NUEVA (verde) */
-          pintarMini(celda.querySelector('.gps-mini-nueva'), pos.coords.latitude, pos.coords.longitude, fechaCapturaISO, teniaEntrega ? 'nueva' : 'entrega', pos.coords.accuracy);
+          pintarMini(celda.querySelector('.gps-mini-nueva'), pos.coords.latitude, pos.coords.longitude, fechaCapturaISO, teniaEntrega ? 'nueva' : 'entrega', pos.coords.accuracy, true);
           celda.querySelector('.gps-btn-row').classList.add('tiene-gps');
           despuesDeCapturarGPS();
         },
@@ -584,7 +594,6 @@
             default: t='<i class="fa-solid fa-xmark"></i> Error'; d='<div class="gps-error-title perm-denied"><i class="fa-solid fa-xmark"></i> Error</div>';
           }
           boton.innerHTML=t; errorEl.innerHTML=d; errorEl.classList.add('visible');
-          /* Si había entrega previa, se conserva (botón vuelve a Entregado) */
           if (teniaEntrega) {
             boton.classList.remove('error-gps');
             boton.classList.add('capturado');
@@ -618,19 +627,18 @@
       function p(n){ return String(n).padStart(2,'0'); }
       return p(d.getDate()) + '/' + p(d.getMonth()+1) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
     }
-    /* ★ NUEVO: pinta la mini info a la derecha del botón ★ */
-    function pintarMini(miniEl, lat, lng, fechaISO, etiqueta, accuracy) {
+    function pintarMini(miniEl, lat, lng, fechaISO, etiqueta, accuracy, conFecha) {
       if (!miniEl) return;
       var latN = num(lat), lngN = num(lng);
       if (latN === null || lngN === null) { miniEl.classList.remove('on'); miniEl.innerHTML=''; miniEl.removeAttribute('href'); miniEl.removeAttribute('title'); return; }
       var partes = [latN.toFixed(5) + ', ' + lngN.toFixed(5)];
       if (num(accuracy) !== null && num(accuracy) > 0) partes.push('~' + Math.round(num(accuracy)) + 'm');
-      if (fechaISO) partes.push(formatearFechaCorta(fechaISO));
+      if (conFecha !== false && fechaISO) partes.push(formatearFechaCorta(fechaISO));
       var html = '<i class="fa-solid fa-location-dot"></i> ' + partes.join(' · ');
       if (etiqueta) html += ' <span class="mini-tag">' + etiqueta + '</span>';
       miniEl.innerHTML = html;
       miniEl.href = 'https://www.google.com/maps?q=' + latN + ',' + lngN;
-      miniEl.title = 'Ver en Google Maps' + (fechaISO ? ' — ' + formatearFechaHora(fechaISO) : '');
+      miniEl.title = 'Ver en Google Maps' + ((conFecha !== false && fechaISO) ? ' — ' + formatearFechaHora(fechaISO) : '');
       miniEl.classList.add('on');
     }
     function extraerGPSDeItem(item) {
@@ -644,7 +652,7 @@
       return null;
     }
 
-    /* ★ NUEVO 2: ORIGINAL a la derecha del botón — NO toca el botón (queda "Entrega Pendiente") ★ */
+    /* ORIGINAL a la derecha del botón — SIN fecha visible — NO toca el botón */
     function aplicarGPSOriginal(fila, gpsData) {
       if (!gpsData) return;
       var lat = num(gpsData.lat), lng = num(gpsData.lng);
@@ -655,10 +663,10 @@
       btn.dataset.origLat = lat;
       btn.dataset.origLng = lng;
       btn.dataset.origFecha = fechaISO;
-      pintarMini(fila.querySelector('.gps-mini-orig'), lat, lng, fechaISO, 'original', gpsData.accuracy);
+      pintarMini(fila.querySelector('.gps-mini-orig'), lat, lng, fechaISO, 'original', gpsData.accuracy, false);
     }
 
-    /* ★ NUEVO 4: captura restaurada de sesión — botón "Entregado", datos separados ★ */
+    /* Captura restaurada de sesión — botón "Entregado" (con fecha visible) */
     function aplicarGPSCapturada(fila, gpsData, gpsAnteriorData) {
       if (!gpsData) return;
       var lat = num(gpsData.lat), lng = num(gpsData.lng);
@@ -678,7 +686,7 @@
         btn.dataset.prevLng = num(gpsAnteriorData.lng);
         btn.dataset.prevFecha = gpsAnteriorData.fechaCaptura || '';
       }
-      pintarMini(fila.querySelector('.gps-mini-nueva'), lat, lng, fechaISO, gpsAnteriorData ? 'nueva' : 'entrega', gpsData.accuracy);
+      pintarMini(fila.querySelector('.gps-mini-nueva'), lat, lng, fechaISO, gpsAnteriorData ? 'nueva' : 'entrega', gpsData.accuracy, true);
       fila.querySelector('.gps-btn-row').classList.add('tiene-gps');
     }
 
@@ -716,9 +724,9 @@
 
         var recordado = obtenerSesionRecordada();
         if (recordado) {
+          /* Restauración silenciosa (sin anuncio de "Sesión anterior recuperada") */
           document.getElementById('codigoTransporteInput').value = recordado.codigo;
-          status('Sesión anterior recuperada: ' + recordado.codigo.toUpperCase(), 'ok');
-          setTimeout(function() { filtrarPorCodigo(); }, 800);
+          setTimeout(function() { filtrarPorCodigo(true); }, 800);
         }
       } catch(e) {
         status('Error: ' + e.message, 'err');
@@ -781,7 +789,7 @@
     }
 
     /* ========== FILTRADO ========== */
-    async function filtrarPorCodigo() {
+    async function filtrarPorCodigo(autoRestaurada) {
       var input = document.getElementById('codigoTransporteInput');
       var btnCargar = document.getElementById('btnCargar');
       var codigo = input.value.trim();
@@ -826,6 +834,12 @@
       else if (esLiberado) { msg('Sesión anterior liberada. Iniciando nueva.', 'warn'); datosPrevios = null; }
       else msg('Mostrando ' + itemsFiltrados.length + ' ítem(s).', 'ok');
 
+      /* Sesión restaurada automáticamente → ocultar la sección de código */
+      if (autoRestaurada === true) {
+        document.querySelector('.code-section').classList.add('hidden');
+        msg('Sesión restaurada. Continúa donde quedaste.', 'info');
+      }
+
       guardarSesionEnDispositivo(codigo);
       input.disabled = true; btnCargar.disabled = true;
       fechaInicioSesion = esContinuacion ? null : new Date().toISOString();
@@ -869,11 +883,7 @@
         }
         itemsOriginalesCargados.push({ name: item.name, sector: item.sector || '', ini: iniValue, fin: finValue });
 
-        /* ★ NUEVO 3: sector+horario en un SOLO campo, blanco puro ★ */
-        var comboParts = [];
-        if (sectorR) comboParts.push(sectorR);
-        if (iniR || finR) comboParts.push((iniR || '--:--') + ' – ' + (finR || '--:--'));
-        var comboText = comboParts.join(' · ') || '—';
+        var horarioTxt = (iniR || finR) ? ((iniR || '--:--') + ' – ' + (finR || '--:--')) : '—';
 
         fila.innerHTML =
           '<td><span class="row-num">' + contador + '</span></td>' +
@@ -887,13 +897,12 @@
             '</div>' +
             '<div class="gps-error-detail"></div>' +
           '</div></td>' +
-          '<td><span class="info-combinada" data-sector="' + sectorR + '" data-inicio="' + (iniR || '') + '" data-fin="' + (finR || '') + '">' + comboText + '</span></td>';
+          '<td><span class="info-sector" data-sector="' + sectorR + '">' + (sectorR || '—') + '</span></td>' +
+          '<td><span class="info-horario" data-inicio="' + (iniR || '') + '" data-fin="' + (finR || '') + '">' + horarioTxt + '</span></td>';
         tbody.appendChild(fila);
 
-        /* ORIGINAL: dato previo guardado > registrado en formConfig — nunca modifica el botón */
         var gpsOrig = (datoPrevio && datoPrevio.gpsOriginal) ? datoPrevio.gpsOriginal : (item.gpsRegistrado || null);
         if (gpsOrig) aplicarGPSOriginal(fila, gpsOrig);
-        /* NUEVA CAPTURA restaurada de sesión → botón "Entregado" */
         if (datoPrevio && datoPrevio.gps) aplicarGPSCapturada(fila, datoPrevio.gps, datoPrevio.gpsAnterior || null);
       });
       document.getElementById('itemCount').textContent = contador;
@@ -902,6 +911,7 @@
       var input = document.getElementById('codigoTransporteInput');
       codigoTransporteActual = '';
       fechaInicioSesion = null;
+      document.querySelector('.code-section').classList.remove('hidden');
       input.value = ''; input.disabled = false;
       document.getElementById('btnCargar').disabled = false;
       document.getElementById('btnGuardar').disabled = false;
@@ -919,10 +929,11 @@
       var csv = '#,Nombre,Sector,Desde,Hasta,LatOriginal,LngOriginal,FechaOriginal,LatNueva,LngNueva,FechaNueva,LatAnterior,LngAnterior,FechaAnterior,Maps\n';
       filas.forEach(function(f) {
         var n = f.querySelector('.item-name-text') ? f.querySelector('.item-name-text').textContent.trim() : '';
-        var cEl = f.querySelector('.info-combinada');
-        var s = cEl ? (cEl.dataset.sector || '') : '';
-        var i = cEl ? (cEl.dataset.inicio || '') : '';
-        var fi = cEl ? (cEl.dataset.fin || '') : '';
+        var sEl = f.querySelector('.info-sector');
+        var s = sEl ? (sEl.dataset.sector || '') : '';
+        var hEl = f.querySelector('.info-horario');
+        var i = hEl ? (hEl.dataset.inicio || '') : '';
+        var fi = hEl ? (hEl.dataset.fin || '') : '';
         var b = f.querySelector('.btn-gps');
         var oLat = b&&b.dataset.origLat?b.dataset.origLat:''; var oLng = b&&b.dataset.origLng?b.dataset.origLng:''; var oFe = b&&b.dataset.origFecha? formatearFechaHora(b.dataset.origFecha):'';
         var nLat = b&&b.dataset.lat?b.dataset.lat:''; var nLng = b&&b.dataset.lng?b.dataset.lng:''; var nFe = b&&b.dataset.fecha? formatearFechaHora(b.dataset.fecha):'';
