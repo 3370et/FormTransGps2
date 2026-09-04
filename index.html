@@ -1005,8 +1005,8 @@
             '</div>' +
             '<div class="gps-error-detail"></div>' +
           '</div></td>' +
-          '<td><span class="info-sector" data-sector="' + sectorR + '">' + (sectorR || '—') + '</span></td>' +
-          '<td><span class="info-horario" data-inicio="' + (iniR || '') + '" data-fin="' + (finR || '') + '">' + horarioTxt + '</span></td>';
+          '<td class="celda-sector"><span class="info-sector" data-sector="' + sectorR + '">' + (sectorR || '—') + '</span></td>' +
+          '<td class="celda-horario"><span class="info-horario" data-inicio="' + (iniR || '') + '" data-fin="' + (finR || '') + '">' + horarioTxt + '</span></td>';
         tbody.appendChild(fila);
 
         var gpsOrig = (datoPrevio && datoPrevio.gpsOriginal) ? datoPrevio.gpsOriginal : (item.gpsRegistrado || null);
