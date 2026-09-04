@@ -47,7 +47,6 @@
     .btn-guardar.guardando { pointer-events: none; opacity: 0.7; } .btn-guardar.guardando i { animation: spin 0.8s linear infinite; }
     .section-title { font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 700; color: var(--fg); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
     .section-title .count { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; padding: 0 7px; border-radius: 999px; background: var(--accent-glow); border: 1px solid rgba(232,145,58,0.2); color: var(--accent); font-size: 12px; font-weight: 700; }
-    /* Indicador de inactividad */
     .inactividad-bar { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 8px; font-size: 11px; font-weight: 600; margin-bottom: 16px; animation: fadeUp 0.3s ease; }
     .inactividad-bar.ok { background: rgba(52,211,153,0.06); border: 1px solid rgba(52,211,153,0.15); color: var(--success); }
     .inactividad-bar.warn { background: rgba(251,191,36,0.06); border: 1px solid rgba(251,191,36,0.15); color: var(--warning); animation: inactPulse 2s ease-in-out infinite; }
@@ -64,32 +63,26 @@
     td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 14px; vertical-align: middle; }
     tbody tr { transition: background 0.2s ease; } tbody tr:nth-child(even) { background: var(--row-alt); } tbody tr:hover { background: var(--card-hover); } tbody tr:last-child td { border-bottom: none; }
     .row-num { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 13px; color: var(--fg-muted); background: var(--bg); border-radius: 6px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; }
-    .item-name { font-weight: 500; color: var(--fg); }
-    .tbl-input { background: var(--bg); border: 1.5px solid var(--border); color: var(--fg); border-radius: 8px; padding: 9px 12px; font-family: 'DM Sans', sans-serif; font-size: 13px; width: 100%; min-width: 100px; outline: none; transition: all 0.25s ease; height: 40px; }
-    .tbl-input::placeholder { color: #4a5068; } .tbl-input:hover { border-color: #3a4060; } .tbl-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
-    .tbl-input.time { min-width: 120px; cursor: pointer; } .tbl-input.sector { text-transform: uppercase; }
-    select.tbl-input { -webkit-appearance: none; -moz-appearance: none; appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237b829a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; background-size: 14px; padding-right: 30px; }
-    select.tbl-input option { background: var(--bg-surface); color: var(--fg); }
+    .item-name-text { font-weight: 500; color: var(--fg); }
+    /* ★ NUEVO: sector y horarios informativos compactos ★ */
+    .info-sector { font-size: 12px; font-weight: 600; color: var(--fg); letter-spacing: 0.03em; }
+    .info-hora { font-family: 'Space Grotesk', monospace; font-size: 12px; color: var(--fg-muted); }
     .gps-cell { display: flex; flex-direction: column; gap: 5px; min-width: 120px; }
-    .gps-btn-row { display: flex; align-items: center; gap: 5px; }
+    .gps-btn-row { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
     .btn-gps { display: inline-flex; align-items: center; gap: 5px; font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 11px; padding: 6px 12px; border-radius: 7px; border: 1.5px solid rgba(96,165,250,0.25); background: rgba(96,165,250,0.08); color: var(--info); cursor: pointer; transition: all 0.25s ease; white-space: nowrap; width: fit-content; }
     .btn-gps:hover { background: rgba(96,165,250,0.18); border-color: var(--info); transform: translateY(-1px); box-shadow: 0 3px 12px rgba(96,165,250,0.15); } .btn-gps:active { transform: scale(0.95); }
     .btn-gps.capturando { pointer-events: none; opacity: 0.65; } .btn-gps.capturando i { animation: spin 1s linear infinite; }
     .btn-gps.capturado { border-color: rgba(52,211,153,0.3); background: rgba(52,211,153,0.08); color: var(--success); cursor: pointer; } .btn-gps.capturado:hover { background: rgba(52,211,153,0.15); border-color: var(--success); }
-    .btn-gps.registrado { border-color: rgba(167,139,250,0.3); background: rgba(167,139,250,0.08); color: var(--purple); cursor: pointer; }
-    .btn-gps.registrado:hover { background: rgba(167,139,250,0.18); border-color: var(--purple); }
-    .gps-coords.registrado { border-color: rgba(167,139,250,0.2); }
-    .gps-coords.registrado .lat-label, .gps-coords.registrado .lng-label { color: var(--purple); }
     .btn-gps.error-gps { border-color: rgba(248,113,113,0.3); background: rgba(248,113,113,0.08); color: var(--danger); }
     .btn-gps-eliminar { display: none; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 5px; border: 1px solid rgba(248,113,113,0.25); background: rgba(248,113,113,0.06); color: var(--danger); cursor: pointer; transition: all 0.2s ease; font-size: 9px; flex-shrink: 0; }
     .btn-gps-eliminar:hover { background: rgba(248,113,113,0.18); border-color: var(--danger); transform: scale(1.15); }
     .gps-btn-row.tiene-gps .btn-gps-eliminar { display: inline-flex; }
-    .gps-coords { font-family: 'Space Grotesk', monospace; font-size: 10px; color: var(--fg-muted); line-height: 1.4; padding: 4px 7px; background: var(--bg); border-radius: 5px; border: 1px solid var(--border); word-break: break-all; display: none; }
-    .gps-coords.visible { display: block; animation: fadeUp 0.3s ease; }
-    .gps-coords .lat-label, .gps-coords .lng-label { color: var(--info); font-weight: 600; }
-    .gps-coords.capturado { border-color: rgba(52,211,153,0.2); } .gps-coords.capturado .lat-label, .gps-coords.capturado .lng-label { color: var(--success); }
-    .gps-link { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; color: var(--info); text-decoration: none; opacity: 0; height: 0; overflow: hidden; transition: all 0.3s ease; }
-    .gps-link.visible { opacity: 0.85; height: auto; margin-top: 1px; } .gps-link:hover { opacity: 1; text-decoration: underline; }
+    /* ★ NUEVO: info GPS compacta a la derecha del botón ★ */
+    .gps-mini { display: none; align-items: center; gap: 4px; font-family: 'Space Grotesk', monospace; font-size: 10px; color: var(--info); text-decoration: none; line-height: 1.3; }
+    .gps-btn-row.tiene-gps .gps-mini { display: inline-flex; }
+    .gps-mini:hover { text-decoration: underline; color: var(--info); }
+    .gps-mini.origen-firebase, .gps-mini.origen-firebase:hover { color: var(--purple); }
+    .gps-mini .mini-nueva { color: var(--warning); font-weight: 700; }
     .gps-error-detail { font-size: 10px; color: var(--danger); line-height: 1.5; padding: 5px 7px; background: rgba(248,113,113,0.04); border-radius: 5px; border: 1px solid rgba(248,113,113,0.12); display: none; animation: fadeUp 0.3s ease; }
     .gps-error-detail.visible { display: block; }
     .gps-error-detail .gps-error-title { font-weight: 700; font-size: 10px; margin-bottom: 3px; display: flex; align-items: center; gap: 4px; }
@@ -111,7 +104,6 @@
     .gps-modal-btns { display: flex; gap: 8px; } .gps-modal-btns .btn { flex: 1; justify-content: center; font-size: 13px; padding: 10px 14px; }
     .btn-modal-cancel { background: var(--bg); color: var(--fg-muted); border: 1.5px solid var(--border); } .btn-modal-cancel:hover { border-color: var(--fg-muted); color: var(--fg); }
     .btn-modal-retry { background: rgba(251,191,36,0.12); color: var(--warning); border: 1.5px solid rgba(251,191,36,0.3); } .btn-modal-retry:hover { background: rgba(251,191,36,0.2); border-color: var(--warning); }
-    /* ★ NUEVO: variante azul del modal (confirmación de recaptura) ★ */
     .gps-modal.confirm-variante { border-color: rgba(96,165,250,0.25); }
     .gps-modal.confirm-variante h3 { color: var(--info); }
     .gps-modal.confirm-variante .gps-modal-icon { background: rgba(96,165,250,0.08); border-color: rgba(96,165,250,0.2); }
@@ -140,10 +132,10 @@
     .toast-guardado.visible { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; } .toast-guardado i { font-size: 18px; }
     @media (max-width: 640px) {
       body { padding: 16px 10px 40px; } .code-row { flex-direction: column; } .btn { width: 100%; justify-content: center; } .acciones { flex-direction: column; }
-      th, td { padding: 8px 8px; font-size: 12px; } .tbl-input { font-size: 12px; padding: 8px 10px; height: 38px; } .tbl-input.time { min-width: 100px; }
+      th, td { padding: 8px 8px; font-size: 12px; }
       .expired-card { padding: 36px 20px; } .expired-card h2 { font-size: 22px; }
       .toast-guardado { left: 16px; right: 16px; transform: translateX(0) translateY(20px); } .toast-guardado.visible { transform: translateX(0) translateY(0); }
-      .gps-cell { min-width: 100px; } .btn-gps { font-size: 10px; padding: 5px 9px; } .gps-coords { font-size: 9px; } .gps-error-detail { font-size: 9px; }
+      .gps-cell { min-width: 100px; } .btn-gps { font-size: 10px; padding: 5px 9px; } .gps-mini { font-size: 9px; } .gps-error-detail { font-size: 9px; }
       .gps-modal { padding: 22px 18px; } .gps-modal h3 { font-size: 16px; }
     }
   </style>
@@ -176,7 +168,6 @@
     </div>
   </div>
 
-  <!-- ★ NUEVO: modal de confirmación para recapturar GPS ★ -->
   <div class="gps-modal-overlay" id="confirmModal">
     <div class="gps-modal confirm-variante">
       <div class="gps-modal-icon"><i class="fa-solid fa-location-dot"></i></div>
@@ -247,12 +238,13 @@
   <script>
     var FIREBASE_DB_URL_CONFIG = "https://datos-formulario-f3cde-default-rtdb.firebaseio.com/formConfig.json";
     var FIREBASE_DB_URL_BASE_USADOS = "https://datos-formulario-f3cde-default-rtdb.firebaseio.com/codigosUsados";
+    var FIREBASE_DB_URL_ROOT = "https://datos-formulario-f3cde-default-rtdb.firebaseio.com";
 
     var allItemsConfig = [];
     var codigoTransporteActual = '';
     var itemsOriginalesCargados = [];
     var botonGPSPendiente = null;
-    var botonConfirmPendiente = null; /* ★ NUEVO ★ */
+    var botonConfirmPendiente = null;
     var fechaInicioSesion = null;
     var timerInactividad = null;
 
@@ -263,12 +255,13 @@
     /* 120 min inactividad → bloquear */
     var INACTIVIDAD_BLOQUEO_MS = 120 * 60 * 1000;
     var LS_KEY = 'transporte_sesion';
-    var LS_DEVICE_KEY = 'transporte_dispositivo_id'; /* ★ NUEVO: ID de dispositivo ★ */
+    var LS_DEVICE_KEY = 'transporte_dispositivo_id';
+
+    /* Códigos válidos (solo los existentes pueden usarse) */
+    var codigosValidosMap = {};
 
     /* ============================================================
-       ★ NUEVO: IDENTIFICADOR ÚNICO DE DISPOSITIVO ★
-       Se genera una sola vez y se guarda en localStorage.
-       Sirve para bloquear el uso del mismo código en otro equipo.
+       IDENTIFICADOR ÚNICO DE DISPOSITIVO (bloqueo multi-dispositivo)
        ============================================================ */
     function obtenerIdDispositivo() {
       try {
@@ -318,7 +311,7 @@
     function iniciarTimerInactividad() {
       detenerTimerInactividad();
       timerInactividad = setInterval(verificarInactividad, 15000);
-      verificarInactividad(); // Verificar inmediato
+      verificarInactividad();
     }
     function detenerTimerInactividad() {
       if (timerInactividad) { clearInterval(timerInactividad); timerInactividad = null; }
@@ -332,16 +325,9 @@
       var barra = document.getElementById('inactividadBar');
       var tiempoEl = document.getElementById('inactTime');
 
-      if (inactividad >= INACTIVIDAD_BLOQUEO_MS) {
-        forzarResetPorInactividad('bloqueo');
-        return;
-      }
-      if (inactividad >= INACTIVIDAD_RESET_MS) {
-        forzarResetPorInactividad('reset');
-        return;
-      }
+      if (inactividad >= INACTIVIDAD_BLOQUEO_MS) { forzarResetPorInactividad('bloqueo'); return; }
+      if (inactividad >= INACTIVIDAD_RESET_MS) { forzarResetPorInactividad('reset'); return; }
 
-      /* Calcular tiempo restante hasta reset (60 min) */
       var restanteReset = INACTIVIDAD_RESET_MS - inactividad;
       var minR = Math.floor(restanteReset / 60000);
       var segR = Math.floor((restanteReset % 60000) / 1000);
@@ -402,7 +388,6 @@
       try {
         fetch(FIREBASE_DB_URL_BASE_USADOS + '/' + codigoTransporteActual + '.json', {
           method: 'PUT', headers: { 'Content-Type': 'application/json' },
-          /* ★ NUEVO: incluye dispositivoId → amarra la sesión a este equipo ★ */
           body: JSON.stringify({ estado: 'en_proceso', fechaInicio: fechaInicioSesion || new Date().toISOString(), dispositivoId: obtenerIdDispositivo(), datosFormulario: datos }),
           keepalive: true
         });
@@ -413,9 +398,13 @@
       var entregas = [];
       filas.forEach(function(fila) {
         var nombre = fila.querySelector('.item-name-text') ? fila.querySelector('.item-name-text').textContent.trim() : '';
-        var sector = fila.querySelector('.sector') ? fila.querySelector('.sector').value : '';
-        var inicio = fila.querySelector('.inicio') ? fila.querySelector('.inicio').value : '';
-        var fin = fila.querySelector('.fin') ? fila.querySelector('.fin').value : '';
+        /* ★ NUEVO: sector/horas leídos del texto informativo ★ */
+        var sectorEl = fila.querySelector('.info-sector');
+        var sector = sectorEl ? sectorEl.textContent.trim() : '';
+        var iniEl = fila.querySelector('.info-inicio');
+        var inicio = iniEl ? (iniEl.textContent.trim() === '--:--' ? '' : iniEl.textContent.trim()) : '';
+        var finEl = fila.querySelector('.info-fin');
+        var fin = finEl ? (finEl.textContent.trim() === '--:--' ? '' : finEl.textContent.trim()) : '';
         var btnGPS = fila.querySelector('.btn-gps');
         var gpsLat = btnGPS && btnGPS.dataset.lat ? btnGPS.dataset.lat : null;
         var gpsLng = btnGPS && btnGPS.dataset.lng ? btnGPS.dataset.lng : null;
@@ -453,27 +442,19 @@
       t.classList.add('visible');
       setTimeout(function() { t.classList.remove('visible'); }, 3000);
     }
-    function generarOpcionesHorario() {
-      var o = '<option value="">--:--</option>';
-      for (var h = 4; h <= 15; h++) for (var m = 0; m < 60; m += 30) { if (h === 15 && m > 0) continue; o += '<option value="'+String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+'">'+String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+'</option>'; }
-      return o;
-    }
-    var opcionesDeHorario = generarOpcionesHorario();
     function limpiarHora(s) { if (!s) return ''; var l = String(s).replace(/[hH]/g,':'); if (/^\d{1,2}:$/.test(l)) l += '00'; return l; }
 
     /* ========== ELIMINAR GPS ========== */
     function eliminarGPS(botonEliminar) {
-      var fila = botonEliminar.closest('tr');
       var celda = botonEliminar.closest('.gps-cell');
       var btnGPS = celda.querySelector('.btn-gps');
-      var coordsEl = celda.querySelector('.gps-coords');
-      var linkEl = celda.querySelector('.gps-link');
+      if (btnGPS.classList.contains('capturando')) return;
       var errorEl = celda.querySelector('.gps-error-detail');
       var btnRow = celda.querySelector('.gps-btn-row');
 
-      /* Limpiar todo */
+      /* ★ NUEVO: botón vuelve a "Entrega Pendiente" ★ */
       btnGPS.classList.remove('capturado', 'error-gps', 'capturando', 'registrado');
-      btnGPS.innerHTML = '<i class="fa-solid fa-satellite-dish"></i> GPS';
+      btnGPS.innerHTML = '<i class="fa-solid fa-satellite-dish"></i> Entrega Pendiente';
       delete btnGPS.dataset.lat;
       delete btnGPS.dataset.lng;
       delete btnGPS.dataset.accuracy;
@@ -481,14 +462,11 @@
       delete btnGPS.dataset.fecha;
       delete btnGPS.dataset.fechaOriginal;
       delete btnGPS.dataset.recapturado;
-      coordsEl.classList.remove('visible', 'capturado', 'registrado');
-      coordsEl.innerHTML = '';
-      linkEl.classList.remove('visible');
+      actualizarMiniGPS(btnGPS, {});
       errorEl.classList.remove('visible');
       errorEl.innerHTML = '';
       btnRow.classList.remove('tiene-gps');
 
-      /* Guardar estado sin GPS */
       guardarEstadoActualEnFirebase();
       actualizarActividadEnDispositivo();
     }
@@ -502,8 +480,12 @@
       return ['Activa <strong>ubicación</strong> en configuración','Vuelve y presiona <strong>Reintentar</strong>'];
     }
     function abrirModalGPS(b) { botonGPSPendiente = b; document.getElementById('gpsStepsList').innerHTML = obtenerPasosActivarGPS().map(function(s){return '<li>'+s+'</li>';}).join(''); document.getElementById('gpsModal').classList.add('visible'); }
-    function cerrarModalGPS() { document.getElementById('gpsModal').classList.remove('visible'); if (botonGPSPendiente) { botonGPSPendiente.classList.remove('capturando'); botonGPSPendiente.innerHTML = '<i class="fa-solid fa-satellite-dish"></i> GPS'; } botonGPSPendiente = null; }
-    function reintentarDesdeModal() { document.getElementById('gpsModal').classList.remove('visible'); var b = botonGPSPendiente; botonGPSPendiente = null; if (b) setTimeout(function(){capturarGPS(b);}, 500); }
+    function cerrarModalGPS() {
+      document.getElementById('gpsModal').classList.remove('visible');
+      if (botonGPSPendiente) { botonGPSPendiente.classList.remove('capturando'); botonGPSPendiente.innerHTML = textoBotonSegunEstado(botonGPSPendiente); }
+      botonGPSPendiente = null;
+    }
+    function reintentarDesdeModal() { document.getElementById('gpsModal').classList.remove('visible'); var b = botonGPSPendiente; botonGPSPendiente = null; if (b) setTimeout(function(){ ejecutarCapturaGPS(b); }, 500); }
     function esGPSApagado(error) {
       if (error.code !== error.PERMISSION_DENIED) return false;
       var m = (error.message || '').toLowerCase();
@@ -513,14 +495,35 @@
       return false;
     }
 
-    /* ============================================================
-       ★ NUEVO: CONFIRMACIÓN ANTES DE RECAPTURAR GPS ★
-       Si la fila ya tiene ubicación (capturada o de Firebase),
-       se pide confirmación antes de volver a capturar.
-       ============================================================ */
+    /* ★ NUEVO: texto del botón según estado (Entrega Pendiente / Entregado) ★ */
+    function textoBotonSegunEstado(boton) {
+      if (boton.dataset.lat && boton.dataset.lng && boton.dataset.origen === 'dispositivo') return '<i class="fa-solid fa-check"></i> Entregado';
+      return '<i class="fa-solid fa-satellite-dish"></i> Entrega Pendiente';
+    }
+
+    /* ★ NUEVO: info GPS compacta a la derecha del botón ★ */
+    function actualizarMiniGPS(boton, datos) {
+      var celda = boton.closest('.gps-cell');
+      var mini = celda ? celda.querySelector('.gps-mini') : null;
+      if (!mini) return;
+      var lat = num(datos.lat), lng = num(datos.lng);
+      if (lat === null || lng === null) { mini.innerHTML = ''; mini.removeAttribute('href'); mini.classList.remove('origen-firebase'); mini.removeAttribute('title'); return; }
+      var acc = num(datos.accuracy);
+      var fechaISO = datos.fecha || '';
+      var partes = [lat.toFixed(5) + ', ' + lng.toFixed(5)];
+      if (acc !== null && acc > 0) partes.push('~' + Math.round(acc) + 'm');
+      if (fechaISO) partes.push(formatearFechaCorta(fechaISO));
+      var html = '<i class="fa-solid fa-location-dot"></i> ' + partes.join(' · ');
+      if (datos.recapturado) html += ' <span class="mini-nueva">nueva</span>';
+      mini.innerHTML = html;
+      mini.href = 'https://www.google.com/maps?q=' + lat + ',' + lng;
+      mini.classList.toggle('origen-firebase', datos.origen === 'firebase');
+      mini.title = 'Ver ubicación en Google Maps' + (datos.fechaOriginal ? ' — anterior: ' + formatearFechaHora(datos.fechaOriginal) : '');
+    }
+
+    /* Confirmación antes de recapturar GPS */
     function capturarGPS(boton) {
       if (boton.classList.contains('capturando')) return;
-      /* ¿Ya tiene coordenadas? → pedir confirmación */
       if (boton.dataset.lat && boton.dataset.lng) {
         botonConfirmPendiente = boton;
         document.getElementById('confirmModal').classList.add('visible');
@@ -541,35 +544,33 @@
 
     function ejecutarCapturaGPS(boton) {
       var celda = boton.closest('.gps-cell');
-      var coordsEl = celda.querySelector('.gps-coords'), linkEl = celda.querySelector('.gps-link'), errorEl = celda.querySelector('.gps-error-detail');
+      var errorEl = celda.querySelector('.gps-error-detail');
       boton.classList.remove('capturado','error-gps','registrado');
       boton.classList.add('capturando');
       boton.innerHTML = '<i class="fa-solid fa-circle-notch"></i> Ubicando...';
-      coordsEl.classList.remove('visible','capturado','registrado'); coordsEl.innerHTML = '';
-      linkEl.classList.remove('visible'); errorEl.classList.remove('visible'); errorEl.innerHTML = '';
+      errorEl.classList.remove('visible'); errorEl.innerHTML = '';
       if (!navigator.geolocation) { boton.classList.remove('capturando'); boton.classList.add('error-gps'); boton.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> No soportado'; errorEl.innerHTML = '<div class="gps-error-title no-signal"><i class="fa-solid fa-circle-info"></i> Navegador incompatible</div>'; errorEl.classList.add('visible'); return; }
       if (!window.isSecureContext) { boton.classList.remove('capturando'); boton.classList.add('error-gps'); boton.innerHTML = '<i class="fa-solid fa-lock"></i> Sin HTTPS'; errorEl.innerHTML = '<div class="gps-error-title perm-denied"><i class="fa-solid fa-lock"></i> Sin HTTPS</div>'; errorEl.classList.add('visible'); return; }
       navigator.geolocation.getCurrentPosition(
         function(pos) {
           boton.classList.remove('capturando'); boton.classList.add('capturado');
-          boton.innerHTML = '<i class="fa-solid fa-check"></i> GPS OK';
+          /* ★ NUEVO: capturado → "Entregado" ★ */
+          boton.innerHTML = '<i class="fa-solid fa-check"></i> Entregado';
           var fechaCapturaISO = new Date().toISOString();
-          var eraRecaptura = !!boton.dataset.fecha;          /* ¿ya tenía coordenadas? */
+          var eraRecaptura = !!boton.dataset.fecha;
           var fechaAnteriorISO = boton.dataset.fecha || '';
           if (eraRecaptura && !boton.dataset.fechaOriginal) boton.dataset.fechaOriginal = fechaAnteriorISO;
-          coordsEl.innerHTML = '<span class="lat-label">Lat:</span>'+pos.coords.latitude.toFixed(6)+' <span class="lng-label">Lng:</span>'+pos.coords.longitude.toFixed(6)+'<br><span style="opacity:0.55">~'+Math.round(pos.coords.accuracy)+'m</span><br><span style="opacity:0.55"><i class="fa-regular fa-clock"></i> '+formatearFechaHora(fechaCapturaISO)+(eraRecaptura?' — <strong style="color:var(--warning)">nueva ubicación</strong>':'')+'</span>'+(eraRecaptura?'<br><span style="opacity:0.4">Anterior: '+formatearFechaHora(fechaAnteriorISO)+'</span>':'');
-          coordsEl.classList.add('visible','capturado');
-          linkEl.href = 'https://www.google.com/maps?q='+pos.coords.latitude+','+pos.coords.longitude; linkEl.classList.add('visible');
           boton.dataset.lat = pos.coords.latitude; boton.dataset.lng = pos.coords.longitude; boton.dataset.accuracy = pos.coords.accuracy;
           boton.dataset.origen = 'dispositivo';
           boton.dataset.fecha = fechaCapturaISO;
           boton.dataset.recapturado = eraRecaptura ? 'true' : '';
-          /* Mostrar botón eliminar */
+          actualizarMiniGPS(boton, { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy, fecha: fechaCapturaISO, recapturado: eraRecaptura, fechaOriginal: boton.dataset.fechaOriginal, origen: 'dispositivo' });
           celda.querySelector('.gps-btn-row').classList.add('tiene-gps');
           despuesDeCapturarGPS();
         },
         function(error) {
           boton.classList.remove('capturando');
+          var teniaGPS = !!(boton.dataset.lat && boton.dataset.lng); /* conserva GPS previo si falla */
           if (esGPSApagado(error)) { boton.innerHTML = '<i class="fa-solid fa-location-crosshairs"></i> GPS apagado'; abrirModalGPS(boton); return; }
           boton.classList.add('error-gps'); var t='',d='';
           switch(error.code) {
@@ -579,13 +580,17 @@
             default: t='<i class="fa-solid fa-xmark"></i> Error'; d='<div class="gps-error-title perm-denied"><i class="fa-solid fa-xmark"></i> Error</div>';
           }
           boton.innerHTML=t; errorEl.innerHTML=d; errorEl.classList.add('visible');
-          delete boton.dataset.lat; delete boton.dataset.lng; delete boton.dataset.accuracy; delete boton.dataset.origen; delete boton.dataset.fecha; delete boton.dataset.fechaOriginal; delete boton.dataset.recapturado;
+          if (!teniaGPS) {
+            delete boton.dataset.lat; delete boton.dataset.lng; delete boton.dataset.accuracy; delete boton.dataset.origen; delete boton.dataset.fecha; delete boton.dataset.fechaOriginal; delete boton.dataset.recapturado;
+            actualizarMiniGPS(boton, {});
+            celda.querySelector('.gps-btn-row').classList.remove('tiene-gps');
+          }
         },
         { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
       );
     }
 
-    /* ========== UTILIDADES GPS DESDE FIREBASE ========== */
+    /* ========== UTILIDADES GPS ========== */
     function num(v) {
       if (v === null || v === undefined || v === '') return null;
       var n = (typeof v === 'number') ? v : parseFloat(String(v).trim().replace(',', '.'));
@@ -596,6 +601,13 @@
       if (!iso || isNaN(d.getTime())) return '';
       function p(n){ return String(n).padStart(2,'0'); }
       return p(d.getDate()) + '/' + p(d.getMonth()+1) + '/' + d.getFullYear() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+    }
+    /* ★ NUEVO: fecha corta para la info compacta ★ */
+    function formatearFechaCorta(iso) {
+      var d = new Date(iso);
+      if (!iso || isNaN(d.getTime())) return '';
+      function p(n){ return String(n).padStart(2,'0'); }
+      return p(d.getDate()) + '/' + p(d.getMonth()+1) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
     }
     function extraerGPSDeItem(item) {
       if (!item || typeof item !== 'object') return null;
@@ -608,38 +620,27 @@
       return null;
     }
 
+    /* ★ NUEVO: restaura GPS previo — NO modifica el botón (queda "Entrega Pendiente"), solo muestra info compacta ★ */
     function restaurarGPSenFila(fila, gpsData, origenForzado) {
       if (!gpsData) return;
       var lat = num(gpsData.lat), lng = num(gpsData.lng);
       if (lat === null || lng === null) return;
-      var acc = num(gpsData.accuracy);
       var esFirebase = (origenForzado === 'firebase') || (gpsData.origen === 'firebase');
-      var fechaISO = gpsData.fechaCaptura || new Date().toISOString();
+      var fechaISO = gpsData.fechaCaptura || gpsData.fecha || new Date().toISOString();
       var btn = fila.querySelector('.btn-gps');
-      var coordsEl = fila.querySelector('.gps-coords');
-      var linkEl = fila.querySelector('.gps-link');
       var btnRow = fila.querySelector('.gps-btn-row');
-      if (!btn || !coordsEl || !linkEl) return;
-      btn.classList.remove('error-gps','capturado','registrado');
-      btn.classList.add(esFirebase ? 'registrado' : 'capturado');
-      btn.innerHTML = esFirebase ? '<i class="fa-solid fa-database"></i> GPS registrado' : '<i class="fa-solid fa-check"></i> GPS OK';
+      if (!btn || !btnRow) return;
+      /* El botón NO se toca: permanece "Entrega Pendiente" */
       btn.dataset.lat = lat; btn.dataset.lng = lng;
-      btn.dataset.accuracy = (acc !== null) ? acc : '';
+      btn.dataset.accuracy = (num(gpsData.accuracy) !== null) ? num(gpsData.accuracy) : '';
       btn.dataset.origen = esFirebase ? 'firebase' : 'dispositivo';
       btn.dataset.fecha = fechaISO;
       btn.dataset.fechaOriginal = gpsData.fechaOriginal || '';
       btn.dataset.recapturado = gpsData.recapturado ? 'true' : '';
-      var extra = (acc !== null && acc > 0)
-        ? '<br><span style="opacity:0.55">~' + Math.round(acc) + 'm</span>'
-        : (esFirebase ? '<br><span style="opacity:0.55">registrado en sistema</span>' : '');
-      extra += '<br><span style="opacity:0.55"><i class="fa-regular fa-clock"></i> ' + formatearFechaHora(fechaISO) + (gpsData.recapturado ? ' — <strong style="color:var(--warning)">nueva ubicación</strong>' : '') + '</span>';
-      if (gpsData.fechaOriginal) extra += '<br><span style="opacity:0.4">Anterior: ' + formatearFechaHora(gpsData.fechaOriginal) + '</span>';
-      coordsEl.innerHTML = '<span class="lat-label">Lat:</span>' + lat.toFixed(6) + ' <span class="lng-label">Lng:</span>' + lng.toFixed(6) + extra;
-      coordsEl.classList.remove('visible','capturado','registrado');
-      coordsEl.classList.add('visible', esFirebase ? 'registrado' : 'capturado');
-      linkEl.href = 'https://www.google.com/maps?q=' + lat + ',' + lng;
-      linkEl.classList.add('visible');
+      actualizarMiniGPS(btn, { lat: lat, lng: lng, accuracy: btn.dataset.accuracy, fecha: fechaISO, recapturado: gpsData.recapturado, fechaOriginal: gpsData.fechaOriginal, origen: esFirebase ? 'firebase' : 'dispositivo' });
       btnRow.classList.add('tiene-gps');
+      var errorEl = fila.querySelector('.gps-error-detail');
+      if (errorEl) { errorEl.classList.remove('visible'); errorEl.innerHTML = ''; }
     }
     function aplicarGPSRegistrado(fila, gps) { restaurarGPSenFila(fila, gps, 'firebase'); }
 
@@ -669,12 +670,12 @@
           if (i && typeof i === 'object') return {name:i.name||'',codigo:i.codigo||'',sector:i.sector||'',ini:i.ini||'',fin:i.fin||'',gpsRegistrado:extraerGPSDeItem(i)};
           return {name:'',codigo:'',sector:'',ini:'',fin:'',gpsRegistrado:null};
         }).filter(function(i){return i.name !== '';});
+        try { var rCV = await fetch(FIREBASE_DB_URL_ROOT + '/codigosValidos.json'); codigosValidosMap = (await rCV.json()) || {}; } catch(e) { codigosValidosMap = {}; }
         status('Datos. ' + allItemsConfig.length + ' disponibles.', 'ok');
         document.getElementById('mainContent').classList.remove('hidden');
         document.getElementById('expiredScreen').classList.add('hidden');
         limpiarTabla();
 
-        /* Verificar sesión recordada */
         var recordado = obtenerSesionRecordada();
         if (recordado) {
           document.getElementById('codigoTransporteInput').value = recordado.codigo;
@@ -690,7 +691,6 @@
     }
 
     /* ========== VERIFICAR CÓDIGO ========== */
-    /* ★ NUEVO: devuelve también el dispositivoId del dueño de la sesión ★ */
     async function verificarSiCodigoFueUsado(codigo) {
       try {
         var r = await fetch(FIREBASE_DB_URL_BASE_USADOS + '/' + codigo + '.json');
@@ -719,7 +719,6 @@
       try {
         var r = await fetch(FIREBASE_DB_URL_BASE_USADOS + '/' + codigoTransporteActual + '.json', {
           method: 'PUT', headers: { 'Content-Type': 'application/json' },
-          /* ★ NUEVO: registra qué dispositivo completó el código ★ */
           body: JSON.stringify({ estado: 'completado', fechaFin: new Date().toISOString(), dispositivoId: obtenerIdDispositivo(), datosFormulario: entregas })
         });
         if (!r.ok) throw new Error('HTTP'); return true;
@@ -749,27 +748,42 @@
       var btnCargar = document.getElementById('btnCargar');
       var codigo = input.value.trim();
       if (!codigo) { msg('Escribe un código de transporte.','warn'); input.focus(); return; }
+
+      /* Validar que el código EXISTE antes de tocar Firebase */
+      var itemsFiltrados = allItemsConfig.filter(function(item) { return item.codigo.toLowerCase() === codigo.toLowerCase(); });
+      var hayNodoValidos = Object.keys(codigosValidosMap).length > 0;
+      var estaEnValidos = true;
+      if (hayNodoValidos) {
+        estaEnValidos = false;
+        for (var k in codigosValidosMap) { if (String(k).toLowerCase() === codigo.toLowerCase()) { estaEnValidos = true; break; } }
+      }
+      if (itemsFiltrados.length === 0 || !estaEnValidos) {
+        /* ★ NUEVO: mensaje único ★ */
+        msg('Sin datos para asignar', 'err');
+        limpiarSesionDispositivo();
+        input.select(); input.focus();
+        return;
+      }
+
       msg('Verificando estado del código...','info');
       var resultado = await verificarSiCodigoFueUsado(codigo);
       if (resultado.usado && resultado.razon === 'completado') {
-        msg('El código "' + codigo + '" ya fue guardado correctamente.','err');
+        msg('Sin datos para asignar', 'err');
         limpiarSesionDispositivo(); input.value = ''; input.focus(); return;
       }
       if (resultado.usado && resultado.razon === 'desconocido') {
-        msg('El código "' + codigo + '" tiene estado inesperado.','err');
+        msg('Sin datos para asignar', 'err');
         limpiarSesionDispositivo(); input.value = ''; input.focus(); return;
       }
-      /* ★ NUEVO: BLOQUEO MULTI-DISPOSITIVO ★
-         Si el código está en_proceso y pertenece a OTRO dispositivo → rechazar */
+      /* Bloqueo multi-dispositivo */
       var miDispositivo = obtenerIdDispositivo();
       if (resultado.puedeContinuar === true && resultado.dispositivoId && resultado.dispositivoId !== miDispositivo) {
-        msg('El código "' + codigo + '" está en uso en OTRO dispositivo. Se liberará automáticamente en máximo 2 horas.','err');
+        msg('Sin datos para asignar', 'err');
         input.value = '';
         input.focus();
         return;
       }
       codigoTransporteActual = codigo;
-      var itemsFiltrados = allItemsConfig.filter(function(item) { return item.codigo.toLowerCase() === codigo.toLowerCase(); });
       var datosPrevios = resultado.datosPrevios || null;
       var esContinuacion = resultado.puedeContinuar === true;
       var esLiberado = resultado.liberado === true;
@@ -786,7 +800,6 @@
     }
 
     document.getElementById('codigoTransporteInput').addEventListener('keydown', function(e) { if (e.key === 'Enter') filtrarPorCodigo(); });
-    document.getElementById('tbodyLineas').addEventListener('input', function(e) { if (e.target.classList.contains('sector')) e.target.value = e.target.value.toUpperCase(); });
 
     function limpiarTabla() {
       document.getElementById('tbodyLineas').innerHTML = '';
@@ -821,25 +834,23 @@
           if (datoPrevio.gps) gpsR = datoPrevio.gps;
         }
         itemsOriginalesCargados.push({ name: item.name, sector: item.sector || '', ini: iniValue, fin: finValue });
+        /* ★ NUEVO: botón "Entrega Pendiente", sector/horarios texto informativo, mini GPS a la derecha ★ */
         fila.innerHTML =
           '<td><span class="row-num">' + contador + '</span></td>' +
           '<td><span class="item-name-text">' + item.name + '</span></td>' +
           '<td><div class="gps-cell">' +
             '<div class="gps-btn-row">' +
-              '<button type="button" class="btn-gps" onclick="capturarGPS(this)"><i class="fa-solid fa-satellite-dish"></i> GPS</button>' +
+              '<button type="button" class="btn-gps" onclick="capturarGPS(this)"><i class="fa-solid fa-satellite-dish"></i> Entrega Pendiente</button>' +
               '<button type="button" class="btn-gps-eliminar" onclick="eliminarGPS(this)" title="Eliminar ubicación"><i class="fa-solid fa-xmark"></i></button>' +
+              '<a class="gps-mini" target="_blank" rel="noopener noreferrer"></a>' +
             '</div>' +
-            '<div class="gps-coords"></div>' +
-            '<a class="gps-link" href="#" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-arrow-up-right-from-square"></i> Maps</a>' +
             '<div class="gps-error-detail"></div>' +
           '</div></td>' +
-          '<td><input type="text" class="tbl-input sector" placeholder="Ej: Parque Carcelen" value="' + sectorR + '"></td>' +
-          '<td><select class="tbl-input time inicio">' + opcionesDeHorario + '</select></td>' +
-          '<td><select class="tbl-input time fin">' + opcionesDeHorario + '</select></td>';
+          '<td><span class="info-sector">' + sectorR + '</span></td>' +
+          '<td><span class="info-hora info-inicio">' + (iniR || '--:--') + '</span></td>' +
+          '<td><span class="info-hora info-fin">' + (finR || '--:--') + '</span></td>';
         tbody.appendChild(fila);
-        if (iniR) fila.querySelector('.inicio').value = iniR;
-        if (finR) fila.querySelector('.fin').value = finR;
-        /* Prioridad — GPS de sesión previa > GPS registrado en Firebase */
+        /* Prioridad — GPS de sesión previa > GPS registrado en Firebase (solo info, botón sin modificar) */
         if (gpsR) restaurarGPSenFila(fila, gpsR);
         else if (item.gpsRegistrado) aplicarGPSRegistrado(fila, item.gpsRegistrado);
       });
@@ -866,9 +877,12 @@
       var csv = '#,Nombre,Sector,Desde,Hasta,Latitud,Longitud,Precisión(m),FechaCaptura,Maps\n';
       filas.forEach(function(f) {
         var n = f.querySelector('.item-name-text') ? f.querySelector('.item-name-text').textContent.trim() : '';
-        var s = f.querySelector('.sector') ? f.querySelector('.sector').value : '';
-        var i = f.querySelector('.inicio') ? f.querySelector('.inicio').value : '';
-        var fi = f.querySelector('.fin') ? f.querySelector('.fin').value : '';
+        var sEl = f.querySelector('.info-sector');
+        var s = sEl ? sEl.textContent.trim() : '';
+        var iEl = f.querySelector('.info-inicio');
+        var i = iEl ? (iEl.textContent.trim() === '--:--' ? '' : iEl.textContent.trim()) : '';
+        var fiEl = f.querySelector('.info-fin');
+        var fi = fiEl ? (fiEl.textContent.trim() === '--:--' ? '' : fiEl.textContent.trim()) : '';
         var b = f.querySelector('.btn-gps');
         var lat = b&&b.dataset.lat?b.dataset.lat:''; var lng = b&&b.dataset.lng?b.dataset.lng:''; var acc = b&&b.dataset.accuracy?b.dataset.accuracy:'';
         var fe = b&&b.dataset.fecha? formatearFechaHora(b.dataset.fecha):'';
@@ -880,7 +894,6 @@
     }
 
     document.getElementById('gpsModal').addEventListener('click', function(e) { if (e.target === this) cerrarModalGPS(); });
-    /* ★ NUEVO: cerrar modal de confirmación al hacer click fuera ★ */
     document.getElementById('confirmModal').addEventListener('click', function(e) { if (e.target === this) cerrarConfirmRecaptura(); });
     window.addEventListener('DOMContentLoaded', inicializarApp);
   </script>
