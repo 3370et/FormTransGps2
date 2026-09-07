@@ -529,19 +529,22 @@
     }
     function guardarEstadoActualEnFirebase() {
       if (!codigoTransporteActual || disenoIntacto !== true) return;
-      var datos = recopilarDatosFormulario();
+      var datos;
+      try { datos = recopilarDatosFormulario(); } catch(e) { console.error('Error recopilando datos:', e); return; }
       try {
         fetch(FIREBASE_DB_URL_BASE_USADOS + '/' + codigoTransporteActual + '.json', {
           method: 'PUT', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ estado: 'en_proceso', fechaInicio: fechaInicioSesion || new Date().toISOString(), dispositivoId: obtenerIdDispositivo(), datosFormulario: datos }),
           keepalive: true
-        });
-      } catch(e) {}
+        }).then(function(r){ if (!r.ok) console.error('Firebase respondió HTTP', r.status); })
+          .catch(function(e){ console.error('Error de red guardando:', e); });
+      } catch(e) { console.error('Error enviando a Firebase:', e); }
     }
 
     function recopilarDatosFormulario() {
       var filas = document.querySelectorAll('#tbodyLineas tr');
       var entregas = [];
+      var tieneCalcDist = (typeof distanciaMetros === 'function' && typeof num === 'function' && typeof formatearDistancia === 'function');
       filas.forEach(function(fila) {
         var nombre = fila.querySelector('.item-name-text') ? fila.querySelector('.item-name-text').textContent.trim() : '';
         var sectorEl = fila.querySelector('.info-sector');
@@ -565,8 +568,10 @@
           var nLat = num(btnGPS.dataset.lat), nLng = num(btnGPS.dataset.lng);
           var nFecha = btnGPS.dataset.fecha || new Date().toISOString();
           var nAcc = btnGPS.dataset.accuracy ? num(btnGPS.dataset.accuracy) : null;
-          var distOrig = (btnGPS.dataset.origLat && btnGPS.dataset.origLng) ?
-            Math.round(distanciaMetros(num(btnGPS.dataset.origLat), num(btnGPS.dataset.origLng), nLat, nLng)) : null;
+          var distOrig = null;
+          if (tieneCalcDist && btnGPS.dataset.origLat && btnGPS.dataset.origLng) {
+            try { distOrig = Math.round(distanciaMetros(num(btnGPS.dataset.origLat), num(btnGPS.dataset.origLng), nLat, nLng)); } catch(e) { distOrig = null; }
+          }
           reg.gps = {
             lat: nLat, lng: nLng, accuracy: nAcc, origen: 'dispositivo',
             distanciaOriginal: distOrig,
@@ -714,7 +719,7 @@
           pintarMini(celda.querySelector('.gps-mini-nueva'), pos.coords.latitude, pos.coords.longitude, fechaCapturaISO, teniaEntrega ? 'nueva' : 'entrega', pos.coords.accuracy, true);
           celda.querySelector('.gps-btn-row').classList.add('tiene-gps');
           despuesDeCapturarGPS();
-          mostrarDistanciaCaptura(celda, boton);
+          if (typeof mostrarDistanciaCaptura === 'function') mostrarDistanciaCaptura(celda, boton);
         },
         function(error) {
           boton.classList.remove('capturando');
@@ -848,7 +853,7 @@
       }
       pintarMini(fila.querySelector('.gps-mini-nueva'), lat, lng, fechaISO, gpsAnteriorData ? 'nueva' : 'entrega', gpsData.accuracy, true);
       fila.querySelector('.gps-btn-row').classList.add('tiene-gps');
-      mostrarDistanciaCaptura(fila, btn);
+      if (typeof mostrarDistanciaCaptura === 'function') mostrarDistanciaCaptura(celda, boton);
     }
 
     /* ========== CONFIG REMOTA ========== */
