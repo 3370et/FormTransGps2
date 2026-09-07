@@ -707,7 +707,7 @@
           pintarMini(celda.querySelector('.gps-mini-nueva'), pos.coords.latitude, pos.coords.longitude, fechaCapturaISO, teniaEntrega ? 'nueva' : 'entrega', pos.coords.accuracy, true);
           celda.querySelector('.gps-btn-row').classList.add('tiene-gps');
           despuesDeCapturarGPS();
-      	  if (typeof mostrarDistanciaCaptura === 'function') mostrarDistanciaCaptura(fila, btn);
+		  if (typeof mostrarDistanciaCaptura === 'function') mostrarDistanciaCaptura(celda, boton);
         },
         function(error) {
           boton.classList.remove('capturando');
@@ -841,7 +841,7 @@
       }
       pintarMini(fila.querySelector('.gps-mini-nueva'), lat, lng, fechaISO, gpsAnteriorData ? 'nueva' : 'entrega', gpsData.accuracy, true);
       fila.querySelector('.gps-btn-row').classList.add('tiene-gps');
-      if (typeof mostrarDistanciaCaptura === 'function') mostrarDistanciaCaptura(celda, boton);
+	  if (typeof mostrarDistanciaCaptura === 'function') mostrarDistanciaCaptura(fila, btn);
     }
 
     /* ========== CONFIG REMOTA ========== */
