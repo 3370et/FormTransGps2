@@ -726,32 +726,41 @@
        comillas anidadas que rompan el parseo.
     ==================================================================== */
 
-    function recopilarDatosMapa(soloCodigo) {
-      var transportes = [], idx = 0;
-      var keys = soloCodigo ? [soloCodigo] : Object.keys(registrosPorCodigo);
-      keys.forEach(function(codigo) {
-        var reg = registrosPorCodigo[codigo];
-        if (!reg) return;
-        var puntos = [];
-        (reg.items || []).forEach(function(item) {
-          if (item.gps && item.gps.lat !== null && item.gps.lng !== null) {
-            puntos.push({
-              nombre: item.item || 'Sin nombre',
-              sector: item.sector || '',
-              hora: item.fin || item.inicio || '',
-              lat: item.gps.lat,
-              lng: item.gps.lng,
-              precision: item.gps.accuracy ? Math.round(item.gps.accuracy) + 'm' : ''
-            });
-          }
-        });
-        if (puntos.length > 0) {
-          transportes.push({ codigo: reg.codigo, color: COLORES_MAPA[idx % COLORES_MAPA.length], estado: reg.estado, puntos: puntos });
-          idx++;
-        }
-      });
-      return transportes;
-    }
+	function recopilarDatosMapa(soloCodigo) {
+	  var transportes = [], idx = 0;
+	  var keys = soloCodigo ? [soloCodigo] : Object.keys(registrosPorCodigo);
+	  keys.forEach(function(codigo) {
+	    var reg = registrosPorCodigo[codigo];
+	    if (!reg) return;
+	    var puntos = [];
+	    (reg.items || []).forEach(function(item) {
+	      if (item.gps && item.gps.lat != null && item.gps.lng != null) {
+	        puntos.push({
+	          nombre: item.item || 'Sin nombre',
+	          sector: item.sector || '',
+	          hora: item.gps.fechaCaptura || item.gps.fechaCapturaTxt || '',
+	          lat: item.gps.lat, lng: item.gps.lng,
+	          precision: item.gps.accuracy ? Math.round(item.gps.accuracy) + 'm' : '',
+	          pendiente: false
+	        });
+	      } else if (item.gpsOriginal && item.gpsOriginal.lat != null && item.gpsOriginal.lng != null) {
+	        puntos.push({
+	          nombre: item.item || 'Sin nombre',
+	          sector: item.sector || '',
+	          hora: '',
+	          lat: item.gpsOriginal.lat, lng: item.gpsOriginal.lng,
+	          precision: '',
+	          pendiente: true
+	        });
+	      }
+	    });
+	    if (puntos.length > 0) {
+	      transportes.push({ codigo: reg.codigo, color: COLORES_MAPA[idx % COLORES_MAPA.length], estado: reg.estado, puntos: puntos });
+	      idx++;
+	    }
+	  });
+	  return transportes;
+	}
 
     function verMapaGeneral() {
       var transportes = recopilarDatosMapa(null);
@@ -854,33 +863,42 @@
         + '  if(nProc>0)statsHtml+=\'<span class="sb-stat s-pr">\'+nProc+\' activo\'+(nProc!==1?"s":"")+\'</span>\';\n'
         + '  document.getElementById("sbStats").innerHTML=statsHtml;\n'
         + '  var listHtml="";\n'
-        + '  T.forEach(function(t,idx){\n'
-        + '    var g=L.layerGroup().addTo(map);\n'
-        + '    groups[t.codigo]=g;\n'
-        + '    var coords=[];\n'
-        + '    t.puntos.forEach(function(p,i){\n'
-        + '      var icon=L.divIcon({className:"mk",html:\'<div class="mk-dot" style="background:\'+t.color+\'">\'+(i+1)+\'</div>\',iconSize:[28,28],iconAnchor:[14,14],popupAnchor:[0,-16]});\n'
-        + '      var m=L.marker([p.lat,p.lng],{icon:icon});\n'
-        + '      var ph=\'<div class="pp">\';\n'
-        + '      ph+=\'<div class="pp-num">Punto \'+(i+1)+\' &middot; \'+esc(t.codigo)+\'</div>\';\n'
-        + '      ph+=\'<div class="pp-nombre" style="color:\'+t.color+\'">\'+esc(p.nombre)+\'</div>\';\n'
-        + '      if(p.sector)ph+=\'<div class="pp-row"><i class="fa-solid fa-tag"></i>\'+esc(p.sector)+\'</div>\';\n'
-        + '      if(p.hora)ph+=\'<div class="pp-row"><i class="fa-regular fa-clock"></i>\'+esc(p.hora)+\'</div>\';\n'
-        + '      if(p.precision)ph+=\'<div class="pp-row"><i class="fa-solid fa-crosshairs"></i>Precision: \'+esc(p.precision)+\'</div>\';\n'
-        + '      ph+=\'<div class="pp-coord">\'+p.lat.toFixed(6)+\', \'+p.lng.toFixed(6)+\'</div>\';\n'
-        + '      ph+=\'</div>\';\n'
-        + '      m.bindPopup(ph,{maxWidth:260});\n'
-        + '      m.addTo(g);\n'
-        + '      coords.push([p.lat,p.lng]);\n'
-        + '      allBounds.push([p.lat,p.lng]);\n'
-        + '    });\n'
-        + '    if(coords.length>1){L.polyline(coords,{color:t.color,weight:3.5,opacity:0.5,lineJoin:"round",lineCap:"round"}).addTo(g)}\n'
+		+ '  T.forEach(function(t,idx){\n'
+		+ '    var g=L.layerGroup().addTo(map);\n'
+		+ '    groups[t.codigo]=g;\n'
+		+ '    var enRuta=t.puntos.filter(function(p){return !p.pendiente});\n'
+		+ '    var pend=t.puntos.filter(function(p){return p.pendiente});\n'
+		+ '    enRuta.sort(function(a,b){return hkey(a.hora)-hkey(b.hora)});\n'
+		+ '    var seq=enRuta.concat(pend);\n'
+		+ '    var coords=[],nPen=0;\n'
+		+ '    seq.forEach(function(p){\n'
+		+ '      var esPen=!!p.pendiente;\n'
+		+ '      if(esPen)nPen++;\n'
+		+ '      var col=esPen?"#a78bfa":t.color;\n'
+		+ '      var num=esPen?"?":(coords.length+1);\n'
+		+ '      var icon=L.divIcon({className:"mk",html:\'<div class="mk-dot" style="background:\'+col+\';\'+(esPen?\'border-style:dashed;\':\'\')+\'">\'+num+\'</div>\',iconSize:[28,28],iconAnchor:[14,14],popupAnchor:[0,-16]});\n'
+		+ '      var m=L.marker([p.lat,p.lng],{icon:icon});\n'
+		+ '      var ph=\'<div class="pp">\';\n'
+		+ '      ph+=\'<div class="pp-num">\'+(esPen?\'Pendiente de captura\':\'Punto \'+num)+\' &middot; \'+esc(t.codigo)+\'</div>\';\n'
+		+ '      ph+=\'<div class="pp-nombre" style="color:\'+col+\'">\'+esc(p.nombre)+\'</div>\';\n'
+		+ '      if(p.sector)ph+=\'<div class="pp-row"><i class="fa-solid fa-tag"></i>\'+esc(p.sector)+\'</div>\';\n'
+		+ '      if(esPen){ph+=\'<div class="pp-row"><i class="fa-solid fa-hourglass-half"></i>GPS aun no capturado</div>\';}\n'
+		+ '      else{ph+=\'<div class="pp-row"><i class="fa-regular fa-clock"></i>\'+esc(cuando(p.hora))+\'</div>\';\n'
+		+ '      if(p.precision)ph+=\'<div class="pp-row"><i class="fa-solid fa-crosshairs"></i>Precision: \'+esc(p.precision)+\'</div>\';}\n'
+		+ '      ph+=\'<div class="pp-coord">\'+p.lat.toFixed(6)+\', \'+p.lng.toFixed(6)+\'</div>\';\n'
+		+ '      ph+=\'</div>\';\n'
+		+ '      m.bindPopup(ph,{maxWidth:260});\n'
+		+ '      m.addTo(g);\n'
+		+ '      if(!esPen)coords.push([p.lat,p.lng]);\n'
+		+ '      allBounds.push([p.lat,p.lng]);\n'
+		+ '    });\n'
+		+ '    if(coords.length>1){L.polyline(coords,{color:t.color,weight:3.5,opacity:0.5,lineJoin:"round",lineCap:"round"}).addTo(g)}\n'
         + '    var ec=t.estado==="en_proceso"?"bp":"bc";\n'
         + '    var et=t.estado==="en_proceso"?"En proceso":"Completado";\n'
         + '    listHtml+=\'<div class="sb-item" data-cod="\'+t.codigo+\'" onclick="zoomT(\\\'\'+t.codigo+\'\\\')" onmouseenter="hlT(\\\'\'+t.codigo+\'\\\')" onmouseleave="uhlT(\\\'\'+t.codigo+\'\\\')">\'\n'
         + '      +\'<div class="sb-bar" style="background:\'+t.color+\'"></div>\'\n'
         + '      +\'<div class="sb-content"><div class="sb-top"><span class="sb-codigo" style="color:\'+t.color+\'">\'+esc(t.codigo)+\'</span><span class="sb-badge \'+ec+\'">\'+et+\'</span></div>\'\n'
-        + '      +\'<div class="sb-meta"><i class="fa-solid fa-location-dot"></i>\'+t.puntos.length+\' puntos</div></div>\'\n'
+		+ '      +\'<div class="sb-meta"><i class="fa-solid fa-location-dot"></i>\'+t.puntos.length+\' puntos\'+(nPen>0?\' &middot; \'+nPen+\' pendientes\':\'\')+\'</div></div>\'\n'
         + '      +\'<button class="sb-eye" onclick="event.stopPropagation();togVis(\\\'\'+t.codigo+\'\\\',this)" title="Mostrar/ocultar"><i class="fa-solid fa-eye"></i></button></div>\';\n'
         + '  });\n'
         + '  document.getElementById("sbList").innerHTML=listHtml;\n'
