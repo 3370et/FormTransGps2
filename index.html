@@ -541,7 +541,7 @@
         var inicio = horEl ? (horEl.dataset.inicio || '') : '';
         var fin = horEl ? (horEl.dataset.fin || '') : '';
         var btnGPS = fila.querySelector('.btn-gps');
-        var reg = { item: nombre, sector: sector, inicio: inicio, fin: fin };
+        var reg = { item: nombre, codclnt: fila.dataset.codclnt || '', sector: sector, inicio: inicio, fin: fin };
 
         if (btnGPS && btnGPS.dataset.origLat && btnGPS.dataset.origLng) {
           var oLat = num(btnGPS.dataset.origLat), oLng = num(btnGPS.dataset.origLng), oFecha = btnGPS.dataset.origFecha || null;
@@ -869,9 +869,9 @@
         }
         var raw = config.items && Array.isArray(config.items) ? config.items : [];
         allItemsConfig = raw.map(function(i) {
-          if (typeof i === 'string') return {name:i,codigo:'',sector:'',ini:'',fin:'',gpsRegistrado:null};
-          if (i && typeof i === 'object') return {name:i.name||'',codigo:i.codigo||'',sector:i.sector||'',ini:i.ini||'',fin:i.fin||'',gpsRegistrado:extraerGPSDeItem(i)};
-          return {name:'',codigo:'',sector:'',ini:'',fin:'',gpsRegistrado:null};
+          if (typeof i === 'string') return {name:i,codigo:'',sector:'',ini:'',fin:'',codclnt:'',gpsRegistrado:null};
+          if (i && typeof i === 'object') return {name:i.name||'',codigo:i.codigo||'',sector:i.sector||'',ini:i.ini||'',fin:i.fin||'',codclnt:String(i.CODCLNT || i.codclnt || ''),gpsRegistrado:extraerGPSDeItem(i)};
+          return {name:'',codigo:'',sector:'',ini:'',fin:'',codclnt:'',gpsRegistrado:null};
         }).filter(function(i){return i.name !== '';});
         try { var rCV = await fetch(FIREBASE_DB_URL_ROOT + '/codigosValidos.json'); codigosValidosMap = (await rCV.json()) || {}; } catch(e) { codigosValidosMap = {}; }
         /* ★ Sin leyenda "Datos. X disponibles." — solo check verde compacto */
@@ -1026,6 +1026,7 @@
       items.forEach(function(item, idx) {
         contador++;
         var fila = document.createElement('tr');
+        fila.dataset.codclnt = item.codclnt || '';
         fila.style.animation = 'fadeUp 0.35s ease ' + Math.min(idx * 30, 400) + 'ms both';
         var sectorValue = (item.sector || '').toUpperCase().replace(/"/g, '&quot;');
         var iniValue = limpiarHora(item.ini);
