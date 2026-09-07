@@ -512,18 +512,6 @@
       if (codigoTransporteActual && disenoIntacto === true) guardarEstadoActualEnFirebase();
     });
     function despuesDeCapturarGPS() {
-		if (btn.dataset.origLat && btn.dataset.origLng) {
-	  var dist = distanciaMetros(num(btn.dataset.origLat), num(btn.dataset.origLng), pos.coords.latitude, pos.coords.longitude);
-	  var elDist = celda.querySelector('.gps-distancia');
-	  if (elDist) {
-		elDist.textContent = 'Distancia del original: ~' + formatearDistancia(dist);
-		elDist.classList.remove('dist-ok', 'dist-warn', 'dist-bad');
-		if (dist < 100) elDist.classList.add('dist-ok');
-		else if (dist < 500) elDist.classList.add('dist-warn');
-		else elDist.classList.add('dist-bad');
-		elDist.classList.add('visible');
-	  }
-	}
       actualizarActividadEnDispositivo();
       guardarEstadoActualEnFirebase();
     }
@@ -719,7 +707,7 @@
           pintarMini(celda.querySelector('.gps-mini-nueva'), pos.coords.latitude, pos.coords.longitude, fechaCapturaISO, teniaEntrega ? 'nueva' : 'entrega', pos.coords.accuracy, true);
           celda.querySelector('.gps-btn-row').classList.add('tiene-gps');
           despuesDeCapturarGPS();
-          if (typeof mostrarDistanciaCaptura === 'function') mostrarDistanciaCaptura(celda, boton);
+      	  if (typeof mostrarDistanciaCaptura === 'function') mostrarDistanciaCaptura(fila, btn);
         },
         function(error) {
           boton.classList.remove('capturando');
