@@ -100,6 +100,11 @@
     .gps-mini-nueva .mini-tag { background: rgba(52,211,153,0.15); color: var(--success); }
     .gps-error-detail { font-size: 10px; color: var(--danger); line-height: 1.5; padding: 5px 7px; background: rgba(248,113,113,0.04); border-radius: 5px; border: 1px solid rgba(248,113,113,0.12); display: none; animation: fadeUp 0.3s ease; }
     .gps-error-detail.visible { display: block; }
+	.gps-distancia { display: none; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 5px; width: fit-content; margin-top: 2px; }
+    .gps-distancia.visible { display: block; }
+    .gps-distancia.dist-ok { background: rgba(52,211,153,0.08); color: var(--success); border: 1px solid rgba(52,211,153,0.2); }
+    .gps-distancia.dist-warn { background: rgba(251,191,36,0.08); color: var(--warning); border: 1px solid rgba(251,191,36,0.2); }
+    .gps-distancia.dist-bad { background: rgba(248,113,113,0.08); color: var(--danger); border: 1px solid rgba(248,113,113,0.2); }
     .gps-error-detail .gps-error-title { font-weight: 700; font-size: 10px; margin-bottom: 3px; display: flex; align-items: center; gap: 4px; }
     .gps-error-detail .gps-error-title.gps-off { color: var(--warning); } .gps-error-detail .gps-error-title.perm-denied { color: var(--danger); } .gps-error-detail .gps-error-title.no-signal { color: var(--info); } .gps-error-detail .gps-error-title.timeout { color: var(--fg-muted); }
     .gps-error-detail ul { margin: 3px 0 0 14px; padding: 0; list-style: disc; } .gps-error-detail li { margin-bottom: 2px; } .gps-error-detail strong { color: #fca5a5; }
@@ -242,7 +247,7 @@
     <div class="inactividad-bar hidden" id="inactividadBar">
       <i class="fa-solid fa-clock"></i>
       <span>Sesión activa — </span>
-      <span class="inact-time" id="inactTime">60:00</span>
+      <span class="inact-time" id="inactTime">120:00</span>
     </div>
     <div class="section-title"><i class="fa-solid fa-list-check" style="color:var(--accent);"></i> Clientes asignados <span class="count" id="itemCount">0</span></div>
     <div class="table-wrap" id="tableWrap">
@@ -296,11 +301,11 @@
     var fechaInicioSesion = null;
     var timerInactividad = null;
 
-    /* 120 min Firebase liberación */
+    /* 240 min Firebase liberación */
     var TIEMPO_LIBERAR_CODIGO_MS = 240 * 60 * 1000;
-    /* 60 min inactividad → resetear */
+    /* 120 min inactividad → resetear */
     var INACTIVIDAD_RESET_MS = 120 * 60 * 1000;
-    /* 120 min inactividad → bloquear */
+    /* 240 min inactividad → bloquear */
     var INACTIVIDAD_BLOQUEO_MS = 240 * 60 * 1000;
     var LS_KEY = 'transporte_sesion';
     var LS_DEVICE_KEY = 'transporte_dispositivo_id';
@@ -467,7 +472,7 @@
         barra.classList.add('danger');
         barra.querySelector('i').className = 'fa-solid fa-triangle-exclamation';
         barra.querySelector('span').textContent = 'Inactividad — se cerrará en ';
-      } else if (restanteReset < 20 * 60 * 1000) {
+      } else if (restanteReset < 30 * 60 * 1000) {
         barra.classList.add('warn');
         barra.querySelector('i').className = 'fa-solid fa-clock';
         barra.querySelector('span').textContent = 'Inactividad — se cerrará en ';
@@ -483,9 +488,9 @@
       var codigoPrevio = codigoTransporteActual;
       resetearFormulario();
       if (tipo === 'bloqueo') {
-        msg('Sesión expirada por inactividad (2 horas sin actividad). El código "' + codigoPrevio + '" se ha bloqueado.', 'err');
+        msg('Sesión expirada por inactividad (4 horas sin actividad). El código "' + codigoPrevio + '" se ha bloqueado.', 'err');
       } else {
-        msg('Sesión cerrada por inactividad (60 min). Vuelve a ingresar el código "' + codigoPrevio + '".', 'warn');
+        msg('Sesión cerrada por inactividad (120 min). Vuelve a ingresar el código "' + codigoPrevio + '".', 'warn');
       }
     }
 
@@ -507,6 +512,18 @@
       if (codigoTransporteActual && disenoIntacto === true) guardarEstadoActualEnFirebase();
     });
     function despuesDeCapturarGPS() {
+		if (btn.dataset.origLat && btn.dataset.origLng) {
+	  var dist = distanciaMetros(num(btn.dataset.origLat), num(btn.dataset.origLng), pos.coords.latitude, pos.coords.longitude);
+	  var elDist = celda.querySelector('.gps-distancia');
+	  if (elDist) {
+		elDist.textContent = 'Distancia del original: ~' + formatearDistancia(dist);
+		elDist.classList.remove('dist-ok', 'dist-warn', 'dist-bad');
+		if (dist < 100) elDist.classList.add('dist-ok');
+		else if (dist < 500) elDist.classList.add('dist-warn');
+		else elDist.classList.add('dist-bad');
+		elDist.classList.add('visible');
+	  }
+	}
       actualizarActividadEnDispositivo();
       guardarEstadoActualEnFirebase();
     }
@@ -548,8 +565,12 @@
           var nLat = num(btnGPS.dataset.lat), nLng = num(btnGPS.dataset.lng);
           var nFecha = btnGPS.dataset.fecha || new Date().toISOString();
           var nAcc = btnGPS.dataset.accuracy ? num(btnGPS.dataset.accuracy) : null;
+          var distOrig = (btnGPS.dataset.origLat && btnGPS.dataset.origLng) ?
+            Math.round(distanciaMetros(num(btnGPS.dataset.origLat), num(btnGPS.dataset.origLng), nLat, nLng)) : null;
           reg.gps = {
             lat: nLat, lng: nLng, accuracy: nAcc, origen: 'dispositivo',
+            distanciaOriginal: distOrig,
+            distanciaOriginalTxt: (distOrig !== null) ? formatearDistancia(distOrig) : null,
             recapturado: btnGPS.dataset.prevLat ? true : false,
             fechaCaptura: nFecha,
             fechaCapturaTxt: formatearFechaHora(nFecha),
@@ -595,7 +616,6 @@
       if (btnGPS.classList.contains('capturando')) return;
       var errorEl = celda.querySelector('.gps-error-detail');
       var btnRow = celda.querySelector('.gps-btn-row');
-
       btnGPS.classList.remove('capturado', 'error-gps', 'capturando');
       btnGPS.innerHTML = '<i class="fa-solid fa-satellite-dish"></i> Entrega Pendiente';
       delete btnGPS.dataset.lat;
@@ -611,6 +631,8 @@
       errorEl.classList.remove('visible');
       errorEl.innerHTML = '';
       btnRow.classList.remove('tiene-gps');
+      var elDist = celda.querySelector('.gps-distancia');
+      if (elDist) { elDist.classList.remove('visible', 'dist-ok', 'dist-warn', 'dist-bad'); elDist.textContent = ''; }
 
       guardarEstadoActualEnFirebase();
       actualizarActividadEnDispositivo();
@@ -692,6 +714,7 @@
           pintarMini(celda.querySelector('.gps-mini-nueva'), pos.coords.latitude, pos.coords.longitude, fechaCapturaISO, teniaEntrega ? 'nueva' : 'entrega', pos.coords.accuracy, true);
           celda.querySelector('.gps-btn-row').classList.add('tiene-gps');
           despuesDeCapturarGPS();
+          mostrarDistanciaCaptura(celda, boton);
         },
         function(error) {
           boton.classList.remove('capturando');
@@ -713,6 +736,8 @@
             var miniNueva = celda.querySelector('.gps-mini-nueva');
             if (miniNueva) { miniNueva.classList.remove('on'); miniNueva.innerHTML=''; miniNueva.removeAttribute('href'); }
             celda.querySelector('.gps-btn-row').classList.remove('tiene-gps');
+            var elDist = celda.querySelector('.gps-distancia');
+            if (elDist) { elDist.classList.remove('visible', 'dist-ok', 'dist-warn', 'dist-bad'); elDist.textContent = ''; }
           }
         },
         { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
@@ -724,6 +749,33 @@
       if (v === null || v === undefined || v === '') return null;
       var n = (typeof v === 'number') ? v : parseFloat(String(v).trim().replace(',', '.'));
       return (isFinite(n)) ? n : null;
+    }
+    function distanciaMetros(lat1, lng1, lat2, lng2) {
+      var R = 6371000;
+      var rad = Math.PI / 180;
+      var dLat = (lat2 - lat1) * rad;
+      var dLng = (lng2 - lng1) * rad;
+      var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * rad) * Math.cos(lat2 * rad) *
+              Math.sin(dLng/2) * Math.sin(dLng/2);
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+    function formatearDistancia(m) {
+      if (m < 1000) return Math.round(m) + ' m';
+      return (m / 1000).toFixed(2) + ' km';
+    }
+    function mostrarDistanciaCaptura(celda, btn) {
+      if (!celda || !btn) return;
+      if (!btn.dataset.origLat || !btn.dataset.origLng || !btn.dataset.lat || !btn.dataset.lng) return;
+      var dist = distanciaMetros(num(btn.dataset.origLat), num(btn.dataset.origLng), num(btn.dataset.lat), num(btn.dataset.lng));
+      var elDist = celda.querySelector('.gps-distancia');
+      if (!elDist) return;
+      elDist.textContent = 'Distancia del original: ~' + formatearDistancia(dist);
+      elDist.classList.remove('dist-ok', 'dist-warn', 'dist-bad');
+      if (dist < 100) elDist.classList.add('dist-ok');
+      else if (dist < 500) elDist.classList.add('dist-warn');
+      else elDist.classList.add('dist-bad');
+      elDist.classList.add('visible');
     }
     function formatearFechaHora(iso) {
       var d = new Date(iso);
@@ -796,6 +848,7 @@
       }
       pintarMini(fila.querySelector('.gps-mini-nueva'), lat, lng, fechaISO, gpsAnteriorData ? 'nueva' : 'entrega', gpsData.accuracy, true);
       fila.querySelector('.gps-btn-row').classList.add('tiene-gps');
+      mostrarDistanciaCaptura(fila, btn);
     }
 
     /* ========== CONFIG REMOTA ========== */
@@ -1009,6 +1062,7 @@
               '<a class="gps-mini gps-mini-nueva" target="_blank" rel="noopener noreferrer"></a>' +
             '</div>' +
             '<div class="gps-error-detail"></div>' +
+            '<div class="gps-distancia"></div>' +
           '</div></td>' +
           '<td class="celda-sector"><span class="info-sector" data-sector="' + sectorR + '">' + (sectorR || '—') + '</span></td>' +
           '<td class="celda-horario"><span class="info-horario" data-inicio="' + (iniR || '') + '" data-fin="' + (finR || '') + '">' + horarioTxt + '</span></td>';
