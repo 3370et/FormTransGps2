@@ -339,7 +339,6 @@
       setTimeout(function() { t.classList.remove('visible'); }, 3000);
     }
 
-    /* ===== TIEMPO RELATIVO ===== */
     function tiempoRelativo(fechaStr) {
       if (!fechaStr) return '\u2014';
       var fecha = new Date(fechaStr);
@@ -638,7 +637,7 @@
         var rHtml = '<div class="cc-resumen-inline"><div class="cri"><div class="cri-label">Puntos GPS</div><div class="cri-value" style="color:var(--accent)">' + grupo.itemsGps.length + '</div></div><div class="cri"><div class="cri-label">Estado</div><div class="cri-value" style="font-size:12px;color:' + (grupo.estado === 'completado' ? 'var(--success)' : 'var(--info)') + '">' + (grupo.estado === 'completado' ? 'Completado' : 'En proceso') + '</div></div><div class="cri"><div class="cri-label">Referencia</div><div class="cri-value" style="font-size:12px;color:var(--fg2)">' + tR + '</div></div></div>';
         var tHtml = '<table class="cc-table"><thead><tr><th>#</th><th>Nombre</th><th>Sector</th><th>Desde</th><th>Hasta</th><th>GPS</th></tr></thead><tbody>';
         grupo.itemsGps.forEach(function(item, i) {
-          var gH = '<div class="gps-ok"><i class="fa-solid fa-location-dot"></i> OK</div><div class="coord-text">' + item.gps.lat.toFixed(6) + ', ' + item.gps.lng.toFixed(6) + (item.gps.accuracy ? '<br>\u00b1' + Math.round(item.gps.accuracy) + 'm' : '') + '</div><a class="gps-link" href="https://www.google.com/maps?q=' + item.gps.lat + ',' + item.gps.lng + '" target="_blank" rel="noopener"><i class="fa-solid fa-up-right-from-square"></i> Ver</a>';
+          var gH = '<div class="gps-ok"><i class="fa-solid fa-location-dot"></i> OK</div><div class="coord-text">' + Number(item.gps.lat).toFixed(6) + ', ' + Number(item.gps.lng).toFixed(6) + (item.gps.accuracy ? '<br>\u00b1' + Math.round(item.gps.accuracy) + 'm' : '') + '</div><a class="gps-link" href="https://www.google.com/maps?q=' + item.gps.lat + ',' + item.gps.lng + '" target="_blank" rel="noopener"><i class="fa-solid fa-up-right-from-square"></i> Ver</a>';
           tHtml += '<tr><td>' + (i+1) + '</td><td class="nombre-item">' + (item.item || '\u2014') + '</td><td>' + (item.sector || '<span class="vacio">\u2014</span>') + '</td><td>' + (item.inicio || '<span class="vacio">\u2014</span>') + '</td><td>' + (item.fin || '<span class="vacio">\u2014</span>') + '</td><td>' + gH + '</td></tr>';
         });
         tHtml += '</tbody></table>';
@@ -661,7 +660,6 @@
         + '<button class="cc-ruta-btn-lg gmaps" onclick="abrirGoogleMapsRuta(\'' + codigo + '\')"><i class="fa-brands fa-google"></i> Abrir en Google Maps</button></div>';
     }
 
-    /* ===== RESUMEN INLINE ===== */
     function construirResumenInline(reg, tipo) {
       var items = reg.items || [], total = Array.isArray(items) ? items.length : 0, gps = reg.gpsCount || 0;
       var cI = 0, cF = 0, secs = {};
@@ -699,8 +697,8 @@
       var h = '<table class="cc-table"><thead><tr><th>#</th><th>Nombre</th><th>Sector</th><th>Desde</th><th>Hasta</th><th>GPS</th></tr></thead><tbody>';
       items.forEach(function(it, i) {
         var gH = '';
-        if (it.gps && it.gps.lat !== null && it.gps.lng !== null) {
-          gH = '<div class="gps-ok"><i class="fa-solid fa-location-dot"></i> OK</div><div class="coord-text">' + it.gps.lat.toFixed(6) + ', ' + it.gps.lng.toFixed(6) + (it.gps.accuracy ? '<br>\u00b1' + Math.round(it.gps.accuracy) + 'm' : '') + '</div>';
+        if (it.gps && it.gps.lat != null && it.gps.lng != null) {
+          gH = '<div class="gps-ok"><i class="fa-solid fa-location-dot"></i> OK</div><div class="coord-text">' + Number(it.gps.lat).toFixed(6) + ', ' + Number(it.gps.lng).toFixed(6) + (it.gps.accuracy ? '<br>\u00b1' + Math.round(it.gps.accuracy) + 'm' : '') + '</div>';
         } else { gH = '<span class="gps-no">Sin ubicacion</span>'; }
         h += '<tr><td>' + (i+1) + '</td><td class="nombre-item">' + (it.item || '\u2014') + '</td><td>' + (it.sector || '<span class="vacio">\u2014</span>') + '</td><td>' + (it.inicio || '<span class="vacio">\u2014</span>') + '</td><td>' + (it.fin || '<span class="vacio">\u2014</span>') + '</td><td>' + gH + '</td></tr>';
       });
@@ -713,54 +711,59 @@
       if (!reg) { mostrarToast('Sesion no encontrada', 'err'); return; }
       var puntos = [];
       (reg.items || []).forEach(function(it) {
-        if (it.gps && it.gps.lat !== null && it.gps.lng !== null) puntos.push(it.gps.lat + ',' + it.gps.lng);
+        if (it.gps && it.gps.lat != null && it.gps.lng != null) puntos.push(it.gps.lat + ',' + it.gps.lng);
       });
       if (!puntos.length) { mostrarToast('No hay puntos GPS', 'err'); return; }
       window.open('https://www.google.com/maps/dir/' + puntos.join('/') + '/', '_blank');
     }
 
     /* ====================================================================
-       MAPA GENERAL — NUEVA PESTAÑA
-       La clave: toda la HTML dinámica (sidebar, popups) se construye
-       DENTRO del script de la nueva pestaña, no aquí. Así no hay
-       comillas anidadas que rompan el parseo.
-    ==================================================================== */
+       MAPA — NUEVA PESTAÑA
+       - gps con origen "dispositivo"  = punto CAPTURADO en el terreno
+         -> se numera y conecta en orden de fechaCaptura
+       - gpsOriginal (o gps origen "firebase", formato viejo) = punto
+         PENDIENTE -> morado discontinuo, sin linea, con enlace para ir
+       ==================================================================== */
 
-	function recopilarDatosMapa(soloCodigo) {
-	  var transportes = [], idx = 0;
-	  var keys = soloCodigo ? [soloCodigo] : Object.keys(registrosPorCodigo);
-	  keys.forEach(function(codigo) {
-	    var reg = registrosPorCodigo[codigo];
-	    if (!reg) return;
-	    var puntos = [];
-	    (reg.items || []).forEach(function(item) {
-	      if (item.gps && item.gps.lat != null && item.gps.lng != null) {
-	        puntos.push({
-	          nombre: item.item || 'Sin nombre',
-	          sector: item.sector || '',
-	          hora: item.gps.fechaCaptura || item.gps.fechaCapturaTxt || '',
-	          lat: item.gps.lat, lng: item.gps.lng,
-	          precision: item.gps.accuracy ? Math.round(item.gps.accuracy) + 'm' : '',
-	          pendiente: false
-	        });
-	      } else if (item.gpsOriginal && item.gpsOriginal.lat != null && item.gpsOriginal.lng != null) {
-	        puntos.push({
-	          nombre: item.item || 'Sin nombre',
-	          sector: item.sector || '',
-	          hora: '',
-	          lat: item.gpsOriginal.lat, lng: item.gpsOriginal.lng,
-	          precision: '',
-	          pendiente: true
-	        });
-	      }
-	    });
-	    if (puntos.length > 0) {
-	      transportes.push({ codigo: reg.codigo, color: COLORES_MAPA[idx % COLORES_MAPA.length], estado: reg.estado, puntos: puntos });
-	      idx++;
-	    }
-	  });
-	  return transportes;
-	}
+    function recopilarDatosMapa(soloCodigo) {
+      var transportes = [], idx = 0;
+      var keys = soloCodigo ? [soloCodigo] : Object.keys(registrosPorCodigo);
+      keys.forEach(function(codigo) {
+        var reg = registrosPorCodigo[codigo];
+        if (!reg) return;
+        var puntos = [];
+        (reg.items || []).forEach(function(item) {
+          var capt = (item.gps && item.gps.origen === 'dispositivo') ? item.gps : null;
+          var orig = item.gpsOriginal || ((item.gps && item.gps.origen !== 'dispositivo') ? item.gps : null);
+          if (capt && capt.lat != null && capt.lng != null) {
+            puntos.push({
+              nombre: item.item || 'Sin nombre',
+              sector: item.sector || '',
+              hora: capt.fechaCaptura || capt.fechaCapturaTxt || '',
+              lat: capt.lat,
+              lng: capt.lng,
+              precision: capt.accuracy ? Math.round(capt.accuracy) + 'm' : '',
+              pendiente: false
+            });
+          } else if (orig && orig.lat != null && orig.lng != null) {
+            puntos.push({
+              nombre: item.item || 'Sin nombre',
+              sector: item.sector || '',
+              hora: '',
+              lat: orig.lat,
+              lng: orig.lng,
+              precision: '',
+              pendiente: true
+            });
+          }
+        });
+        if (puntos.length > 0) {
+          transportes.push({ codigo: reg.codigo, color: COLORES_MAPA[idx % COLORES_MAPA.length], estado: reg.estado, puntos: puntos });
+          idx++;
+        }
+      });
+      return transportes;
+    }
 
     function verMapaGeneral() {
       var transportes = recopilarDatosMapa(null);
@@ -779,12 +782,11 @@
       var titulo = esIndividual ? ('Ruta: ' + transportes[0].codigo) : 'Mapa general de transportes';
       var subtitulo = esIndividual ? transportes[0].codigo : 'Todos los transportes';
 
-      /* Solo incrustamos el JSON. Todo lo demás lo construye el script de la nueva pestaña. */
       var page = '<!DOCTYPE html>\n'
         + '<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">\n'
         + '<title>' + titulo + '</title>\n'
         + '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>\n'
-		+ '<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>\n'
+        + '<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>\n'
         + '<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">\n'
         + '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">\n'
         + '<style>\n'
@@ -801,6 +803,7 @@
         + '.sb-stat.s-tr{background:rgba(232,145,58,.1);color:#e8913a;border:1px solid rgba(232,145,58,.2)}\n'
         + '.sb-stat.s-gp{background:rgba(52,211,153,.1);color:#34d399;border:1px solid rgba(52,211,153,.2)}\n'
         + '.sb-stat.s-pr{background:rgba(96,165,250,.1);color:#60a5fa;border:1px solid rgba(96,165,250,.2)}\n'
+        + '.sb-stat.s-pn{background:rgba(167,139,250,.1);color:#a78bfa;border:1px solid rgba(167,139,250,.2)}\n'
         + '.sb-btn-fit{width:100%;margin-top:10px;padding:8px;border-radius:8px;border:1px solid #22273a;background:#14171f;color:#8891a8;font-family:"DM Sans",sans-serif;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px}\n'
         + '.sb-btn-fit:hover{border-color:#e8913a;color:#e8913a;background:rgba(232,145,58,.06)}\n'
         + '.sb-list{flex:1;overflow-y:auto;padding:8px}\n'
@@ -821,7 +824,6 @@
         + '.sb-eye.off{color:#2a2f40}\n'
         + '#map{flex:1;height:100vh;z-index:1}\n'
         + '.leaflet-container{background:#08090d !important}\n'
-		+ '.leaflet-tile-pane{filter:brightness(.85) contrast(1.1) saturate(.8)}\n'
         + '#sbToggle{display:none;position:fixed;top:12px;left:12px;z-index:1100;width:38px;height:38px;border-radius:10px;border:1px solid #22273a;background:rgba(14,16,24,.92);backdrop-filter:blur(8px);color:#8891a8;font-size:15px;cursor:pointer;align-items:center;justify-content:center;transition:all .2s}\n'
         + '#sbToggle:hover{border-color:#e8913a;color:#e8913a}\n'
         + '.mk{background:none !important;border:none !important}\n'
@@ -837,6 +839,8 @@
         + '.pp-nombre{font-size:14px;font-weight:700;margin-bottom:6px;line-height:1.3}\n'
         + '.pp-row{display:flex;align-items:center;gap:5px;font-size:11px;color:#8891a8;margin-bottom:2px}\n'
         + '.pp-row i{width:13px;text-align:center;font-size:9px;color:#565e74}\n'
+        + '.pp-row a{color:#60a5fa;text-decoration:none;font-weight:600}\n'
+        + '.pp-row a:hover{text-decoration:underline}\n'
         + '.pp-coord{font-family:"Space Grotesk",monospace;font-size:10px;color:#565e74;margin-top:5px;padding-top:5px;border-top:1px solid #22273a}\n'
         + '@media(max-width:768px){#sidebar{position:fixed;left:0;top:0;height:100vh;box-shadow:8px 0 32px rgba(0,0,0,.5)}#sidebar.hidden{transform:translateX(-100%)}#sbToggle{display:flex}}\n'
         + '</style></head><body>\n'
@@ -847,63 +851,68 @@
         + 'var T=' + jsonStr + ';\n'
         + 'var map,groups={},allBounds=[];\n'
         + 'function esc(s){var d=document.createElement("div");d.textContent=s;return d.innerHTML}\n'
+        + 'function hkey(h){if(!h)return Infinity;if(/^\\d{1,2}:\\d{2}/.test(h)){var x=h.split(":");return (+x[0])*60+(+x[1])}var d=new Date(h);return isNaN(d.getTime())?Infinity:d.getTime()}\n'
+        + 'function cuando(h){if(!h)return"";if(/^\\d{1,2}:\\d{2}/.test(h))return h;var d=new Date(h);if(isNaN(d.getTime()))return h;return d.toLocaleDateString("es-EC",{day:"2-digit",month:"short"})+" \\u00b7 "+d.toLocaleTimeString("es-EC",{hour:"2-digit",minute:"2-digit"})}\n'
         + 'function init(){\n'
-		+ '  try{\n'
-		+ '  console.log("Datos recibidos:",T);\n'
-		+ '  T.forEach(function(t){t.puntos=(t.puntos||[]).map(function(p,i){return{lat:parseFloat(p.lat),lng:parseFloat(p.lng),nombre:p.nombre||("Punto "+(i+1)),sector:p.sector,hora:p.hora,precision:p.precision}})});\n'
+        + '  try{\n'
         + '  map=L.map("map",{zoomControl:false});\n'
         + '  L.control.zoom({position:"bottomright"}).addTo(map);\n'
-		+ '  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",{\n'
-		+ '    attribution:"Tiles \\u00a9 Esri | Source: Esri, HERE, Garmin, \\u00a9 OpenStreetMap contributors",maxNativeZoom:16,maxZoom:19\n'
-		+ '  }).addTo(map);\n'
-        + '  var totalPt=0,nProc=0;\n'
-        + '  T.forEach(function(t){totalPt+=t.puntos.length;if(t.estado==="en_proceso")nProc++});\n'
+        + '  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",{\n'
+        + '    attribution:"Tiles \\u00a9 Esri | Source: Esri, HERE, Garmin, \\u00a9 OpenStreetMap contributors",maxNativeZoom:16,maxZoom:19\n'
+        + '  }).addTo(map);\n'
+        + '  var totalPt=0,nProc=0,nPen=0;\n'
+        + '  T.forEach(function(t){totalPt+=t.puntos.length;if(t.estado==="en_proceso")nProc++;t.puntos.forEach(function(p){if(p.pendiente)nPen++})});\n'
         + '  var statsHtml=\'<span class="sb-stat s-tr">\'+T.length+\' transporte\'+(T.length!==1?"s":"")+\'</span>\';\n'
         + '  statsHtml+=\'<span class="sb-stat s-gp">\'+totalPt+\' puntos</span>\';\n'
+        + '  if(nPen>0)statsHtml+=\'<span class="sb-stat s-pn">\'+nPen+\' pendientes</span>\';\n'
         + '  if(nProc>0)statsHtml+=\'<span class="sb-stat s-pr">\'+nProc+\' activo\'+(nProc!==1?"s":"")+\'</span>\';\n'
         + '  document.getElementById("sbStats").innerHTML=statsHtml;\n'
         + '  var listHtml="";\n'
-		+ '  T.forEach(function(t,idx){\n'
-		+ '    var g=L.layerGroup().addTo(map);\n'
-		+ '    groups[t.codigo]=g;\n'
-		+ '    var enRuta=t.puntos.filter(function(p){return !p.pendiente});\n'
-		+ '    var pend=t.puntos.filter(function(p){return p.pendiente});\n'
-		+ '    enRuta.sort(function(a,b){return hkey(a.hora)-hkey(b.hora)});\n'
-		+ '    var seq=enRuta.concat(pend);\n'
-		+ '    var coords=[],nPen=0;\n'
-		+ '    seq.forEach(function(p){\n'
-		+ '      var esPen=!!p.pendiente;\n'
-		+ '      if(esPen)nPen++;\n'
-		+ '      var col=esPen?"#a78bfa":t.color;\n'
-		+ '      var num=esPen?"?":(coords.length+1);\n'
-		+ '      var icon=L.divIcon({className:"mk",html:\'<div class="mk-dot" style="background:\'+col+\';\'+(esPen?\'border-style:dashed;\':\'\')+\'">\'+num+\'</div>\',iconSize:[28,28],iconAnchor:[14,14],popupAnchor:[0,-16]});\n'
-		+ '      var m=L.marker([p.lat,p.lng],{icon:icon});\n'
-		+ '      var ph=\'<div class="pp">\';\n'
-		+ '      ph+=\'<div class="pp-num">\'+(esPen?\'Pendiente de captura\':\'Punto \'+num)+\' &middot; \'+esc(t.codigo)+\'</div>\';\n'
-		+ '      ph+=\'<div class="pp-nombre" style="color:\'+col+\'">\'+esc(p.nombre)+\'</div>\';\n'
-		+ '      if(p.sector)ph+=\'<div class="pp-row"><i class="fa-solid fa-tag"></i>\'+esc(p.sector)+\'</div>\';\n'
-		+ '      if(esPen){ph+=\'<div class="pp-row"><i class="fa-solid fa-hourglass-half"></i>GPS aun no capturado</div>\';}\n'
-		+ '      else{ph+=\'<div class="pp-row"><i class="fa-regular fa-clock"></i>\'+esc(cuando(p.hora))+\'</div>\';\n'
-		+ '      if(p.precision)ph+=\'<div class="pp-row"><i class="fa-solid fa-crosshairs"></i>Precision: \'+esc(p.precision)+\'</div>\';}\n'
-		+ '      ph+=\'<div class="pp-coord">\'+p.lat.toFixed(6)+\', \'+p.lng.toFixed(6)+\'</div>\';\n'
-		+ '      ph+=\'</div>\';\n'
-		+ '      m.bindPopup(ph,{maxWidth:260});\n'
-		+ '      m.addTo(g);\n'
-		+ '      if(!esPen)coords.push([p.lat,p.lng]);\n'
-		+ '      allBounds.push([p.lat,p.lng]);\n'
-		+ '    });\n'
-		+ '    if(coords.length>1){L.polyline(coords,{color:t.color,weight:3.5,opacity:0.5,lineJoin:"round",lineCap:"round"}).addTo(g)}\n'
+        + '  T.forEach(function(t,idx){\n'
+        + '    var g=L.layerGroup().addTo(map);\n'
+        + '    groups[t.codigo]=g;\n'
+        + '    var enRuta=t.puntos.filter(function(p){return !p.pendiente});\n'
+        + '    var pend=t.puntos.filter(function(p){return p.pendiente});\n'
+        + '    enRuta.sort(function(a,b){return hkey(a.hora)-hkey(b.hora)});\n'
+        + '    var seq=enRuta.concat(pend);\n'
+        + '    var coords=[],nPenT=0;\n'
+        + '    seq.forEach(function(p,i){\n'
+        + '      var esPen=!!p.pendiente;\n'
+        + '      if(esPen)nPenT++;\n'
+        + '      var col=esPen?"#a78bfa":t.color;\n'
+        + '      var num=esPen?"?":(coords.length+1);\n'
+        + '      var icon=L.divIcon({className:"mk",html:\'<div class="mk-dot" style="background:\'+col+\';\'+(esPen?\'border-style:dashed;\':\'\')+\'">\'+num+\'</div>\',iconSize:[28,28],iconAnchor:[14,14],popupAnchor:[0,-16]});\n'
+        + '      var m=L.marker([p.lat,p.lng],{icon:icon});\n'
+        + '      var ph=\'<div class="pp">\';\n'
+        + '      ph+=\'<div class="pp-num">\'+(esPen?\'Pendiente de captura\':\'Punto \'+num)+\' &middot; \'+esc(t.codigo)+\'</div>\';\n'
+        + '      ph+=\'<div class="pp-nombre" style="color:\'+col+\'">\'+esc(p.nombre)+\'</div>\';\n'
+        + '      if(p.sector)ph+=\'<div class="pp-row"><i class="fa-solid fa-tag"></i>\'+esc(p.sector)+\'</div>\';\n'
+        + '      if(esPen){\n'
+        + '        ph+=\'<div class="pp-row"><i class="fa-solid fa-hourglass-half"></i>GPS aun no capturado</div>\';\n'
+        + '        ph+=\'<div class="pp-row"><a href="https://www.google.com/maps?q=\'+p.lat+\',\'+p.lng+\'" target="_blank" rel="noopener"><i class="fa-solid fa-diamond-turn-right"></i> Ir a capturar</a></div>\';\n'
+        + '      } else {\n'
+        + '        ph+=\'<div class="pp-row"><i class="fa-regular fa-clock"></i>\'+esc(cuando(p.hora))+\'</div>\';\n'
+        + '        if(p.precision)ph+=\'<div class="pp-row"><i class="fa-solid fa-crosshairs"></i>Precision: \'+esc(p.precision)+\'</div>\';\n'
+        + '      }\n'
+        + '      ph+=\'<div class="pp-coord">\'+p.lat.toFixed(6)+\', \'+p.lng.toFixed(6)+\'</div>\';\n'
+        + '      ph+=\'</div>\';\n'
+        + '      m.bindPopup(ph,{maxWidth:260});\n'
+        + '      m.addTo(g);\n'
+        + '      if(!esPen)coords.push([p.lat,p.lng]);\n'
+        + '      allBounds.push([p.lat,p.lng]);\n'
+        + '    });\n'
+        + '    if(coords.length>1){L.polyline(coords,{color:t.color,weight:3.5,opacity:0.5,lineJoin:"round",lineCap:"round"}).addTo(g)}\n'
         + '    var ec=t.estado==="en_proceso"?"bp":"bc";\n'
         + '    var et=t.estado==="en_proceso"?"En proceso":"Completado";\n'
         + '    listHtml+=\'<div class="sb-item" data-cod="\'+t.codigo+\'" onclick="zoomT(\\\'\'+t.codigo+\'\\\')" onmouseenter="hlT(\\\'\'+t.codigo+\'\\\')" onmouseleave="uhlT(\\\'\'+t.codigo+\'\\\')">\'\n'
         + '      +\'<div class="sb-bar" style="background:\'+t.color+\'"></div>\'\n'
         + '      +\'<div class="sb-content"><div class="sb-top"><span class="sb-codigo" style="color:\'+t.color+\'">\'+esc(t.codigo)+\'</span><span class="sb-badge \'+ec+\'">\'+et+\'</span></div>\'\n'
-		+ '      +\'<div class="sb-meta"><i class="fa-solid fa-location-dot"></i>\'+t.puntos.length+\' puntos\'+(nPen>0?\' &middot; \'+nPen+\' pendientes\':\'\')+\'</div></div>\'\n'
+        + '      +\'<div class="sb-meta"><i class="fa-solid fa-location-dot"></i>\'+t.puntos.length+\' puntos\'+(nPenT>0?\' &middot; \'+nPenT+\' pend.\':\'\')+\'</div></div>\'\n'
         + '      +\'<button class="sb-eye" onclick="event.stopPropagation();togVis(\\\'\'+t.codigo+\'\\\',this)" title="Mostrar/ocultar"><i class="fa-solid fa-eye"></i></button></div>\';\n'
         + '  });\n'
         + '  document.getElementById("sbList").innerHTML=listHtml;\n'
         + '  if(allBounds.length>0)map.fitBounds(L.latLngBounds(allBounds),{padding:[40,40],maxZoom:16});\n'
-		+ '  }catch(e){console.error(e);document.getElementById("sbStats").innerHTML=\'<span class="sb-stat s-pr">Error: \'+e.message+\'</span>\';}\n'
+        + '  }catch(e){console.error(e);document.getElementById("sbStats").innerHTML=\'<span class="sb-stat s-pr" style="max-width:280px">Error: \'+esc(e.message)+\'</span>\';}\n'
         + '}\n'
         + 'function zoomT(c){\n'
         + '  var g=groups[c];if(!g)return;var b=[];\n'
@@ -938,9 +947,9 @@
         + '  if(b.length)map.fitBounds(L.latLngBounds(b),{padding:[40,40],maxZoom:16});\n'
         + '}\n'
         + 'document.addEventListener("DOMContentLoaded",init);\n'
-		+ '<\/script>\n'
-		+ '</body></html>';
-        
+        + '<\/script>\n'
+        + '</body></html>';
+
       var blob = new Blob([page], { type: 'text/html;charset=utf-8' });
       var url = URL.createObjectURL(blob);
       window.open(url, '_blank');
