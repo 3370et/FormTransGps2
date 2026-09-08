@@ -100,7 +100,7 @@
     .gps-mini-nueva .mini-tag { background: rgba(52,211,153,0.15); color: var(--success); }
     .gps-error-detail { font-size: 10px; color: var(--danger); line-height: 1.5; padding: 5px 7px; background: rgba(248,113,113,0.04); border-radius: 5px; border: 1px solid rgba(248,113,113,0.12); display: none; animation: fadeUp 0.3s ease; }
     .gps-error-detail.visible { display: block; }
-	.gps-distancia { display: none; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 5px; width: fit-content; margin-top: 2px; }
+    .gps-distancia { display: none; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 5px; width: fit-content; margin-top: 2px; }
     .gps-distancia.visible { display: block; }
     .gps-distancia.dist-ok { background: rgba(52,211,153,0.08); color: var(--success); border: 1px solid rgba(52,211,153,0.2); }
     .gps-distancia.dist-warn { background: rgba(251,191,36,0.08); color: var(--warning); border: 1px solid rgba(251,191,36,0.2); }
@@ -197,7 +197,7 @@
     <div class="gps-modal confirm-variante">
       <div class="gps-modal-icon"><i class="fa-solid fa-location-dot"></i></div>
       <h3>¿Volver a capturar la ubicación?</h3>
-      <p>La entrega ya está marcada como <strong>Entregado</strong>.<br>La ubicación actual se guardará como anterior para poder compararlas.</p>
+      <p>La entrega ya está marcada como <strong>Entregado</strong>.<br>La ubicación actual será reemplazada por la nueva captura.</p>
       <div class="gps-modal-btns">
         <button class="btn btn-modal-cancel" onclick="cerrarConfirmRecaptura()"><i class="fa-solid fa-xmark"></i> Cancelar</button>
         <button class="btn btn-modal-confirm" onclick="confirmarRecaptura()"><i class="fa-solid fa-satellite-dish"></i> Sí, capturar</button>
@@ -300,19 +300,22 @@
     var botonConfirmPendiente = null;
     var fechaInicioSesion = null;
     var timerInactividad = null;
+    var guardadoPendiente = false;
 
     /* 240 min Firebase liberación */
     var TIEMPO_LIBERAR_CODIGO_MS = 240 * 60 * 1000;
-    /* 120 min inactividad → resetear */
+    /* 120 min desde la última captura GPS → resetear */
     var INACTIVIDAD_RESET_MS = 120 * 60 * 1000;
-    /* 240 min inactividad → bloquear */
+    /* 240 min desde la última captura GPS → bloquear */
     var INACTIVIDAD_BLOQUEO_MS = 240 * 60 * 1000;
     var LS_KEY = 'transporte_sesion';
     var LS_DEVICE_KEY = 'transporte_dispositivo_id';
 
     var codigosValidosMap = {};
 
-    /* ============================================================*/
+    /* ============================================================
+       SEGURO DE DISEÑO — si el logo/camión se altera, la app queda inutilizable
+       ============================================================ */
     var disenoIntacto = null;
     function normAtt(s) { return (s || '').replace(/\s+/g, ''); }
     function verificarDiseno() {
@@ -411,10 +414,22 @@
     }
 
     /* ============================================================
-       LOCALSTORAGE — Sesión con timestamp de actividad
+       LOCALSTORAGE — Sesión con timestamp de última CAPTURA GPS
        ============================================================ */
     function guardarSesionEnDispositivo(codigo) {
-      try { localStorage.setItem(LS_KEY, JSON.stringify({ codigo: codigo, ultimaActividad: Date.now() })); } catch(e) {}
+      try {
+        var previa = null;
+        var raw = localStorage.getItem(LS_KEY);
+        if (raw) {
+          var d = JSON.parse(raw);
+          if (d.codigo === codigo && d.ultimaActividad && (Date.now() - d.ultimaActividad) < INACTIVIDAD_RESET_MS) {
+            previa = d.ultimaActividad;
+          }
+        }
+        localStorage.setItem(LS_KEY, JSON.stringify({ codigo: codigo, ultimaActividad: previa || Date.now() }));
+      } catch(e) {
+        try { localStorage.setItem(LS_KEY, JSON.stringify({ codigo: codigo, ultimaActividad: Date.now() })); } catch(e2) {}
+      }
     }
     function actualizarActividadEnDispositivo() {
       if (!codigoTransporteActual) return;
@@ -441,6 +456,7 @@
 
     /* ============================================================
        TIMER DE INACTIVIDAD — verifica cada 15 segundos
+       (se reinicia SOLO con cada captura GPS)
        ============================================================ */
     function iniciarTimerInactividad() {
       detenerTimerInactividad();
@@ -486,31 +502,28 @@
     function forzarResetPorInactividad(tipo) {
       detenerTimerInactividad();
       var codigoPrevio = codigoTransporteActual;
+      try { localStorage.removeItem(LS_KEY); } catch(e) {}
       resetearFormulario();
       if (tipo === 'bloqueo') {
-        msg('Sesión expirada por inactividad (4 horas sin actividad). El código "' + codigoPrevio + '" se ha bloqueado.', 'err');
+        msg('Sesión expirada por inactividad (4 horas sin capturas). El código "' + codigoPrevio + '" se ha bloqueado.', 'err');
       } else {
-        msg('Sesión cerrada por inactividad (120 min). Vuelve a ingresar el código "' + codigoPrevio + '".', 'warn');
+        msg('Sesión cerrada por inactividad (120 min sin capturas). Vuelve a ingresar el código "' + codigoPrevio + '".', 'warn');
       }
     }
 
-    document.addEventListener('input', function(e) {
-      if (!codigoTransporteActual) return;
-      if (e.target.closest('#codigoTransporteInput')) return;
-      actualizarActividadEnDispositivo();
-    });
-    document.addEventListener('click', function(e) {
-      if (!codigoTransporteActual) return;
-      if (e.target.closest('#btnCargar') || e.target.closest('#btnGuardar')) return;
-      actualizarActividadEnDispositivo();
-    });
-
     /* ============================================================
-       GUARDADO AUTOMÁTICO AL CERRAR PÁGINA
+       GUARDADO AUTOMÁTICO AL CERRAR PÁGINA + AUTO-SYNC AL RECONECTAR
        ============================================================ */
     window.addEventListener('beforeunload', function() {
       if (codigoTransporteActual && disenoIntacto === true) guardarEstadoActualEnFirebase();
     });
+    window.addEventListener('online', function() {
+      if (guardadoPendiente && codigoTransporteActual && disenoIntacto === true) guardarEstadoActualEnFirebase();
+    });
+    setInterval(function() {
+      if (guardadoPendiente && navigator.onLine && codigoTransporteActual && disenoIntacto === true) guardarEstadoActualEnFirebase();
+    }, 30000);
+
     function despuesDeCapturarGPS() {
       actualizarActividadEnDispositivo();
       guardarEstadoActualEnFirebase();
@@ -524,9 +537,15 @@
           method: 'PUT', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ estado: 'en_proceso', fechaInicio: fechaInicioSesion || new Date().toISOString(), dispositivoId: obtenerIdDispositivo(), datosFormulario: datos }),
           keepalive: true
-        }).then(function(r){ if (!r.ok) console.error('Firebase respondió HTTP', r.status); })
-          .catch(function(e){ console.error('Error de red guardando:', e); });
-      } catch(e) { console.error('Error enviando a Firebase:', e); }
+        }).then(function(r){
+          if (!r.ok) { console.error('Firebase respondió HTTP', r.status); guardadoPendiente = true; status('Sin conexión — guardado pendiente', 'warn'); }
+          else { guardadoPendiente = false; status('', 'ok'); }
+        }).catch(function(e){
+          console.error('Error de red guardando:', e);
+          guardadoPendiente = true;
+          status('Sin conexión — guardado pendiente', 'warn');
+        });
+      } catch(e) { console.error('Error enviando a Firebase:', e); guardadoPendiente = true; }
     }
 
     function recopilarDatosFormulario() {
@@ -564,20 +583,10 @@
             lat: nLat, lng: nLng, accuracy: nAcc, origen: 'dispositivo',
             distanciaOriginal: distOrig,
             distanciaOriginalTxt: (distOrig !== null) ? formatearDistancia(distOrig) : null,
-            recapturado: btnGPS.dataset.prevLat ? true : false,
+            recapturado: btnGPS.dataset.recapturado ? true : false,
             fechaCaptura: nFecha,
             fechaCapturaTxt: formatearFechaHora(nFecha),
             mapsUrl: 'https://www.google.com/maps?q=' + nLat + ',' + nLng
-          };
-        }
-        if (btnGPS && btnGPS.dataset.prevLat && btnGPS.dataset.prevLng) {
-          var pLat = num(btnGPS.dataset.prevLat), pLng = num(btnGPS.dataset.prevLng);
-          var pFecha = btnGPS.dataset.prevFecha || null;
-          reg.gpsAnterior = {
-            lat: pLat, lng: pLng, origen: 'dispositivo',
-            fechaCaptura: pFecha,
-            fechaCapturaTxt: pFecha ? formatearFechaHora(pFecha) : null,
-            mapsUrl: 'https://www.google.com/maps?q=' + pLat + ',' + pLng
           };
         }
         entregas.push(reg);
@@ -616,9 +625,7 @@
       delete btnGPS.dataset.accuracy;
       delete btnGPS.dataset.origen;
       delete btnGPS.dataset.fecha;
-      delete btnGPS.dataset.prevLat;
-      delete btnGPS.dataset.prevLng;
-      delete btnGPS.dataset.prevFecha;
+      delete btnGPS.dataset.recapturado;
       var miniNueva = celda.querySelector('.gps-mini-nueva');
       if (miniNueva) { miniNueva.classList.remove('on'); miniNueva.innerHTML = ''; miniNueva.removeAttribute('href'); }
       errorEl.classList.remove('visible');
@@ -628,7 +635,6 @@
       if (elDist) { elDist.classList.remove('visible', 'dist-ok', 'dist-warn', 'dist-bad'); elDist.textContent = ''; }
 
       guardarEstadoActualEnFirebase();
-      actualizarActividadEnDispositivo();
     }
 
     /* ========== GPS ========== */
@@ -694,9 +700,7 @@
       navigator.geolocation.getCurrentPosition(
         function(pos) {
           if (teniaEntrega) {
-            boton.dataset.prevLat = boton.dataset.lat;
-            boton.dataset.prevLng = boton.dataset.lng;
-            boton.dataset.prevFecha = boton.dataset.fecha || '';
+            boton.dataset.recapturado = '1';
           }
           boton.classList.remove('capturando'); boton.classList.add('capturado');
           boton.innerHTML = '<i class="fa-solid fa-check"></i> Entregado';
@@ -707,7 +711,7 @@
           pintarMini(celda.querySelector('.gps-mini-nueva'), pos.coords.latitude, pos.coords.longitude, fechaCapturaISO, teniaEntrega ? 'nueva' : 'entrega', pos.coords.accuracy, true);
           celda.querySelector('.gps-btn-row').classList.add('tiene-gps');
           despuesDeCapturarGPS();
-		  if (typeof mostrarDistanciaCaptura === 'function') mostrarDistanciaCaptura(celda, boton);
+          if (typeof mostrarDistanciaCaptura === 'function') mostrarDistanciaCaptura(celda, boton);
         },
         function(error) {
           boton.classList.remove('capturando');
@@ -820,7 +824,7 @@
       pintarMini(fila.querySelector('.gps-mini-orig'), lat, lng, fechaISO, 'original', gpsData.accuracy, false);
     }
 
-    function aplicarGPSCapturada(fila, gpsData, gpsAnteriorData) {
+    function aplicarGPSCapturada(fila, gpsData) {
       if (!gpsData) return;
       var lat = num(gpsData.lat), lng = num(gpsData.lng);
       if (lat === null || lng === null) return;
@@ -834,14 +838,10 @@
       btn.dataset.accuracy = (num(gpsData.accuracy) !== null) ? num(gpsData.accuracy) : '';
       btn.dataset.origen = 'dispositivo';
       btn.dataset.fecha = fechaISO;
-      if (gpsAnteriorData && num(gpsAnteriorData.lat) !== null) {
-        btn.dataset.prevLat = num(gpsAnteriorData.lat);
-        btn.dataset.prevLng = num(gpsAnteriorData.lng);
-        btn.dataset.prevFecha = gpsAnteriorData.fechaCaptura || '';
-      }
-      pintarMini(fila.querySelector('.gps-mini-nueva'), lat, lng, fechaISO, gpsAnteriorData ? 'nueva' : 'entrega', gpsData.accuracy, true);
+      if (gpsData.recapturado) btn.dataset.recapturado = '1';
+      pintarMini(fila.querySelector('.gps-mini-nueva'), lat, lng, fechaISO, (gpsData.recapturado ? 'nueva' : 'entrega'), gpsData.accuracy, true);
       fila.querySelector('.gps-btn-row').classList.add('tiene-gps');
-	  if (typeof mostrarDistanciaCaptura === 'function') mostrarDistanciaCaptura(fila, btn);
+      if (typeof mostrarDistanciaCaptura === 'function') mostrarDistanciaCaptura(fila, btn);
     }
 
     /* ========== CONFIG REMOTA ========== */
@@ -907,7 +907,7 @@
           if (transcurrido > TIEMPO_LIBERAR_CODIGO_MS) {
             return { usado: false, liberado: true, datosPrevios: data.datosFormulario || null };
           }
-          return { usado: false, puedeContinuar: true, datosPrevios: data.datosFormulario || null, dispositivoId: data.dispositivoId || null };
+          return { usado: false, puedeContinuar: true, datosPrevios: data.datosFormulario || null, dispositivoId: data.dispositivoId || null, fechaInicio: data.fechaInicio || null };
         }
         return { usado: true, razon: 'desconocido' };
       } catch(e) { return { usado: false }; }
@@ -923,7 +923,7 @@
       try {
         var r = await fetch(FIREBASE_DB_URL_BASE_USADOS + '/' + codigoTransporteActual + '.json', {
           method: 'PUT', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ estado: 'completado', fechaFin: new Date().toISOString(), dispositivoId: obtenerIdDispositivo(), datosFormulario: entregas })
+          body: JSON.stringify({ estado: 'completado', fechaInicio: fechaInicioSesion || null, fechaFin: new Date().toISOString(), dispositivoId: obtenerIdDispositivo(), datosFormulario: entregas })
         });
         if (!r.ok) throw new Error('HTTP'); return true;
       } catch(e) { return false; }
@@ -1001,7 +1001,7 @@
 
       guardarSesionEnDispositivo(codigo);
       input.disabled = true; btnCargar.disabled = true;
-      fechaInicioSesion = esContinuacion ? null : new Date().toISOString();
+      fechaInicioSesion = esContinuacion ? (resultado.fechaInicio || new Date().toISOString()) : new Date().toISOString();
       poblarTabla(itemsFiltrados, datosPrevios);
       if (!esContinuacion) guardarEstadoActualEnFirebase();
       iniciarTimerInactividad();
@@ -1063,8 +1063,8 @@
         tbody.appendChild(fila);
 
         var gpsOrig = (datoPrevio && datoPrevio.gpsOriginal) ? datoPrevio.gpsOriginal : (item.gpsRegistrado || null);
-        if (gpsOrig) aplicarGPSOriginal(fila, gpsOrig);
-        if (datoPrevio && datoPrevio.gps) aplicarGPSCapturada(fila, datoPrevio.gps, datoPrevio.gpsAnterior || null);
+        try { if (gpsOrig) aplicarGPSOriginal(fila, gpsOrig); } catch(e) { console.error('Error GPS original fila ' + contador, e); }
+        try { if (datoPrevio && datoPrevio.gps) aplicarGPSCapturada(fila, datoPrevio.gps); } catch(e) { console.error('Error restaurando GPS fila ' + contador, e); }
       });
       document.getElementById('itemCount').textContent = contador;
     }
@@ -1087,7 +1087,7 @@
     function generarCSVBlob() {
       var filas = document.querySelectorAll('#tbodyLineas tr');
       if (filas.length === 0) return null;
-      var csv = '#,Nombre,Sector,Desde,Hasta,LatOriginal,LngOriginal,FechaOriginal,LatNueva,LngNueva,FechaNueva,LatAnterior,LngAnterior,FechaAnterior,Maps\n';
+      var csv = '#,Nombre,Sector,Desde,Hasta,LatOriginal,LngOriginal,FechaOriginal,LatNueva,LngNueva,FechaNueva,DistanciaOriginal,Maps\n';
       filas.forEach(function(f) {
         var n = f.querySelector('.item-name-text') ? f.querySelector('.item-name-text').textContent.trim() : '';
         var sEl = f.querySelector('.info-sector');
@@ -1098,10 +1098,10 @@
         var b = f.querySelector('.btn-gps');
         var oLat = b&&b.dataset.origLat?b.dataset.origLat:''; var oLng = b&&b.dataset.origLng?b.dataset.origLng:''; var oFe = b&&b.dataset.origFecha? formatearFechaHora(b.dataset.origFecha):'';
         var nLat = b&&b.dataset.lat?b.dataset.lat:''; var nLng = b&&b.dataset.lng?b.dataset.lng:''; var nFe = b&&b.dataset.fecha? formatearFechaHora(b.dataset.fecha):'';
-        var pLat = b&&b.dataset.prevLat?b.dataset.prevLat:''; var pLng = b&&b.dataset.prevLng?b.dataset.prevLng:''; var pFe = b&&b.dataset.prevFecha? formatearFechaHora(b.dataset.prevFecha):'';
+        var dist = (oLat&&oLng&&nLat&&nLng&&typeof distanciaMetros==='function') ? Math.round(distanciaMetros(num(oLat), num(oLng), num(nLat), num(nLng))) : '';
         var mu = (nLat&&nLng)?'https://www.google.com/maps?q='+nLat+','+nLng:((oLat&&oLng)?'https://www.google.com/maps?q='+oLat+','+oLng:'');
         var esc = function(x){return '"'+(x||'').replace(/"/g,'""')+'"';};
-        csv += f.cells[0].textContent.trim()+','+esc(n)+','+esc(s)+','+i+','+fi+','+oLat+','+oLng+','+esc(oFe)+','+nLat+','+nLng+','+esc(nFe)+','+pLat+','+pLng+','+esc(pFe)+','+esc(mu)+'\n';
+        csv += f.cells[0].textContent.trim()+','+esc(n)+','+esc(s)+','+i+','+fi+','+oLat+','+oLng+','+esc(oFe)+','+nLat+','+nLng+','+esc(nFe)+','+dist+','+esc(mu)+'\n';
       });
       return new Blob([csv], {type:'text/csv;charset=utf-8;'});
     }
