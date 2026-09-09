@@ -302,11 +302,11 @@
     var timerInactividad = null;
     var guardadoPendiente = false;
 
-    /* 360 min (6 h) desde la última captura → liberar */
-    var TIEMPO_LIBERAR_CODIGO_MS = 360 * 60 * 1000;
-    /* 120 min desde la última captura GPS → resetear */
+    /* 240 min desde la ÚLTIMA ACTIVIDAD (guardado/captura) → liberar código en Firebase */
+    var TIEMPO_LIBERAR_CODIGO_MS = 240 * 60 * 1000;
+    /* 120 min desde la última captura GPS → resetear sesión local */
     var INACTIVIDAD_RESET_MS = 120 * 60 * 1000;
-    /* 240 min desde la última captura GPS → bloquear */
+    /* 240 min desde la última captura GPS → bloquear sesión local */
     var INACTIVIDAD_BLOQUEO_MS = 240 * 60 * 1000;
     var LS_KEY = 'transporte_sesion';
     var LS_DEVICE_KEY = 'transporte_dispositivo_id';
@@ -902,6 +902,7 @@
         if (data === null) return { usado: false };
         if (data.estado === 'completado') return { usado: true, razon: 'completado' };
         if (data.estado === 'en_proceso' && data.fechaInicio) {
+          /* Liberación medida desde la ÚLTIMA ACTIVIDAD (no desde la primera apertura) */
           var refTiempo = data.ultimaActividad || data.fechaInicio;
           var inicio = new Date(refTiempo).getTime();
           var transcurrido = Date.now() - inicio;
