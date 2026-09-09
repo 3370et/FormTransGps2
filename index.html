@@ -302,8 +302,8 @@
     var timerInactividad = null;
     var guardadoPendiente = false;
 
-    /* 240 min Firebase liberación */
-    var TIEMPO_LIBERAR_CODIGO_MS = 240 * 60 * 1000;
+    /* 360 min (6 h) desde la última captura → liberar */
+    var TIEMPO_LIBERAR_CODIGO_MS = 360 * 60 * 1000;
     /* 120 min desde la última captura GPS → resetear */
     var INACTIVIDAD_RESET_MS = 120 * 60 * 1000;
     /* 240 min desde la última captura GPS → bloquear */
@@ -535,7 +535,7 @@
       try {
         fetch(FIREBASE_DB_URL_BASE_USADOS + '/' + codigoTransporteActual + '.json', {
           method: 'PUT', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ estado: 'en_proceso', fechaInicio: fechaInicioSesion || new Date().toISOString(), dispositivoId: obtenerIdDispositivo(), datosFormulario: datos }),
+          body: JSON.stringify({ estado: 'en_proceso', fechaInicio: fechaInicioSesion || new Date().toISOString(), ultimaActividad: new Date().toISOString(), dispositivoId: obtenerIdDispositivo(), datosFormulario: datos }),
           keepalive: true
         }).then(function(r){
           if (!r.ok) { console.error('Firebase respondió HTTP', r.status); guardadoPendiente = true; status('Sin conexión — guardado pendiente', 'warn'); }
@@ -902,7 +902,8 @@
         if (data === null) return { usado: false };
         if (data.estado === 'completado') return { usado: true, razon: 'completado' };
         if (data.estado === 'en_proceso' && data.fechaInicio) {
-          var inicio = new Date(data.fechaInicio).getTime();
+          var refTiempo = data.ultimaActividad || data.fechaInicio;
+          var inicio = new Date(refTiempo).getTime();
           var transcurrido = Date.now() - inicio;
           if (transcurrido > TIEMPO_LIBERAR_CODIGO_MS) {
             return { usado: false, liberado: true, datosPrevios: data.datosFormulario || null };
