@@ -72,7 +72,7 @@
     tbody tr { transition: background 0.2s ease; } tbody tr:nth-child(even) { background: var(--row-alt); } tbody tr:hover { background: var(--card-hover); } tbody tr:last-child td { border-bottom: none; }
     .row-num { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 13px; color: var(--fg-muted); background: var(--bg); border-radius: 6px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; }
     /* Nombre: máx. 2 líneas — 350px escritorio / 200px móvil (oficial) */
-    td.celda-nombre { max-width: 350px; }
+    td.celda-nombre { max-width: 250px; }
     td.celda-nombre .item-name-text { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.35; word-wrap: break-word; font-weight: 500; color: var(--fg); }
     td.celda-sector { padding-right: 4px; padding-left: 8px; }
     td.celda-horario { padding-left: 4px; padding-right: 8px; }
@@ -155,7 +155,7 @@
       th, td { padding: 8px 8px; font-size: 12px; }
       td.celda-sector, th.th-sector { padding-right: 2px; padding-left: 6px; }
       td.celda-horario, th.th-horario { padding-left: 2px; padding-right: 6px; }
-      td.celda-nombre { max-width: 200px; }
+      td.celda-nombre { max-width: 180px; }
       .expired-card { padding: 36px 20px; } .expired-card h2 { font-size: 22px; }
       .toast-guardado { left: 16px; right: 16px; transform: translateX(0) translateY(20px); } .toast-guardado.visible { transform: translateX(0) translateY(0); }
       .gps-cell { min-width: 120px; } .btn-gps { font-size: 10px; padding: 5px 9px; } .gps-mini { font-size: 9px; } .gps-error-detail { font-size: 9px; }
@@ -255,7 +255,7 @@
         <table id="tablaItems">
           <thead><tr>
             <th style="width:44px">#</th>
-            <th style="width:350px"><i class="fa-solid fa-box"></i> Nombre</th>
+            <th style="width:250px"><i class="fa-solid fa-box"></i> Nombre</th>
             <th><i class="fa-solid fa-satellite-dish"></i> Entrega</th>
             <th class="th-sector"><i class="fa-solid fa-location-dot"></i> Sector</th>
             <th class="th-horario"><i class="fa-regular fa-clock"></i> Desde – Hasta</th>
