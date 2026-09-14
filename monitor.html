@@ -30,6 +30,7 @@
     .login-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(232,145,58,.12)}
     .login-btn{width:100%;padding:13px;border-radius:10px;border:none;background:var(--accent);color:#0f1117;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all .25s}
     .login-btn:hover{background:#f0a050;box-shadow:0 4px 20px rgba(232,145,58,.3)}
+    .login-btn:disabled{opacity:.65;cursor:wait}
     .login-error{margin-top:14px;padding:10px;border-radius:8px;font-size:13px;background:rgba(248,113,113,.06);border:1px solid rgba(248,113,113,.15);color:var(--danger);display:none}
     .login-error.visible{display:block}
 
@@ -49,6 +50,9 @@
     .dash-btn.compartir:hover{background:rgba(52,211,153,.08);border-color:var(--success)}
     .dash-btn.mapa-general{border-color:rgba(232,145,58,.35);color:var(--accent);background:rgba(232,145,58,.06)}
     .dash-btn.mapa-general:hover{background:rgba(232,145,58,.14);border-color:var(--accent);box-shadow:0 2px 12px rgba(232,145,58,.15)}
+    .dash-usuario{display:none;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--fg2);font-size:12px;font-weight:600;white-space:nowrap}
+    .dash-usuario i{color:var(--accent);font-size:11px}
+    .dash-usuario.visible{display:inline-flex}
 
     @keyframes spin{to{transform:rotate(360deg)}}
     @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
@@ -199,7 +203,7 @@
     <div class="login-box">
       <div class="login-icon"><i class="fa-solid fa-eye"></i></div>
       <h2>Panel de monitoreo</h2>
-      <p>Ingresa la clave de acceso para ver el estado de los transportes.</p>
+      <p>Ingresa tu clave de supervisor para ver el estado de los transportes.</p>
       <input type="password" class="login-input" id="loginPass" placeholder="Clave de acceso" autocomplete="off">
       <button class="login-btn" onclick="verificarAcceso()"><i class="fa-solid fa-right-to-bracket"></i> Ingresar</button>
       <div class="login-error" id="loginError"><i class="fa-solid fa-xmark"></i> Clave incorrecta</div>
@@ -233,6 +237,7 @@
         <button class="dash-btn mapa-general" onclick="verMapaGeneral()"><i class="fa-solid fa-map-location-dot"></i> Mapa general</button>
         <button class="dash-btn compartir" id="btnCompartir" onclick="abrirCompartir()"><i class="fa-solid fa-share-nodes"></i> Compartir</button>
         <button class="dash-btn" id="btnActualizar" onclick="cargarDatos()"><i class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
+        <span class="dash-usuario" id="dashUsuario"><i class="fa-solid fa-user-shield"></i><span id="dashUsuarioTxt"></span></span>
         <button class="dash-btn salir" onclick="cerrarSesion()"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
       </div>
     </div>
@@ -278,8 +283,9 @@
 
   <script>
     /* ===== CONSTANTES ===== */
-    var CLAVE_ACCESO = 'admin2025';
-    var FIREBASE_URL = 'https://datos-formulario-f3cde-default-rtdb.firebaseio.com/codigosUsados';
+    var FIREBASE_BASE = 'https://datos-formulario-f3cde-default-rtdb.firebaseio.com';
+    var FIREBASE_URL = FIREBASE_BASE + '/codigosUsados';
+    var FIREBASE_URL_SUPER = FIREBASE_BASE + '/superUsuarios';
     var INTERVALO_ACTUALIZACION = 15000;
     var COLORES_MAPA = [
       '#e8913a','#34d399','#60a5fa','#f87171','#a78bfa',
@@ -287,35 +293,129 @@
       '#4ade80','#e879f9','#38bdf8','#fb7185','#a3e635',
       '#c084fc','#fca5a5','#67e8f9','#fdba74','#86efac'
     ];
+    /* Umbrales configurables */
+    var UMB_DESV_OK = 100;      /* m: desviacion aceptable (verde) */
+    var UMB_DESV_ALERTA = 300;  /* m: moderada (ambar); >= esto = rojo */
+    var UMB_INACT_OK = 30;      /* min: inactividad aceptable (verde) */
+    var UMB_INACT_ALERTA = 60;  /* min: moderada (ambar); >= esto = rojo */
 
     /* ===== ESTADO ===== */
     var timerAutoActualizar = null;
     var datosGlobales = { procesos: [], completados: [], gpsItems: [], totalGps: 0 };
     var registrosPorCodigo = {};
+    var ultimaFirmaDatos = null;   /* fingerprint del ultimo JSON recibido */
+    var ultimoRenderMs = 0;        /* momento del ultimo render completo */
+    var verificandoAcceso = false;
+    var usuarioActual = null;
 
-    /* ===== LOGIN ===== */
+    /* ===== UTILIDADES DE SEGURIDAD ===== */
+    function esc(v) {
+      return String(v == null ? '' : v)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+    function numLimpio(v) {
+      if (v == null || v === '') return null;
+      var n = Number(v);
+      return isFinite(n) ? n : null;
+    }
+
+    /* ===== PRESERVAR TARJETAS ABIERTAS ENTRE ACTUALIZACIONES ===== */
+    function obtenerAbiertas() {
+      var abiertas = {};
+      document.querySelectorAll('.codigo-card').forEach(function(c) {
+        if (c.querySelector('.cc-body.visible')) {
+          var cod = c.querySelector('.cc-codigo');
+          if (cod) abiertas[cod.textContent] = true;
+        }
+      });
+      return abiertas;
+    }
+    function restaurarAbiertas(abiertas) {
+      if (!abiertas) return;
+      document.querySelectorAll('.codigo-card').forEach(function(c) {
+        var cod = c.querySelector('.cc-codigo');
+        if (cod && abiertas[cod.textContent]) {
+          var b = c.querySelector('.cc-body'), ic = c.querySelector('.cc-toggle');
+          if (b) b.classList.add('visible');
+          if (ic) ic.style.transform = 'rotate(180deg)';
+        }
+      });
+    }
+
+    /* ===== BOTONES DE RUTA: delegacion en fase captura =====
+       Sustituye los onclick inline y evita inyeccion via el codigo */
+    document.addEventListener('click', function(e) {
+      var b = e.target && e.target.closest ? e.target.closest('[data-accion]') : null;
+      if (!b) return;
+      e.stopPropagation();
+      var cod = b.getAttribute('data-codigo');
+      if (b.getAttribute('data-accion') === 'gmaps') abrirGoogleMapsRuta(cod);
+      else verRutaEnMapa(cod);
+    }, true);
+
+    /* ===== PAUSAR POLLING CUANDO LA PESTAÑA NO ES VISIBLE ===== */
+    document.addEventListener('visibilitychange', function() {
+      if (document.hidden) {
+        detenerAutoActualizar();
+      } else if (document.getElementById('dashboard').classList.contains('visible')) {
+        cargarDatos();
+        iniciarAutoActualizar();
+      }
+    });
+
+    /* ===== LOGIN (validado contra superUsuarios en Firebase) ===== */
     document.getElementById('loginPass').addEventListener('keydown', function(e) {
       if (e.key === 'Enter') verificarAcceso();
     });
 
-    function verificarAcceso() {
-      var pass = document.getElementById('loginPass').value;
-      document.getElementById('loginError').classList.remove('visible');
-      if (pass === CLAVE_ACCESO) {
-        document.getElementById('loginScreen').style.display = 'none';
-        document.getElementById('dashboard').classList.add('visible');
-        document.getElementById('loginPass').value = '';
-        cargarDatos();
-        iniciarAutoActualizar();
-      } else {
-        document.getElementById('loginError').classList.add('visible');
-        document.getElementById('loginPass').value = '';
-        document.getElementById('loginPass').focus();
+    async function verificarAcceso() {
+      if (verificandoAcceso) return;
+      var input = document.getElementById('loginPass');
+      var btn = document.querySelector('.login-btn');
+      var err = document.getElementById('loginError');
+      var pass = input.value.trim();
+      err.classList.remove('visible');
+      if (!pass) { input.focus(); return; }
+      verificandoAcceso = true;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Verificando...';
+      try {
+        var r = await fetch(FIREBASE_URL_SUPER + '/' + encodeURIComponent(pass) + '.json');
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        var data = await r.json();
+        if (data === null) {
+          err.innerHTML = '<i class="fa-solid fa-xmark"></i> Clave incorrecta';
+          err.classList.add('visible');
+          input.value = '';
+          input.focus();
+        } else {
+          usuarioActual = (data && typeof data === 'object' && data.nombre) ? data.nombre : pass;
+          input.value = '';
+          document.getElementById('loginScreen').style.display = 'none';
+          document.getElementById('dashboard').classList.add('visible');
+          document.getElementById('dashUsuarioTxt').textContent = usuarioActual;
+          document.getElementById('dashUsuario').classList.add('visible');
+          ultimaFirmaDatos = null; ultimoRenderMs = 0;
+          cargarDatos();
+          iniciarAutoActualizar();
+          mostrarToast('Bienvenido: ' + esc(usuarioActual), 'ok');
+        }
+      } catch (e) {
+        err.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Error de conexion, no se pudo verificar la clave';
+        err.classList.add('visible');
+      } finally {
+        verificandoAcceso = false;
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Ingresar';
       }
     }
 
     function cerrarSesion() {
       detenerAutoActualizar();
+      usuarioActual = null;
+      document.getElementById('dashUsuario').classList.remove('visible');
       document.getElementById('dashboard').classList.remove('visible');
       document.getElementById('loginScreen').style.display = '';
       document.getElementById('loginPass').focus();
@@ -354,6 +454,20 @@
       return fecha.toLocaleDateString('es-EC', { day: '2-digit', month: 'short' });
     }
 
+    function fmtDur(min) {
+      if (min == null) return '';
+      if (min < 60) return min + ' min';
+      return Math.floor(min / 60) + 'h ' + (min % 60) + 'm';
+    }
+
+    /* ===== DISTANCIA GPS (Haversine, metros) ===== */
+    function distMetros(lat1, lng1, lat2, lng2) {
+      var R = 6371000, f = Math.PI / 180;
+      var a = Math.sin((lat2 - lat1) * f / 2) * Math.sin((lat2 - lat1) * f / 2)
+            + Math.cos(lat1 * f) * Math.cos(lat2 * f) * Math.sin((lng2 - lng1) * f / 2) * Math.sin((lng2 - lng1) * f / 2);
+      return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
     /* ===== TOGGLE CARD ===== */
     function toggleCard(headerEl) {
       var body = headerEl.nextElementSibling;
@@ -370,26 +484,35 @@
     /* ===== COMPARTIR ===== */
     function obtenerTodosLosDatos() {
       var todos = [];
-      datosGlobales.procesos.forEach(function(reg) {
+      function procesar(reg, estadoTxt) {
         (reg.items || []).forEach(function(item) {
           var lat = '', lng = '', prec = '';
-          if (item.gps && item.gps.lat !== null && item.gps.lng !== null) {
-            lat = item.gps.lat; lng = item.gps.lng;
-            prec = item.gps.accuracy ? Math.round(item.gps.accuracy) + 'm' : '';
+          var g = item.gps;
+          if (g) {
+            var la = numLimpio(g.lat), ln = numLimpio(g.lng);
+            if (la != null && ln != null) {
+              lat = la; lng = ln;
+              var ac = numLimpio(g.accuracy);
+              prec = ac != null ? Math.round(ac) + 'm' : '';
+            }
           }
-          todos.push({ codigo: reg.codigo, estado: 'En proceso', cliente: item.item || '', sector: item.sector || '', desde: item.inicio || '', hasta: item.fin || '', lat: lat, lng: lng, precision: prec });
-        });
-      });
-      datosGlobales.completados.forEach(function(reg) {
-        (reg.items || []).forEach(function(item) {
-          var lat = '', lng = '', prec = '';
-          if (item.gps && item.gps.lat !== null && item.gps.lng !== null) {
-            lat = item.gps.lat; lng = item.gps.lng;
-            prec = item.gps.accuracy ? Math.round(item.gps.accuracy) + 'm' : '';
+          var latA = '', lngA = '', dist = '';
+          var ga = item.gpsOriginal;
+          if (ga) {
+            var laA = numLimpio(ga.lat), lnA = numLimpio(ga.lng);
+            if (laA != null && lnA != null) {
+              latA = laA; lngA = lnA;
+              if (lat !== '') {
+                var dO = numLimpio(g.distanciaOriginal);
+                dist = (dO != null) ? Math.round(dO) : Math.round(distMetros(laA, lnA, la, ln));
+              }
+            }
           }
-          todos.push({ codigo: reg.codigo, estado: 'Completado', cliente: item.item || '', sector: item.sector || '', desde: item.inicio || '', hasta: item.fin || '', lat: lat, lng: lng, precision: prec });
+          todos.push({ codigo: reg.codigo, codclnt: item.codclnt || '', estado: estadoTxt, cliente: item.item || '', sector: item.sector || '', desde: item.inicio || '', hasta: item.fin || '', lat: lat, lng: lng, precision: prec, latAnt: latA, lngAnt: lngA, dist: dist });
         });
-      });
+      }
+      datosGlobales.procesos.forEach(function(reg) { procesar(reg, 'En proceso'); });
+      datosGlobales.completados.forEach(function(reg) { procesar(reg, 'Completado'); });
       return todos;
     }
 
@@ -406,13 +529,14 @@
       if (!datos.length) {
         document.getElementById('modalBody').innerHTML = '<div class="sin-datos"><i class="fa-solid fa-inbox"></i><p>No hay datos para compartir.</p></div>';
       } else {
-        var h = '<table class="modal-table"><thead><tr><th>#</th><th>Codigo</th><th>Estado</th><th>Cliente</th><th>Sector</th><th>Desde</th><th>Hasta</th><th>GPS</th></tr></thead><tbody>';
+        var h = '<table class="modal-table"><thead><tr><th>#</th><th>Codigo</th><th>Cod.Cliente</th><th>Estado</th><th>Cliente</th><th>Sector</th><th>Desde</th><th>Hasta</th><th>GPS</th><th>Dist.</th></tr></thead><tbody>';
         datos.forEach(function(d, i) {
           var gpsH = d.lat !== ''
-            ? '<span class="mt-gps-ok"><i class="fa-solid fa-location-dot"></i> OK</span> <span class="mt-gps">' + Number(d.lat).toFixed(6) + ', ' + Number(d.lng).toFixed(6) + (d.precision ? ' \u00b1' + d.precision : '') + '</span>'
+            ? '<span class="mt-gps-ok"><i class="fa-solid fa-location-dot"></i> OK</span> <span class="mt-gps">' + d.lat.toFixed(6) + ', ' + d.lng.toFixed(6) + (d.precision ? ' \u00b1' + esc(d.precision) : '') + '</span>'
             : '<span class="mt-vacio">Sin GPS</span>';
+          var distH = d.dist !== '' ? '<span class="mt-gps">' + d.dist + ' m</span>' : '<span class="mt-vacio">\u2014</span>';
           var ec = d.estado === 'En proceso' ? 'ep' : 'ec';
-          h += '<tr><td class="mt-num">' + (i+1) + '</td><td class="mt-codigo">' + d.codigo + '</td><td><span class="mt-estado ' + ec + '">' + d.estado + '</span></td><td class="mt-nombre">' + (d.cliente || '<span class="mt-vacio">\u2014</span>') + '</td><td>' + (d.sector || '<span class="mt-vacio">\u2014</span>') + '</td><td>' + (d.desde || '<span class="mt-vacio">\u2014</span>') + '</td><td>' + (d.hasta || '<span class="mt-vacio">\u2014</span>') + '</td><td>' + gpsH + '</td></tr>';
+          h += '<tr><td class="mt-num">' + (i+1) + '</td><td class="mt-codigo">' + esc(d.codigo) + '</td><td class="mt-gps">' + (d.codclnt ? esc(d.codclnt) : '<span class="mt-vacio">\u2014</span>') + '</td><td><span class="mt-estado ' + ec + '">' + d.estado + '</span></td><td class="mt-nombre">' + (d.cliente ? esc(d.cliente) : '<span class="mt-vacio">\u2014</span>') + '</td><td>' + (d.sector ? esc(d.sector) : '<span class="mt-vacio">\u2014</span>') + '</td><td>' + (d.desde ? esc(d.desde) : '<span class="mt-vacio">\u2014</span>') + '</td><td>' + (d.hasta ? esc(d.hasta) : '<span class="mt-vacio">\u2014</span>') + '</td><td>' + gpsH + '</td><td>' + distH + '</td></tr>';
         });
         h += '</tbody></table>';
         document.getElementById('modalBody').innerHTML = h;
@@ -428,9 +552,15 @@
       var datos = obtenerTodosLosDatos();
       if (!datos.length) return '';
       var sep = '\t', lineas = [];
-      lineas.push(['#','Codigo','Estado','Cliente','Sector','Desde','Hasta','Latitud','Longitud','Precision GPS'].join(sep));
+      lineas.push(['#','Codigo','Cod.Cliente','Estado','Cliente','Sector','Desde','Hasta','Latitud','Longitud','Precision GPS','Lat.Anterior','Lng.Anterior','Distancia(m)'].join(sep));
       datos.forEach(function(d, i) {
-        lineas.push([i+1, d.codigo, d.estado, d.cliente, d.sector, d.desde, d.hasta, d.lat !== '' ? Number(d.lat).toFixed(6) : '', d.lng !== '' ? Number(d.lng).toFixed(6) : '', d.precision].join(sep));
+        lineas.push([i+1, d.codigo, d.codclnt, d.estado, d.cliente, d.sector, d.desde, d.hasta,
+          d.lat !== '' ? Number(d.lat).toFixed(6) : '',
+          d.lng !== '' ? Number(d.lng).toFixed(6) : '',
+          d.precision,
+          d.latAnt !== '' ? Number(d.latAnt).toFixed(6) : '',
+          d.lngAnt !== '' ? Number(d.lngAnt).toFixed(6) : '',
+          d.dist].join(sep));
       });
       return lineas.join('\n');
     }
@@ -460,10 +590,16 @@
     function descargarCSV() {
       var datos = obtenerTodosLosDatos();
       if (!datos.length) { mostrarToast('No hay datos para descargar', 'err'); return; }
-      var lineas = ['\uFEFF' + ['#','Codigo','Estado','Cliente','Sector','Desde','Hasta','Latitud','Longitud','Precision GPS'].join(',')];
-      function esc(v) { var s = String(v||''); return (s.indexOf(',')>-1||s.indexOf('"')>-1||s.indexOf('\n')>-1) ? '"'+s.replace(/"/g,'""')+'"' : s; }
+      var lineas = ['\uFEFF' + ['#','Codigo','Cod.Cliente','Estado','Cliente','Sector','Desde','Hasta','Latitud','Longitud','Precision GPS','Lat.Anterior','Lng.Anterior','Distancia(m)'].join(',')];
+      function escCsv(v) { var s = String(v||''); return (s.indexOf(',')>-1||s.indexOf('"')>-1||s.indexOf('\n')>-1) ? '"'+s.replace(/"/g,'""')+'"' : s; }
       datos.forEach(function(d, i) {
-        lineas.push([i+1, esc(d.codigo), esc(d.estado), esc(d.cliente), esc(d.sector), esc(d.desde), esc(d.hasta), d.lat!=='' ? Number(d.lat).toFixed(6) : '', d.lng!=='' ? Number(d.lng).toFixed(6) : '', esc(d.precision)].join(','));
+        lineas.push([i+1, escCsv(d.codigo), escCsv(d.codclnt), escCsv(d.estado), escCsv(d.cliente), escCsv(d.sector), escCsv(d.desde), escCsv(d.hasta),
+          d.lat !== '' ? Number(d.lat).toFixed(6) : '',
+          d.lng !== '' ? Number(d.lng).toFixed(6) : '',
+          escCsv(d.precision),
+          d.latAnt !== '' ? Number(d.latAnt).toFixed(6) : '',
+          d.lngAnt !== '' ? Number(d.lngAnt).toFixed(6) : '',
+          d.dist].join(','));
       });
       var blob = new Blob([lineas.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
       var url = URL.createObjectURL(blob);
@@ -513,6 +649,13 @@
         var data = await r.json();
         if (!data || typeof data !== 'object') { renderizarVacio(); return; }
 
+        /* Si los datos no cambiaron y el render es reciente (< 60 s), solo actualiza la hora */
+        var firma = JSON.stringify(data);
+        if (firma === ultimaFirmaDatos && Date.now() - ultimoRenderMs < 60000) {
+          document.getElementById('rcUltima').textContent = new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          return;
+        }
+
         var procesos = [], completados = [], totalGps = 0, gpsItems = [];
         var hoy = new Date().toDateString();
         registrosPorCodigo = {};
@@ -522,15 +665,26 @@
           if (!entry || typeof entry !== 'object') return;
           var items = entry.datosFormulario || [];
           var gpsCount = 0;
+          var ultCapMs = 0;
           if (Array.isArray(items)) {
             items.forEach(function(item) {
-              if (item.gps && item.gps.lat !== null && item.gps.lng !== null) {
+              /* Inactividad: solo capturas REALES del dispositivo reinician el reloj */
+              if (item.gps && item.gps.origen === 'dispositivo' && item.gps.fechaCaptura) {
+                var tCap = new Date(item.gps.fechaCaptura).getTime();
+                if (!isNaN(tCap) && tCap > ultCapMs) ultCapMs = tCap;
+              }
+              if (item.gps && numLimpio(item.gps.lat) != null && numLimpio(item.gps.lng) != null) {
                 gpsCount++;
                 gpsItems.push({ codigo: codigo, fechaFin: entry.fechaFin || null, fechaInicio: entry.fechaInicio || null, estado: entry.estado || 'desconocido', item: item });
               }
             });
           }
-          var registro = { codigo: codigo, estado: entry.estado || 'desconocido', fechaInicio: entry.fechaInicio || null, fechaFin: entry.fechaFin || null, items: items, gpsCount: gpsCount };
+          var inactMin = null;
+          if (entry.estado === 'en_proceso') {
+            var refMs = ultCapMs || new Date(entry.fechaInicio || Date.now()).getTime();
+            inactMin = Math.max(0, Math.floor((Date.now() - refMs) / 60000));
+          }
+          var registro = { codigo: codigo, estado: entry.estado || 'desconocido', fechaInicio: entry.fechaInicio || null, fechaFin: entry.fechaFin || null, items: items, gpsCount: gpsCount, inactMin: inactMin };
           registrosPorCodigo[codigo] = registro;
           if (entry.estado === 'en_proceso') procesos.push(registro);
           else if (entry.estado === 'completado') { completados.push(registro); totalGps += gpsCount; }
@@ -545,12 +699,16 @@
 
         document.getElementById('rcProceso').textContent = procesos.length;
         document.getElementById('rcCompletados').textContent = completadosHoy;
-        document.getElementById('rcGps').textContent = totalGps;
+        document.getElementById('rcGps').textContent = gpsItems.length; /* FIX: cuenta tambien sesiones en proceso */
         document.getElementById('rcUltima').textContent = new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
+        var abiertas = obtenerAbiertas();
         renderizarProcesos(procesos);
         renderizarCompletados(completados);
         if (document.getElementById('seccionGps').style.display !== 'none') renderizarGps(gpsItems);
+        restaurarAbiertas(abiertas);
+        ultimaFirmaDatos = firma;
+        ultimoRenderMs = Date.now();
         if (procesos.length === 0 && completados.length === 0 && gpsItems.length === 0) renderizarVacio();
       } catch(e) {
         console.error('Error:', e);
@@ -572,7 +730,7 @@
     }
 
     function renderizarError(mensaje) {
-      document.getElementById('listaProceso').innerHTML = '<div class="sin-datos"><i class="fa-solid fa-triangle-exclamation"></i><p>' + mensaje + '</p></div>';
+      document.getElementById('listaProceso').innerHTML = '<div class="sin-datos"><i class="fa-solid fa-triangle-exclamation"></i><p>' + esc(mensaje) + '</p></div>';
       document.getElementById('listaCompletados').innerHTML = '';
       document.getElementById('listaGps').innerHTML = '';
     }
@@ -585,14 +743,19 @@
       lista.forEach(function(reg) {
         var tI = reg.fechaInicio ? tiempoRelativo(reg.fechaInicio) : '\u2014';
         var iMs = reg.fechaInicio ? Date.now() - new Date(reg.fechaInicio).getTime() : 0;
-        var iMin = Math.floor(iMs / 60000);
+        var iMin = Math.max(0, Math.floor(iMs / 60000));
         var iCol = iMin < 60 ? 'var(--success)' : (iMin < 120 ? 'var(--warning)' : 'var(--danger)');
-        var iTxt = iMin < 60 ? iMin + ' min' : Math.floor(iMin / 60) + 'h ' + (iMin % 60) + 'm';
-        var rBtn = reg.gpsCount > 0 ? '<button class="cc-ruta-btn" onclick="event.stopPropagation();verRutaEnMapa(\'' + reg.codigo + '\')"><i class="fa-solid fa-route"></i> Ruta</button>' : '';
+        var iTxt = '<span style="font-size:11px;color:' + iCol + ';font-weight:600" title="Tiempo transcurrido desde el inicio de la ruta"><i class="fa-regular fa-clock"></i> sesion ' + fmtDur(iMin) + '</span>';
+        var inactHtml = '';
+        if (reg.inactMin != null) {
+          var iCol2 = reg.inactMin < UMB_INACT_OK ? 'var(--success)' : (reg.inactMin < UMB_INACT_ALERTA ? 'var(--warning)' : 'var(--danger)');
+          inactHtml = '<span style="font-size:11px;color:' + iCol2 + ';font-weight:600" title="Tiempo desde la ultima captura GPS del dispositivo en esta ruta"><i class="fa-solid fa-hourglass-half"></i> inactivo ' + fmtDur(reg.inactMin) + '</span>';
+        }
+        var rBtn = reg.gpsCount > 0 ? '<button class="cc-ruta-btn" data-accion="ruta" data-codigo="' + esc(reg.codigo) + '"><i class="fa-solid fa-route"></i> Ruta</button>' : '';
         html += '<div class="codigo-card"><div class="cc-header" onclick="toggleCard(this)">'
-          + '<div class="cc-header-left"><span class="cc-codigo">' + reg.codigo + '</span><span class="cc-estado proceso">En proceso</span></div>'
+          + '<div class="cc-header-left"><span class="cc-codigo">' + esc(reg.codigo) + '</span><span class="cc-estado proceso">En proceso</span></div>'
           + '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">' + rBtn
-          + '<span class="cc-fecha">' + tI + '</span><span style="font-size:11px;color:' + iCol + ';font-weight:600">' + iTxt + '</span></div>'
+          + '<span class="cc-fecha">' + esc(tI) + '</span>' + iTxt + inactHtml + '</div>'
           + '<i class="fa-solid fa-chevron-down cc-toggle"></i></div><div class="cc-body">'
           + construirResumenInline(reg, 'proceso') + renderTablaItems(reg)
           + (reg.gpsCount > 0 ? construirBloqueRuta(reg.codigo) : '')
@@ -608,11 +771,11 @@
       var html = '';
       lista.forEach(function(reg) {
         var tF = reg.fechaFin ? tiempoRelativo(reg.fechaFin) : '\u2014';
-        var rBtn = reg.gpsCount > 0 ? '<button class="cc-ruta-btn" onclick="event.stopPropagation();verRutaEnMapa(\'' + reg.codigo + '\')"><i class="fa-solid fa-route"></i> Ruta</button>' : '';
+        var rBtn = reg.gpsCount > 0 ? '<button class="cc-ruta-btn" data-accion="ruta" data-codigo="' + esc(reg.codigo) + '"><i class="fa-solid fa-route"></i> Ruta</button>' : '';
         html += '<div class="codigo-card"><div class="cc-header" onclick="toggleCard(this)">'
-          + '<div class="cc-header-left"><span class="cc-codigo">' + reg.codigo + '</span><span class="cc-estado completado">Completado</span></div>'
+          + '<div class="cc-header-left"><span class="cc-codigo">' + esc(reg.codigo) + '</span><span class="cc-estado completado">Completado</span></div>'
           + '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">' + rBtn
-          + '<span class="cc-fecha">Fin: ' + tF + '</span>'
+          + '<span class="cc-fecha">Fin: ' + esc(tF) + '</span>'
           + (reg.gpsCount > 0 ? '<span style="font-size:11px;color:var(--success);font-weight:600"><i class="fa-solid fa-location-dot"></i> ' + reg.gpsCount + ' GPS</span>' : '<span style="font-size:11px;color:var(--fg3)">Sin GPS</span>')
           + '</div><i class="fa-solid fa-chevron-down cc-toggle"></i></div><div class="cc-body">'
           + construirResumenInline(reg, 'completado') + renderTablaItems(reg)
@@ -634,18 +797,25 @@
       var html = '';
       Object.values(agrupados).forEach(function(grupo) {
         var tR = grupo.fechaFin ? tiempoRelativo(grupo.fechaFin) : (grupo.fechaInicio ? tiempoRelativo(grupo.fechaInicio) : '\u2014');
-        var rHtml = '<div class="cc-resumen-inline"><div class="cri"><div class="cri-label">Puntos GPS</div><div class="cri-value" style="color:var(--accent)">' + grupo.itemsGps.length + '</div></div><div class="cri"><div class="cri-label">Estado</div><div class="cri-value" style="font-size:12px;color:' + (grupo.estado === 'completado' ? 'var(--success)' : 'var(--info)') + '">' + (grupo.estado === 'completado' ? 'Completado' : 'En proceso') + '</div></div><div class="cri"><div class="cri-label">Referencia</div><div class="cri-value" style="font-size:12px;color:var(--fg2)">' + tR + '</div></div></div>';
+        var rHtml = '<div class="cc-resumen-inline"><div class="cri"><div class="cri-label">Puntos GPS</div><div class="cri-value" style="color:var(--accent)">' + grupo.itemsGps.length + '</div></div><div class="cri"><div class="cri-label">Estado</div><div class="cri-value" style="font-size:12px;color:' + (grupo.estado === 'completado' ? 'var(--success)' : 'var(--info)') + '">' + (grupo.estado === 'completado' ? 'Completado' : 'En proceso') + '</div></div><div class="cri"><div class="cri-label">Referencia</div><div class="cri-value" style="font-size:12px;color:var(--fg2)">' + esc(tR) + '</div></div></div>';
         var tHtml = '<table class="cc-table"><thead><tr><th>#</th><th>Nombre</th><th>Sector</th><th>Desde</th><th>Hasta</th><th>GPS</th></tr></thead><tbody>';
         grupo.itemsGps.forEach(function(item, i) {
-          var gH = '<div class="gps-ok"><i class="fa-solid fa-location-dot"></i> OK</div><div class="coord-text">' + Number(item.gps.lat).toFixed(6) + ', ' + Number(item.gps.lng).toFixed(6) + (item.gps.accuracy ? '<br>\u00b1' + Math.round(item.gps.accuracy) + 'm' : '') + '</div><a class="gps-link" href="https://www.google.com/maps?q=' + item.gps.lat + ',' + item.gps.lng + '" target="_blank" rel="noopener"><i class="fa-solid fa-up-right-from-square"></i> Ver</a>';
-          tHtml += '<tr><td>' + (i+1) + '</td><td class="nombre-item">' + (item.item || '\u2014') + '</td><td>' + (item.sector || '<span class="vacio">\u2014</span>') + '</td><td>' + (item.inicio || '<span class="vacio">\u2014</span>') + '</td><td>' + (item.fin || '<span class="vacio">\u2014</span>') + '</td><td>' + gH + '</td></tr>';
+          var g = item.gps || {};
+          var la = numLimpio(g.lat), ln = numLimpio(g.lng), acc = numLimpio(g.accuracy);
+          var gH;
+          if (la != null && ln != null) {
+            gH = '<div class="gps-ok"><i class="fa-solid fa-location-dot"></i> OK</div><div class="coord-text">' + la.toFixed(6) + ', ' + ln.toFixed(6) + (acc != null ? '<br>\u00b1' + Math.round(acc) + 'm' : '') + '</div><a class="gps-link" href="https://www.google.com/maps?q=' + la + ',' + ln + '" target="_blank" rel="noopener"><i class="fa-solid fa-up-right-from-square"></i> Ver</a>';
+          } else {
+            gH = '<span class="gps-no">Coordenadas no validas</span>';
+          }
+          tHtml += '<tr><td>' + (i+1) + '</td><td class="nombre-item">' + esc(item.item || '\u2014') + '</td><td>' + (item.sector ? esc(item.sector) : '<span class="vacio">\u2014</span>') + '</td><td>' + (item.inicio ? esc(item.inicio) : '<span class="vacio">\u2014</span>') + '</td><td>' + (item.fin ? esc(item.fin) : '<span class="vacio">\u2014</span>') + '</td><td>' + gH + '</td></tr>';
         });
         tHtml += '</tbody></table>';
         html += '<div class="codigo-card"><div class="cc-header" onclick="toggleCard(this)">'
-          + '<div class="cc-header-left"><span class="cc-codigo">' + grupo.codigo + '</span><span class="cc-estado gps">' + grupo.itemsGps.length + ' GPS</span></div>'
+          + '<div class="cc-header-left"><span class="cc-codigo">' + esc(grupo.codigo) + '</span><span class="cc-estado gps">' + grupo.itemsGps.length + ' GPS</span></div>'
           + '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">'
-          + '<button class="cc-ruta-btn" onclick="event.stopPropagation();verRutaEnMapa(\'' + grupo.codigo + '\')"><i class="fa-solid fa-route"></i> Ruta</button>'
-          + '<span class="cc-fecha">' + tR + '</span></div>'
+          + '<button class="cc-ruta-btn" data-accion="ruta" data-codigo="' + esc(grupo.codigo) + '"><i class="fa-solid fa-route"></i> Ruta</button>'
+          + '<span class="cc-fecha">' + esc(tR) + '</span></div>'
           + '<i class="fa-solid fa-chevron-down cc-toggle"></i></div><div class="cc-body">'
           + rHtml + tHtml + construirBloqueRuta(grupo.codigo)
           + '</div></div>';
@@ -655,9 +825,10 @@
 
     /* ===== BLOQUE RUTA ===== */
     function construirBloqueRuta(codigo) {
+      var c = esc(codigo);
       return '<div class="cc-ruta-block">'
-        + '<button class="cc-ruta-btn-lg" onclick="verRutaEnMapa(\'' + codigo + '\')"><i class="fa-solid fa-map-location-dot"></i> Mapa con nombres y horas</button>'
-        + '<button class="cc-ruta-btn-lg gmaps" onclick="abrirGoogleMapsRuta(\'' + codigo + '\')"><i class="fa-brands fa-google"></i> Abrir en Google Maps</button></div>';
+        + '<button class="cc-ruta-btn-lg" data-accion="ruta" data-codigo="' + c + '"><i class="fa-solid fa-map-location-dot"></i> Mapa con nombres y horas</button>'
+        + '<button class="cc-ruta-btn-lg gmaps" data-accion="gmaps" data-codigo="' + c + '"><i class="fa-brands fa-google"></i> Abrir en Google Maps</button></div>';
     }
 
     function construirResumenInline(reg, tipo) {
@@ -684,7 +855,7 @@
       h += '<div class="cri"><div class="cri-label">Sectores</div><div class="cri-value" style="color:var(--purple)">' + sU + '</div></div></div>';
       if (sU > 0) {
         h += '<div style="margin-bottom:12px;display:flex;flex-wrap:wrap;gap:6px">';
-        Object.keys(secs).forEach(function(s) { h += '<span style="font-size:10px;padding:3px 8px;border-radius:6px;background:rgba(167,139,250,.08);color:var(--purple);border:1px solid rgba(167,139,250,.15)">' + s + ' (' + secs[s] + ')</span>'; });
+        Object.keys(secs).forEach(function(s) { h += '<span style="font-size:10px;padding:3px 8px;border-radius:6px;background:rgba(167,139,250,.08);color:var(--purple);border:1px solid rgba(167,139,250,.15)">' + esc(s) + ' (' + secs[s] + ')</span>'; });
         h += '</div>';
       }
       return h;
@@ -696,11 +867,13 @@
       if (!Array.isArray(items) || !items.length) return '<div style="padding:10px;color:var(--fg3);font-size:12px">Sin datos de entrega.</div>';
       var h = '<table class="cc-table"><thead><tr><th>#</th><th>Nombre</th><th>Sector</th><th>Desde</th><th>Hasta</th><th>GPS</th></tr></thead><tbody>';
       items.forEach(function(it, i) {
-        var gH = '';
-        if (it.gps && it.gps.lat != null && it.gps.lng != null) {
-          gH = '<div class="gps-ok"><i class="fa-solid fa-location-dot"></i> OK</div><div class="coord-text">' + Number(it.gps.lat).toFixed(6) + ', ' + Number(it.gps.lng).toFixed(6) + (it.gps.accuracy ? '<br>\u00b1' + Math.round(it.gps.accuracy) + 'm' : '') + '</div>';
+        var g = it.gps || {};
+        var la = numLimpio(g.lat), ln = numLimpio(g.lng), acc = numLimpio(g.accuracy);
+        var gH;
+        if (la != null && ln != null) {
+          gH = '<div class="gps-ok"><i class="fa-solid fa-location-dot"></i> OK</div><div class="coord-text">' + la.toFixed(6) + ', ' + ln.toFixed(6) + (acc != null ? '<br>\u00b1' + Math.round(acc) + 'm' : '') + '</div>';
         } else { gH = '<span class="gps-no">Sin ubicacion</span>'; }
-        h += '<tr><td>' + (i+1) + '</td><td class="nombre-item">' + (it.item || '\u2014') + '</td><td>' + (it.sector || '<span class="vacio">\u2014</span>') + '</td><td>' + (it.inicio || '<span class="vacio">\u2014</span>') + '</td><td>' + (it.fin || '<span class="vacio">\u2014</span>') + '</td><td>' + gH + '</td></tr>';
+        h += '<tr><td>' + (i+1) + '</td><td class="nombre-item">' + esc(it.item || '\u2014') + '</td><td>' + (it.sector ? esc(it.sector) : '<span class="vacio">\u2014</span>') + '</td><td>' + (it.inicio ? esc(it.inicio) : '<span class="vacio">\u2014</span>') + '</td><td>' + (it.fin ? esc(it.fin) : '<span class="vacio">\u2014</span>') + '</td><td>' + gH + '</td></tr>';
       });
       return h + '</tbody></table>';
     }
@@ -711,7 +884,8 @@
       if (!reg) { mostrarToast('Sesion no encontrada', 'err'); return; }
       var puntos = [];
       (reg.items || []).forEach(function(it) {
-        if (it.gps && it.gps.lat != null && it.gps.lng != null) puntos.push(it.gps.lat + ',' + it.gps.lng);
+        var la = numLimpio(it.gps && it.gps.lat), ln = numLimpio(it.gps && it.gps.lng);
+        if (la != null && ln != null) puntos.push(la + ',' + ln);
       });
       if (!puntos.length) { mostrarToast('No hay puntos GPS', 'err'); return; }
       window.open('https://www.google.com/maps/dir/' + puntos.join('/') + '/', '_blank');
@@ -719,10 +893,11 @@
 
     /* ====================================================================
        MAPA — NUEVA PESTAÑA
-       - gps con origen "dispositivo"  = punto CAPTURADO en el terreno
-         -> se numera y conecta en orden de fechaCaptura
-       - gpsOriginal (o gps origen "firebase", formato viejo) = punto
-         PENDIENTE -> morado discontinuo, sin linea, con enlace para ir
+       - gps origen "dispositivo" = CAPTURADO -> numerado y conectado
+         en orden de fechaCaptura
+       - gpsOriginal (o gps origen "firebase", formato viejo) = PENDIENTE
+         -> morado discontinuo, sin linea, con enlace para ir a capturar
+       - Desviacion: popup coloreado + linea discontinua al punto original
        ==================================================================== */
 
     function recopilarDatosMapa(soloCodigo) {
@@ -735,30 +910,37 @@
         (reg.items || []).forEach(function(item) {
           var capt = (item.gps && item.gps.origen === 'dispositivo') ? item.gps : null;
           var orig = item.gpsOriginal || ((item.gps && item.gps.origen !== 'dispositivo') ? item.gps : null);
-          if (capt && capt.lat != null && capt.lng != null) {
+          if (capt) {
+            var la = parseFloat(capt.lat), ln = parseFloat(capt.lng);
+            if (!isFinite(la) || !isFinite(ln)) return;
+            var dist = '';
+            if (capt.distanciaOriginal != null) dist = Math.round(capt.distanciaOriginal);
+            else if (orig && orig.lat != null && orig.lng != null) dist = Math.round(distMetros(Number(orig.lat), Number(orig.lng), la, ln));
+            var lo = (orig && orig.lat != null && orig.lng != null) ? { lat: parseFloat(orig.lat), lng: parseFloat(orig.lng) } : null;
             puntos.push({
               nombre: item.item || 'Sin nombre',
               sector: item.sector || '',
               hora: capt.fechaCaptura || capt.fechaCapturaTxt || '',
-              lat: capt.lat,
-              lng: capt.lng,
+              lat: la, lng: ln,
               precision: capt.accuracy ? Math.round(capt.accuracy) + 'm' : '',
+              dist: dist,
+              latO: lo ? lo.lat : null, lngO: lo ? lo.lng : null,
               pendiente: false
             });
           } else if (orig && orig.lat != null && orig.lng != null) {
+            var la2 = parseFloat(orig.lat), ln2 = parseFloat(orig.lng);
+            if (!isFinite(la2) || !isFinite(ln2)) return;
             puntos.push({
               nombre: item.item || 'Sin nombre',
               sector: item.sector || '',
-              hora: '',
-              lat: orig.lat,
-              lng: orig.lng,
-              precision: '',
+              hora: '', lat: la2, lng: ln2,
+              precision: '', dist: '', latO: null, lngO: null,
               pendiente: true
             });
           }
         });
         if (puntos.length > 0) {
-          transportes.push({ codigo: reg.codigo, color: COLORES_MAPA[idx % COLORES_MAPA.length], estado: reg.estado, puntos: puntos });
+          transportes.push({ codigo: reg.codigo, color: COLORES_MAPA[idx % COLORES_MAPA.length], estado: reg.estado, puntos: puntos, inact: reg.inactMin || null });
           idx++;
         }
       });
@@ -784,7 +966,7 @@
 
       var page = '<!DOCTYPE html>\n'
         + '<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">\n'
-        + '<title>' + titulo + '</title>\n'
+        + '<title>' + esc(titulo) + '</title>\n'
         + '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>\n'
         + '<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>\n'
         + '<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">\n'
@@ -845,14 +1027,16 @@
         + '@media(max-width:768px){#sidebar{position:fixed;left:0;top:0;height:100vh;box-shadow:8px 0 32px rgba(0,0,0,.5)}#sidebar.hidden{transform:translateX(-100%)}#sbToggle{display:flex}}\n'
         + '</style></head><body>\n'
         + '<button id="sbToggle" onclick="document.getElementById(\'sidebar\').classList.toggle(\'hidden\')"><i class="fa-solid fa-bars"></i></button>\n'
-        + '<aside id="sidebar"><div class="sb-head"><h2><i class="fa-solid fa-map-location-dot"></i> ' + subtitulo + '</h2><div class="sb-stats" id="sbStats"></div><button class="sb-btn-fit" onclick="fitAll()"><i class="fa-solid fa-expand"></i> Ajustar vista</button></div><div class="sb-list" id="sbList"></div></aside>\n'
+        + '<aside id="sidebar"><div class="sb-head"><h2><i class="fa-solid fa-map-location-dot"></i> ' + esc(subtitulo) + '</h2><div class="sb-stats" id="sbStats"></div><button class="sb-btn-fit" onclick="fitAll()"><i class="fa-solid fa-expand"></i> Ajustar vista</button></div><div class="sb-list" id="sbList"></div></aside>\n'
         + '<div id="map"></div>\n'
         + '<script>\n'
         + 'var T=' + jsonStr + ';\n'
         + 'var map,groups={},allBounds=[];\n'
-        + 'function esc(s){var d=document.createElement("div");d.textContent=s;return d.innerHTML}\n'
+        + 'var U_OK=' + UMB_DESV_OK + ',U_AL=' + UMB_DESV_ALERTA + ',I_OK=' + UMB_INACT_OK + ',I_AL=' + UMB_INACT_ALERTA + ';\n'
+        + 'function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/\'/g,"&#39;")}\n'
         + 'function hkey(h){if(!h)return Infinity;if(/^\\d{1,2}:\\d{2}/.test(h)){var x=h.split(":");return (+x[0])*60+(+x[1])}var d=new Date(h);return isNaN(d.getTime())?Infinity:d.getTime()}\n'
         + 'function cuando(h){if(!h)return"";if(/^\\d{1,2}:\\d{2}/.test(h))return h;var d=new Date(h);if(isNaN(d.getTime()))return h;return d.toLocaleDateString("es-EC",{day:"2-digit",month:"short"})+" \\u00b7 "+d.toLocaleTimeString("es-EC",{hour:"2-digit",minute:"2-digit"})}\n'
+        + 'function fmtDur(m){if(m<60)return m+" min";return Math.floor(m/60)+"h "+(m%60)+"m"}\n'
         + 'function init(){\n'
         + '  try{\n'
         + '  map=L.map("map",{zoomControl:false});\n'
@@ -893,6 +1077,16 @@
         + '      } else {\n'
         + '        ph+=\'<div class="pp-row"><i class="fa-regular fa-clock"></i>\'+esc(cuando(p.hora))+\'</div>\';\n'
         + '        if(p.precision)ph+=\'<div class="pp-row"><i class="fa-solid fa-crosshairs"></i>Precision: \'+esc(p.precision)+\'</div>\';\n'
+        + '        if(p.dist!==""&&p.dist!=null){\n'
+        + '          var sv=p.dist<U_OK?"#34d399":(p.dist<U_AL?"#fbbf24":"#f87171");\n'
+        + '          var svT=p.dist<U_OK?"Alineado":(p.dist<U_AL?"Desviacion moderada":"DESVIACION ALTA");\n'
+        + '          ph+=\'<div class="pp-row"><i class="fa-solid fa-arrows-left-right" style="color:\'+sv+\'"></i><span style="color:\'+sv+\';font-weight:700">\'+svT+\': \'+p.dist+\' m</span>&nbsp;de ubic. original</div>\';\n'
+        + '          if(p.latO!=null){\n'
+        + '            L.polyline([[p.latO,p.lngO],[p.lat,p.lng]],{color:sv,weight:2,opacity:.85,dashArray:"4 4"}).addTo(g);\n'
+        + '            var oc=L.circleMarker([p.latO,p.lngO],{radius:5,color:sv,weight:2,fill:false}).addTo(g);\n'
+        + '            oc.bindPopup(\'<div class="pp"><div class="pp-num">Ubicacion original</div><div class="pp-nombre" style="color:\'+sv+\'">\'+esc(p.nombre)+\'</div><div class="pp-coord">\'+p.latO.toFixed(6)+\', \'+p.lngO.toFixed(6)+\'</div><div class="pp-row"><i class="fa-solid fa-arrows-left-right"></i>\'+p.dist+\' m del punto capturado</div></div>\');\n'
+        + '          }\n'
+        + '        }\n'
         + '      }\n'
         + '      ph+=\'<div class="pp-coord">\'+p.lat.toFixed(6)+\', \'+p.lng.toFixed(6)+\'</div>\';\n'
         + '      ph+=\'</div>\';\n'
@@ -904,13 +1098,14 @@
         + '    if(coords.length>1){L.polyline(coords,{color:t.color,weight:3.5,opacity:0.5,lineJoin:"round",lineCap:"round"}).addTo(g)}\n'
         + '    var ec=t.estado==="en_proceso"?"bp":"bc";\n'
         + '    var et=t.estado==="en_proceso"?"En proceso":"Completado";\n'
-        + '    listHtml+=\'<div class="sb-item" data-cod="\'+t.codigo+\'" onclick="zoomT(\\\'\'+t.codigo+\'\\\')" onmouseenter="hlT(\\\'\'+t.codigo+\'\\\')" onmouseleave="uhlT(\\\'\'+t.codigo+\'\\\')">\'\n'
-        + '      +\'<div class="sb-bar" style="background:\'+t.color+\'"></div>\'\n'
-        + '      +\'<div class="sb-content"><div class="sb-top"><span class="sb-codigo" style="color:\'+t.color+\'">\'+esc(t.codigo)+\'</span><span class="sb-badge \'+ec+\'">\'+et+\'</span></div>\'\n'
-        + '      +\'<div class="sb-meta"><i class="fa-solid fa-location-dot"></i>\'+t.puntos.length+\' puntos\'+(nPenT>0?\' &middot; \'+nPenT+\' pend.\':\'\')+\'</div></div>\'\n'
-        + '      +\'<button class="sb-eye" onclick="event.stopPropagation();togVis(\\\'\'+t.codigo+\'\\\',this)" title="Mostrar/ocultar"><i class="fa-solid fa-eye"></i></button></div>\';\n'
+        + '    listHtml+=\'<div class="sb-item" data-cod="\'+esc(t.codigo)+\'">\';\n'
+        + '    listHtml+=\'<div class="sb-bar" style="background:\'+t.color+\'"></div>\';\n'
+        + '    listHtml+=\'<div class="sb-content"><div class="sb-top"><span class="sb-codigo" style="color:\'+t.color+\'">\'+esc(t.codigo)+\'</span><span class="sb-badge \'+ec+\'">\'+et+\'</span></div>\';\n'
+        + '    listHtml+=\'<div class="sb-meta"><i class="fa-solid fa-location-dot"></i>\'+t.puntos.length+\' puntos\'+(nPenT>0?\' &middot; \'+nPenT+\' pend.\':\'\')+(t.inact!=null?\' &middot; <span style="color:\'+(t.inact<I_OK?"#34d399":(t.inact<I_AL?"#fbbf24":"#f87171"))+\';font-weight:700">inactivo \'+fmtDur(t.inact)+\'</span>\':\'\')+\'</div></div>\';\n'
+        + '    listHtml+=\'<button class="sb-eye" data-cod="\'+esc(t.codigo)+\'" title="Mostrar/ocultar"><i class="fa-solid fa-eye"></i></button></div>\';\n'
         + '  });\n'
         + '  document.getElementById("sbList").innerHTML=listHtml;\n'
+        + '  bindList();\n'
         + '  if(allBounds.length>0)map.fitBounds(L.latLngBounds(allBounds),{padding:[40,40],maxZoom:16});\n'
         + '  }catch(e){console.error(e);document.getElementById("sbStats").innerHTML=\'<span class="sb-stat s-pr" style="max-width:280px">Error: \'+esc(e.message)+\'</span>\';}\n'
         + '}\n'
@@ -918,9 +1113,24 @@
         + '  var g=groups[c];if(!g)return;var b=[];\n'
         + '  g.eachLayer(function(l){if(l.getLatLng)b.push(l.getLatLng())});\n'
         + '  if(b.length)map.fitBounds(L.latLngBounds(b),{padding:[50,50],maxZoom:17});\n'
-        + '  document.querySelectorAll(".sb-item").forEach(function(el){el.classList.remove("active")});\n'
-        + '  var el=document.querySelector(\'.sb-item[data-cod="\'+c+\'"]\');\n'
-        + '  if(el)el.classList.add("active");\n'
+        + '  document.querySelectorAll(".sb-item").forEach(function(el){el.classList.toggle("active",el.getAttribute("data-cod")===c)});\n'
+        + '}\n'
+        + 'function bindList(){\n'
+        + '  var el=document.getElementById("sbList");\n'
+        + '  el.addEventListener("click",function(e){\n'
+        + '    var eye=e.target.closest(".sb-eye");\n'
+        + '    if(eye){e.stopPropagation();togVis(eye.getAttribute("data-cod"),eye);return}\n'
+        + '    var it=e.target.closest(".sb-item");\n'
+        + '    if(it)zoomT(it.getAttribute("data-cod"));\n'
+        + '  });\n'
+        + '  el.addEventListener("mouseover",function(e){\n'
+        + '    var it=e.target.closest(".sb-item");\n'
+        + '    if(it&&!it.contains(e.relatedTarget))hlT(it.getAttribute("data-cod"));\n'
+        + '  });\n'
+        + '  el.addEventListener("mouseout",function(e){\n'
+        + '    var it=e.target.closest(".sb-item");\n'
+        + '    if(it&&!it.contains(e.relatedTarget))uhlT(it.getAttribute("data-cod"));\n'
+        + '  });\n'
         + '}\n'
         + 'function hlT(c){\n'
         + '  var g=groups[c];if(!g)return;\n'
@@ -952,7 +1162,8 @@
 
       var blob = new Blob([page], { type: 'text/html;charset=utf-8' });
       var url = URL.createObjectURL(blob);
-      window.open(url, '_blank');
+      var w = window.open(url, '_blank');
+      if (!w) mostrarToast('El navegador bloqueo la ventana emergente. Permite las ventanas emergentes para este sitio e intentalo de nuevo.', 'err');
       setTimeout(function() { URL.revokeObjectURL(url); }, 10000);
     }
   </script>
