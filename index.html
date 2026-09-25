@@ -33,7 +33,8 @@
     @media (prefers-reduced-motion: reduce) { .et-truck .speed-lines line { animation: none; } }
     .page-header h1 { font-family: 'Space Grotesk', sans-serif; font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; }
     .page-header h1 span { color: var(--accent); }
-    /* ★ Barra de estado compacta (solo icono cuando no hay texto) ★ */
+    /* ★ PATCH C4 — comentario corregido: 250px / 180px reales */
+    /* Barra de estado compacta (solo icono cuando no hay texto) */
     .status { display: flex; align-items: center; gap: 10px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; margin-bottom: 24px; font-size: 13px; font-weight: 500; color: var(--fg-muted); animation: fadeUp 0.4s ease; }
     .status.ok { padding: 8px 12px; width: fit-content; }
     .status.ok span:empty { display: none; }
@@ -71,7 +72,7 @@
     td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 14px; vertical-align: middle; }
     tbody tr { transition: background 0.2s ease; } tbody tr:nth-child(even) { background: var(--row-alt); } tbody tr:hover { background: var(--card-hover); } tbody tr:last-child td { border-bottom: none; }
     .row-num { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 13px; color: var(--fg-muted); background: var(--bg); border-radius: 6px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; }
-    /* Nombre: máx. 2 líneas — 350px escritorio / 200px móvil (oficial) */
+    /* Nombre: máx. 2 líneas — 250px escritorio / 180px móvil */
     td.celda-nombre { max-width: 250px; }
     td.celda-nombre .item-name-text { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.35; word-wrap: break-word; font-weight: 500; color: var(--fg); }
     td.celda-sector { padding-right: 4px; padding-left: 8px; }
@@ -287,7 +288,8 @@
     </div>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <!-- ★ PATCH C3 — eliminado <script> de xlsx.full.min.js (~900 KB sin uso) -->
+
   <script>
     var FIREBASE_DB_URL_CONFIG = "https://datos-formulario-f3cde-default-rtdb.firebaseio.com/formConfig.json";
     var FIREBASE_DB_URL_BASE_USADOS = "https://datos-formulario-f3cde-default-rtdb.firebaseio.com/codigosUsados";
@@ -295,7 +297,6 @@
 
     var allItemsConfig = [];
     var codigoTransporteActual = '';
-    var itemsOriginalesCargados = [];
     var botonGPSPendiente = null;
     var botonConfirmPendiente = null;
     var fechaInicioSesion = null;
@@ -312,6 +313,79 @@
     var LS_DEVICE_KEY = 'transporte_dispositivo_id';
 
     var codigosValidosMap = {};
+
+    /* ============================================================
+       ★ PATCH D1 — FIREBASE ANONYMOUS AUTH (capa opcional de seguridad)
+       Pega aquí la config de tu proyecto (ver instrucciones) para que
+       las peticiones lleven token y puedas aplicar las reglas Nivel 2.
+       Si se deja en null, la app funciona igual (reglas Nivel 1).
+       ============================================================ */
+    var FIREBASE_APP_CONFIG = null;
+    /* Ejemplo de cómo debe quedar:
+    var FIREBASE_APP_CONFIG = {
+      apiKey: "AIza...",
+      authDomain: "datos-formulario-f3cde.firebaseapp.com",
+      databaseURL: "https://datos-formulario-f3cde-default-rtdb.firebaseio.com",
+      projectId: "datos-formulario-f3cde",
+      storageBucket: "datos-formulario-f3cde.appspot.com",
+      messagingSenderId: "1234567890",
+      appId: "1:1234567890:web:abcdef"
+    };
+    */
+    var fbAuthToken = null;
+
+    function conAuth(url) {
+      if (FIREBASE_APP_CONFIG && fbAuthToken) {
+        return url + (url.indexOf('?') === -1 ? '?' : '&') + 'auth=' + fbAuthToken;
+      }
+      return url;
+    }
+    function cargarScriptAsync(src) {
+      return new Promise(function(resolver, rechazar) {
+        var s = document.createElement('script');
+        s.src = src;
+        s.onload = resolver;
+        s.onerror = function() { rechazar(new Error('No se pudo cargar ' + src)); };
+        document.head.appendChild(s);
+      });
+    }
+    function iniciarFirebaseAuth() {
+      if (!FIREBASE_APP_CONFIG) return Promise.resolve(false);
+      var base = 'https://www.gstatic.com/firebasejs/10.12.0/';
+      return Promise.race([
+        cargarScriptAsync(base + 'firebase-app-compat.js')
+          .then(function() { return cargarScriptAsync(base + 'firebase-auth-compat.js'); })
+          .then(function() {
+            if (!firebase.apps.length) firebase.initializeApp(FIREBASE_APP_CONFIG);
+            firebase.auth().onIdTokenChanged(function(user) {
+              if (user) { user.getIdToken().then(function(t) { fbAuthToken = t; }).catch(function(){}); }
+              else { fbAuthToken = null; }
+            });
+            return firebase.auth().signInAnonymously().then(function() { return true; }).catch(function(e) {
+              console.warn('Auth anónima no disponible, continuando sin token:', e && e.message);
+              return false;
+            });
+          }),
+        new Promise(function(resolver) { setTimeout(function() { resolver(false); }, 12000); })
+      ]).catch(function() { return false; });
+    }
+    /* Refresca el token cada 45 min (expira a la hora) */
+    setInterval(function() {
+      if (!FIREBASE_APP_CONFIG) return;
+      try {
+        if (window.firebase && firebase.apps && firebase.apps.length) {
+          var u = firebase.auth().currentUser;
+          if (u) u.getIdToken(true).then(function(t) { fbAuthToken = t; }).catch(function(){});
+        }
+      } catch(e) {}
+    }, 45 * 60 * 1000);
+
+    /* ★ PATCH A2 — Escapado HTML para neutralizar inyección XSS */
+    function esc(s) {
+      return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, function(c) {
+        return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+      });
+    }
 
     /* ============================================================
        SEGURO DE DISEÑO — si el logo/camión se altera, la app queda inutilizable
@@ -532,11 +606,13 @@
       if (!codigoTransporteActual || disenoIntacto !== true) return;
       var datos;
       try { datos = recopilarDatosFormulario(); } catch(e) { console.error('Error recopilando datos:', e); return; }
+      /* ★ PATCH C2 — keepalive solo se admite hasta ~64 KB */
+      var cuerpo = JSON.stringify({ estado: 'en_proceso', fechaInicio: fechaInicioSesion || new Date().toISOString(), ultimaActividad: new Date().toISOString(), dispositivoId: obtenerIdDispositivo(), datosFormulario: datos });
       try {
-        fetch(FIREBASE_DB_URL_BASE_USADOS + '/' + codigoTransporteActual + '.json', {
+        fetch(conAuth(FIREBASE_DB_URL_BASE_USADOS + '/' + codigoTransporteActual + '.json'), {
           method: 'PUT', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ estado: 'en_proceso', fechaInicio: fechaInicioSesion || new Date().toISOString(), ultimaActividad: new Date().toISOString(), dispositivoId: obtenerIdDispositivo(), datosFormulario: datos }),
-          keepalive: true
+          body: cuerpo,
+          keepalive: cuerpo.length < 60000
         }).then(function(r){
           if (!r.ok) { console.error('Firebase respondió HTTP', r.status); guardadoPendiente = true; status('Sin conexión — guardado pendiente', 'warn'); }
           else { guardadoPendiente = false; status('', 'ok'); }
@@ -600,7 +676,7 @@
       var el = document.getElementById('estadoServidor');
       var icons = { load: 'fa-circle-notch', ok: 'fa-circle-check', warn: 'fa-triangle-exclamation', err: 'fa-circle-xmark' };
       el.className = 'status ' + type;
-      el.innerHTML = '<i class="fa-solid ' + (icons[type] || icons.load) + '"></i><span>' + (text || '') + '</span>';
+      el.innerHTML = '<i class="fa-solid ' + (icons[type] || icons.load) + '"></i><span>' + esc(text || '') + '</span>'; /* ★ PATCH A2 */
     }
     function mostrarToast(texto) {
       var t = document.getElementById('toastGuardado');
@@ -650,8 +726,12 @@
       document.getElementById('gpsModal').classList.remove('visible');
       if (botonGPSPendiente) {
         botonGPSPendiente.classList.remove('capturando');
-        if (botonGPSPendiente.dataset.origen === 'dispositivo' && botonGPSPendiente.dataset.lat) botonGPSPendiente.innerHTML = '<i class="fa-solid fa-check"></i> Entregado';
-        else botonGPSPendiente.innerHTML = '<i class="fa-solid fa-satellite-dish"></i> Entrega Pendiente';
+        if (botonGPSPendiente.dataset.origen === 'dispositivo' && botonGPSPendiente.dataset.lat) {
+          botonGPSPendiente.classList.add('capturado'); /* ★ PATCH B1 — restaurar estilo verde */
+          botonGPSPendiente.innerHTML = '<i class="fa-solid fa-check"></i> Entregado';
+        } else {
+          botonGPSPendiente.innerHTML = '<i class="fa-solid fa-satellite-dish"></i> Entrega Pendiente';
+        }
       }
       botonGPSPendiente = null;
     }
@@ -847,7 +927,7 @@
     /* ========== CONFIG REMOTA ========== */
     async function cargarConfiguracionRemota() {
       var c = new AbortController(); var t = setTimeout(function(){c.abort();}, 8000);
-      try { var r = await fetch(FIREBASE_DB_URL_CONFIG, {signal:c.signal}); if (!r.ok) throw new Error('HTTP '+r.status); return await r.json(); }
+      try { var r = await fetch(conAuth(FIREBASE_DB_URL_CONFIG), {signal:c.signal}); if (!r.ok) throw new Error('HTTP '+r.status); return await r.json(); }
       catch(e) { if (e.name==='AbortError') throw new Error('Tiempo agotado'); throw e; } finally { clearTimeout(t); }
     }
     function verificarExpiracion(c) { if (!c||!c.expiration) return false; return new Date()>new Date(c.expiration); }
@@ -857,6 +937,7 @@
       disenoIntacto = true;
 
       status('Conectando con el servidor...','load');
+      await iniciarFirebaseAuth(); /* ★ PATCH D1 — capa de auth opcional; no bloquea si falla */
       try {
         var config = await cargarConfiguracionRemota();
         if (!config) throw new Error('Configuración vacía');
@@ -873,8 +954,8 @@
           if (i && typeof i === 'object') return {name:i.name||'',codigo:i.codigo||'',sector:i.sector||'',ini:i.ini||'',fin:i.fin||'',codclnt:String(i.CODCLNT || i.codclnt || ''),gpsRegistrado:extraerGPSDeItem(i)};
           return {name:'',codigo:'',sector:'',ini:'',fin:'',codclnt:'',gpsRegistrado:null};
         }).filter(function(i){return i.name !== '';});
-        try { var rCV = await fetch(FIREBASE_DB_URL_ROOT + '/codigosValidos.json'); codigosValidosMap = (await rCV.json()) || {}; } catch(e) { codigosValidosMap = {}; }
-        /* ★ Sin leyenda "Datos. X disponibles." — solo check verde compacto */
+        try { var rCV = await fetch(conAuth(FIREBASE_DB_URL_ROOT + '/codigosValidos.json')); codigosValidosMap = (await rCV.json()) || {}; } catch(e) { codigosValidosMap = {}; }
+        /* Sin leyenda "Datos. X disponibles." — solo check verde compacto */
         status('', 'ok');
         document.getElementById('mainContent').classList.remove('hidden');
         document.getElementById('expiredScreen').classList.add('hidden');
@@ -896,8 +977,8 @@
     /* ========== VERIFICAR CÓDIGO ========== */
     async function verificarSiCodigoFueUsado(codigo) {
       try {
-        var r = await fetch(FIREBASE_DB_URL_BASE_USADOS + '/' + codigo + '.json');
-        if (!r.ok) return { usado: false };
+        var r = await fetch(conAuth(FIREBASE_DB_URL_BASE_USADOS + '/' + codigo + '.json'));
+        if (!r.ok) return { usado: true, razon: 'error_red' }; /* ★ PATCH A1 — fail-closed */
         var data = await r.json();
         if (data === null) return { usado: false };
         if (data.estado === 'completado') return { usado: true, razon: 'completado' };
@@ -912,7 +993,7 @@
           return { usado: false, puedeContinuar: true, datosPrevios: data.datosFormulario || null, dispositivoId: data.dispositivoId || null, fechaInicio: data.fechaInicio || null };
         }
         return { usado: true, razon: 'desconocido' };
-      } catch(e) { return { usado: false }; }
+      } catch(e) { return { usado: true, razon: 'error_red' }; } /* ★ PATCH A1 — fail-closed */
     }
 
     /* ========== GUARDAR ========== */
@@ -923,7 +1004,7 @@
       var entregas = recopilarDatosFormulario();
       entregas.forEach(function(e) { e.fechaCambio = new Date().toISOString(); });
       try {
-        var r = await fetch(FIREBASE_DB_URL_BASE_USADOS + '/' + codigoTransporteActual + '.json', {
+        var r = await fetch(conAuth(FIREBASE_DB_URL_BASE_USADOS + '/' + codigoTransporteActual + '.json'), {
           method: 'PUT', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ estado: 'completado', fechaInicio: fechaInicioSesion || null, fechaFin: new Date().toISOString(), dispositivoId: obtenerIdDispositivo(), datosFormulario: entregas })
         });
@@ -941,8 +1022,13 @@
       try {
         var ok = await guardarFormularioCompleto();
         if (ok) {
-          msg('Código ' + codigoTransporteActual + ' guardado con éxito.', 'ok');
-          mostrarToast('Código ' + codigoTransporteActual + ' guardado');
+          var codigoGuardado = codigoTransporteActual;
+          /* ★ PATCH B2 — cerrar la ventana de 1,5 s: evita que beforeunload
+             sobrescriba el registro 'completado' con 'en_proceso' */
+          codigoTransporteActual = '';
+          guardadoPendiente = false;
+          msg('Código ' + codigoGuardado + ' guardado con éxito.', 'ok');
+          mostrarToast('Código ' + codigoGuardado + ' guardado');
           limpiarSesionDispositivo();
           setTimeout(resetearFormulario, 1500);
         } else { msg('Error de red al guardar.','err'); btn.disabled=false; btn.classList.remove('guardando'); }
@@ -950,7 +1036,16 @@
     }
 
     /* ========== FILTRADO ========== */
+    /* ★ PATCH C1 — guarda de re-entrada (evita doble ejecución con doble Enter/click) */
+    var filtrandoEnCurso = false;
     async function filtrarPorCodigo(autoRestaurada) {
+      if (filtrandoEnCurso) return;
+      filtrandoEnCurso = true;
+      try { await filtrarPorCodigoInterno(autoRestaurada); }
+      finally { filtrandoEnCurso = false; }
+    }
+
+    async function filtrarPorCodigoInterno(autoRestaurada) {
       if (disenoIntacto !== true) return;
       var input = document.getElementById('codigoTransporteInput');
       var btnCargar = document.getElementById('btnCargar');
@@ -973,6 +1068,12 @@
 
       msg('Verificando estado del código...','info');
       var resultado = await verificarSiCodigoFueUsado(codigo);
+      /* ★ PATCH A1 — si no se pudo verificar por red, NO continuar (fail-closed):
+         evita destruir un registro 'completado' existente */
+      if (resultado.usado && resultado.razon === 'error_red') {
+        msg('No se pudo verificar el estado del código (sin conexión al servidor). Reintenta en unos segundos.', 'err');
+        return;
+      }
       if (resultado.usado && resultado.razon === 'completado') {
         msg('Sin datos para asignar', 'err');
         limpiarSesionDispositivo(); input.value = ''; input.focus(); return;
@@ -984,6 +1085,7 @@
       var miDispositivo = obtenerIdDispositivo();
       if (resultado.puedeContinuar === true && resultado.dispositivoId && resultado.dispositivoId !== miDispositivo) {
         msg('Sin datos para asignar', 'err');
+        limpiarSesionDispositivo(); /* ★ PATCH B3 — evita re-intento infinito en cada recarga */
         input.value = '';
         input.focus();
         return;
@@ -1016,12 +1118,10 @@
       document.getElementById('itemCount').textContent = '0';
       document.getElementById('emptyState').classList.remove('hidden');
       document.getElementById('tablaItems').querySelector('thead').style.display = 'none';
-      itemsOriginalesCargados = [];
     }
     function poblarTabla(items, datosPrevios) {
       var tbody = document.getElementById('tbodyLineas');
       tbody.innerHTML = '';
-      itemsOriginalesCargados = [];
       var contador = 0;
       document.getElementById('emptyState').classList.add('hidden');
       document.getElementById('tablaItems').querySelector('thead').style.display = '';
@@ -1030,7 +1130,8 @@
         var fila = document.createElement('tr');
         fila.dataset.codclnt = item.codclnt || '';
         fila.style.animation = 'fadeUp 0.35s ease ' + Math.min(idx * 30, 400) + 'ms both';
-        var sectorValue = (item.sector || '').toUpperCase().replace(/"/g, '&quot;');
+        /* ★ PATCH A2 — todo dato dinámico pasa por esc() (atributos y contenido) */
+        var sectorValue = esc((item.sector || '').toUpperCase());
         var iniValue = limpiarHora(item.ini);
         var finValue = limpiarHora(item.fin);
         var datoPrevio = null;
@@ -1039,17 +1140,16 @@
         }
         var sectorR = sectorValue, iniR = iniValue, finR = finValue;
         if (datoPrevio) {
-          if (datoPrevio.sector) sectorR = datoPrevio.sector.toUpperCase().replace(/"/g, '&quot;');
+          if (datoPrevio.sector) sectorR = esc(datoPrevio.sector.toUpperCase());
           if (datoPrevio.inicio) iniR = datoPrevio.inicio;
           if (datoPrevio.fin) finR = datoPrevio.fin;
         }
-        itemsOriginalesCargados.push({ name: item.name, sector: item.sector || '', ini: iniValue, fin: finValue });
 
         var horarioTxt = (iniR || finR) ? ((iniR || '--:--') + ' – ' + (finR || '--:--')) : '—';
 
         fila.innerHTML =
           '<td><span class="row-num">' + contador + '</span></td>' +
-          '<td class="celda-nombre"><span class="item-name-text">' + item.name + '</span></td>' +
+          '<td class="celda-nombre"><span class="item-name-text">' + esc(item.name) + '</span></td>' +
           '<td><div class="gps-cell">' +
             '<div class="gps-btn-row">' +
               '<button type="button" class="btn-gps" onclick="capturarGPS(this)"><i class="fa-solid fa-satellite-dish"></i> Entrega Pendiente</button>' +
@@ -1061,7 +1161,7 @@
             '<div class="gps-distancia"></div>' +
           '</div></td>' +
           '<td class="celda-sector"><span class="info-sector" data-sector="' + sectorR + '">' + (sectorR || '—') + '</span></td>' +
-          '<td class="celda-horario"><span class="info-horario" data-inicio="' + (iniR || '') + '" data-fin="' + (finR || '') + '">' + horarioTxt + '</span></td>';
+          '<td class="celda-horario"><span class="info-horario" data-inicio="' + esc(iniR || '') + '" data-fin="' + esc(finR || '') + '">' + esc(horarioTxt) + '</span></td>';
         tbody.appendChild(fila);
 
         var gpsOrig = (datoPrevio && datoPrevio.gpsOriginal) ? datoPrevio.gpsOriginal : (item.gpsRegistrado || null);
@@ -1085,28 +1185,7 @@
       input.focus();
     }
 
-    /* ========== CSV ========== */
-    function generarCSVBlob() {
-      var filas = document.querySelectorAll('#tbodyLineas tr');
-      if (filas.length === 0) return null;
-      var csv = '#,Nombre,Sector,Desde,Hasta,LatOriginal,LngOriginal,FechaOriginal,LatNueva,LngNueva,FechaNueva,DistanciaOriginal,Maps\n';
-      filas.forEach(function(f) {
-        var n = f.querySelector('.item-name-text') ? f.querySelector('.item-name-text').textContent.trim() : '';
-        var sEl = f.querySelector('.info-sector');
-        var s = sEl ? (sEl.dataset.sector || '') : '';
-        var hEl = f.querySelector('.info-horario');
-        var i = hEl ? (hEl.dataset.inicio || '') : '';
-        var fi = hEl ? (hEl.dataset.fin || '') : '';
-        var b = f.querySelector('.btn-gps');
-        var oLat = b&&b.dataset.origLat?b.dataset.origLat:''; var oLng = b&&b.dataset.origLng?b.dataset.origLng:''; var oFe = b&&b.dataset.origFecha? formatearFechaHora(b.dataset.origFecha):'';
-        var nLat = b&&b.dataset.lat?b.dataset.lat:''; var nLng = b&&b.dataset.lng?b.dataset.lng:''; var nFe = b&&b.dataset.fecha? formatearFechaHora(b.dataset.fecha):'';
-        var dist = (oLat&&oLng&&nLat&&nLng&&typeof distanciaMetros==='function') ? Math.round(distanciaMetros(num(oLat), num(oLng), num(nLat), num(nLng))) : '';
-        var mu = (nLat&&nLng)?'https://www.google.com/maps?q='+nLat+','+nLng:((oLat&&oLng)?'https://www.google.com/maps?q='+oLat+','+oLng:'');
-        var esc = function(x){return '"'+(x||'').replace(/"/g,'""')+'"';};
-        csv += f.cells[0].textContent.trim()+','+esc(n)+','+esc(s)+','+i+','+fi+','+oLat+','+oLng+','+esc(oFe)+','+nLat+','+nLng+','+esc(nFe)+','+dist+','+esc(mu)+'\n';
-      });
-      return new Blob([csv], {type:'text/csv;charset=utf-8;'});
-    }
+    /* ★ PATCH C3 — eliminada la función generarCSVBlob() (código muerto, sin botón asociado) */
 
     document.getElementById('gpsModal').addEventListener('click', function(e) { if (e.target === this) cerrarModalGPS(); });
     document.getElementById('confirmModal').addEventListener('click', function(e) { if (e.target === this) cerrarConfirmRecaptura(); });
