@@ -172,6 +172,16 @@
       var n = (typeof v === 'number') ? v : parseFloat(String(v).trim().replace(',', '.'));
       return (isFinite(n)) ? n : null;
     }
+    /* ★ PATCH F1 — Coordenadas 0,0 = dato vacío (cliente sin GPS asignado).
+       Se ignoran para no romper el encuadre del mapa ni disparar
+       peticiones de tiles a nivel mundial ("API key required"). */
+    function coordenadaUtil(lat, lng) {
+      var a = num(lat), b = num(lng);
+      if (a === null || b === null) return false;
+      if (a === 0 && b === 0) return false;                 /* 0,0 exacto */
+      if (a < -90 || a > 90 || b < -180 || b > 180) return false;
+      return true;
+    }
     function limpiarHora(s) { if (!s) return ''; var l = String(s).replace(/[hH]/g,':'); if (/^\d{1,2}:$/.test(l)) l += '00'; return l; }
     function formatearFechaHora(iso) {
       var d = new Date(iso);
@@ -214,9 +224,9 @@
       var items = raw.map(function(i) {
         if (typeof i === 'string') return { name: i, codigo: '', sector: '', ini: '', fin: '', gpsRegistrado: null };
         if (i && typeof i === 'object') {
-          var lat = num(i.Latitud), lng = num(i.Longitud);
-          var gps = (lat !== null && lng !== null && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180)
-            ? { lat: lat, lng: lng, fechaCaptura: i.FechaCaptura || null } : null;
+          /* ★ PATCH F1 — coordenadaUtil() descarta 0,0 y fuera de rango */
+          var gps = coordenadaUtil(i.Latitud, i.Longitud)
+            ? { lat: num(i.Latitud), lng: num(i.Longitud), fechaCaptura: i.FechaCaptura || null } : null;
           return { name: i.name || '', codigo: i.codigo || '', sector: i.sector || '', ini: i.ini || '', fin: i.fin || '', gpsRegistrado: gps };
         }
         return { name: '', codigo: '', sector: '', ini: '', fin: '', gpsRegistrado: null };
@@ -237,12 +247,14 @@
         var fin = (previo && previo.fin) ? previo.fin : limpiarHora(item.fin);
         var asignado = null, entrega = null;
         var pOrig = (previo && previo.gpsOriginal) ? previo.gpsOriginal : null;
-        if (pOrig && num(pOrig.lat) !== null && num(pOrig.lng) !== null) {
+        /* ★ PATCH F1 — gpsOriginal con 0,0 se ignora */
+        if (pOrig && coordenadaUtil(pOrig.lat, pOrig.lng)) {
           asignado = { lat: num(pOrig.lat), lng: num(pOrig.lng), fecha: pOrig.fechaCaptura || null };
         } else if (item.gpsRegistrado) {
           asignado = { lat: item.gpsRegistrado.lat, lng: item.gpsRegistrado.lng, fecha: item.gpsRegistrado.fechaCaptura || null };
         }
-        if (previo && previo.gps && num(previo.gps.lat) !== null && num(previo.gps.lng) !== null) {
+        /* ★ PATCH F1 — gps capturado con 0,0 también se ignora (dato corrupto) */
+        if (previo && previo.gps && coordenadaUtil(previo.gps.lat, previo.gps.lng)) {
           entrega = {
             lat: num(previo.gps.lat), lng: num(previo.gps.lng),
             fecha: previo.gps.fechaCaptura || null,
