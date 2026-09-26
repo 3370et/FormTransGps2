@@ -172,15 +172,32 @@
       var n = (typeof v === 'number') ? v : parseFloat(String(v).trim().replace(',', '.'));
       return (isFinite(n)) ? n : null;
     }
-    /* ★ PATCH F1 — Coordenadas 0,0 = dato vacío (cliente sin GPS asignado).
-       Se ignoran para no romper el encuadre del mapa ni disparar
-       peticiones de tiles a nivel mundial ("API key required"). */
+    /* ★ PATCH F1 — Coordenadas 0,0 = dato vacío */
     function coordenadaUtil(lat, lng) {
       var a = num(lat), b = num(lng);
       if (a === null || b === null) return false;
-      if (a === 0 && b === 0) return false;                 /* 0,0 exacto */
+      if (a === 0 && b === 0) return false;
       if (a < -90 || a > 90 || b < -180 || b > 180) return false;
       return true;
+    }
+    /* ★ PATCH L1 — Normaliza la fecha de despacho (igual que el repartidor K1):
+       "25/9/2026 23:37:03" → "2026-09-25 23:37:03" para comparar sin depender del formato */
+    function normalizarFechaDespacho(s) {
+      if (s === null || s === undefined) return '';
+      var t = String(s).trim().replace(/\s+/g, ' ');
+      if (!t) return '';
+      var m = t.match(/^(\d{1,4})[\/\-.](\d{1,2})[\/\-.](\d{1,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+      if (!m) return t.toLowerCase();
+      var dia, mes, anio;
+      if (m[1].length === 4) { anio = parseInt(m[1], 10); mes = parseInt(m[2], 10); dia = parseInt(m[3], 10); }
+      else { dia = parseInt(m[1], 10); mes = parseInt(m[2], 10); anio = parseInt(m[3], 10); if (anio < 100) anio += 2000; }
+      function p(n) { return String(n).padStart(2, '0'); }
+      var hora = (m[4] !== undefined) ? (p(parseInt(m[4], 10)) + ':' + m[5] + ':' + (m[6] || '00')) : '00:00:00';
+      return anio + '-' + p(mes) + '-' + p(dia) + ' ' + hora;
+    }
+    function claveFechaItem(i) {
+      var f = normalizarFechaDespacho(i && (i.fecha || i.Fecha));
+      return f || 'sin-fecha';
     }
     function limpiarHora(s) { if (!s) return ''; var l = String(s).replace(/[hH]/g,':'); if (/^\d{1,2}:$/.test(l)) l += '00'; return l; }
     function formatearFechaHora(iso) {
@@ -206,6 +223,9 @@
     }
 
     /* ===== CARGA DE DATOS (Firebase) ===== */
+    /* ★ PATCH L1 — SOLO la ruta pendiente: los despachos cuya fecha de
+       despacho NO esté archivada (FIN DE RUTA) se muestran en el mapa.
+       Las rutas cerradas/guardadas desaparecen, aunque la pestaña siga abierta. */
     async function cargarPuntos() {
       var rConfig, rUsado;
       try { rConfig = await fetchConTimeout(FIREBASE_DB_URL_CONFIG, 12000); }
@@ -218,26 +238,58 @@
       try {
         rUsado = await fetchConTimeout(FIREBASE_DB_URL_BASE_USADOS + '/' + encodeURIComponent(CODIGO) + '.json', 12000);
         if (rUsado.ok) usado = await rUsado.json();
-      } catch(e) { /* sin datos en proceso: seguimos solo con formConfig */ }
+      } catch(e) { /* sin registro del código: seguimos con formConfig */ }
 
       var raw = (config.items && Array.isArray(config.items)) ? config.items : [];
       var items = raw.map(function(i) {
-        if (typeof i === 'string') return { name: i, codigo: '', sector: '', ini: '', fin: '', gpsRegistrado: null };
+        if (typeof i === 'string') return { name: i, codigo: '', sector: '', ini: '', fin: '', fecha: '', gpsRegistrado: null };
         if (i && typeof i === 'object') {
-          /* ★ PATCH F1 — coordenadaUtil() descarta 0,0 y fuera de rango */
           var gps = coordenadaUtil(i.Latitud, i.Longitud)
             ? { lat: num(i.Latitud), lng: num(i.Longitud), fechaCaptura: i.FechaCaptura || null } : null;
-          return { name: i.name || '', codigo: i.codigo || '', sector: i.sector || '', ini: i.ini || '', fin: i.fin || '', gpsRegistrado: gps };
+          return { name: i.name || '', codigo: i.codigo || '', sector: i.sector || '', ini: i.ini || '', fin: i.fin || '', fecha: String(i.fecha || i.Fecha || ''), gpsRegistrado: gps };
         }
-        return { name: '', codigo: '', sector: '', ini: '', fin: '', gpsRegistrado: null };
+        return { name: '', codigo: '', sector: '', ini: '', fin: '', fecha: '', gpsRegistrado: null };
       }).filter(function(i){ return i.name !== ''; });
 
       var filtrados = items.filter(function(it) { return it.codigo.toLowerCase() === CODIGO.toLowerCase(); });
       if (filtrados.length === 0) throw new Error('sin_datos');
 
-      var datosPrevios = (usado && Array.isArray(usado.datosFormulario)) ? usado.datosFormulario : [];
+      /* Fechas de despacho ya finalizadas (histórico rutas[] + última ruta completada) */
+      var finalizadas = {};
+      var tieneFechasFinalizadas = false;
+      if (usado && Array.isArray(usado.rutas)) {
+        usado.rutas.forEach(function(h) {
+          (Array.isArray(h.fechas) ? h.fechas : []).forEach(function(f) { finalizadas[f] = true; tieneFechasFinalizadas = true; });
+        });
+      }
+      if (usado && usado.estado === 'completado' && Array.isArray(usado.fechasRuta)) {
+        usado.fechasRuta.forEach(function(f) { finalizadas[f] = true; tieneFechasFinalizadas = true; });
+      }
+
+      /* Ruta activa (en_proceso): solo sus fechas */
+      var fechasActivas = (usado && usado.estado === 'en_proceso' && Array.isArray(usado.fechasRuta) && usado.fechasRuta.length) ? usado.fechasRuta : null;
+
+      var itemsRuta;
+      if (fechasActivas) {
+        itemsRuta = filtrados.filter(function(it) { return fechasActivas.indexOf(claveFechaItem(it)) !== -1; });
+      } else {
+        itemsRuta = filtrados.filter(function(it) { return !finalizadas[claveFechaItem(it)]; });
+      }
+
+      /* Registro finalizado por versión anterior (sin fechas) + ítems sin fecha → todo cerrado */
+      var hayItemsConFecha = filtrados.some(function(it) { return claveFechaItem(it) !== 'sin-fecha'; });
+      if (usado && usado.estado === 'completado' && !tieneFechasFinalizadas && !hayItemsConFecha) {
+        throw new Error('sin_pendientes');
+      }
+
+      if (itemsRuta.length === 0) throw new Error('sin_pendientes');
+
+      /* Entregas registradas: SOLO de la sesión en_proceso (las rutas
+         completadas ya no aportan puntos al mapa) */
+      var datosPrevios = (usado && usado.estado === 'en_proceso' && Array.isArray(usado.datosFormulario)) ? usado.datosFormulario : [];
+
       var puntos = [];
-      filtrados.forEach(function(item, idx) {
+      itemsRuta.forEach(function(item, idx) {
         var previo = null;
         for (var d = 0; d < datosPrevios.length; d++) {
           if (datosPrevios[d].item && datosPrevios[d].item.toLowerCase() === item.name.toLowerCase()) { previo = datosPrevios[d]; break; }
@@ -247,13 +299,11 @@
         var fin = (previo && previo.fin) ? previo.fin : limpiarHora(item.fin);
         var asignado = null, entrega = null;
         var pOrig = (previo && previo.gpsOriginal) ? previo.gpsOriginal : null;
-        /* ★ PATCH F1 — gpsOriginal con 0,0 se ignora */
         if (pOrig && coordenadaUtil(pOrig.lat, pOrig.lng)) {
           asignado = { lat: num(pOrig.lat), lng: num(pOrig.lng), fecha: pOrig.fechaCaptura || null };
         } else if (item.gpsRegistrado) {
           asignado = { lat: item.gpsRegistrado.lat, lng: item.gpsRegistrado.lng, fecha: item.gpsRegistrado.fechaCaptura || null };
         }
-        /* ★ PATCH F1 — gps capturado con 0,0 también se ignora (dato corrupto) */
         if (previo && previo.gps && coordenadaUtil(previo.gps.lat, previo.gps.lng)) {
           entrega = {
             lat: num(previo.gps.lat), lng: num(previo.gps.lng),
@@ -316,7 +366,7 @@
       pintarSidebar(puntos);
       var entregados = 0, conGps = 0;
       puntos.forEach(function(p) { if (p.entrega) entregados++; if (p.asignado || p.entrega) conGps++; });
-      document.getElementById('mapSubtitle').textContent = puntos.length + ' clientes · ' + entregados + ' entregados · ' + conGps + ' en el mapa · Actualizado ' + formatearHoraLocal();
+      document.getElementById('mapSubtitle').textContent = puntos.length + ' pendientes · ' + entregados + ' entregados · ' + conGps + ' en el mapa · Actualizado ' + formatearHoraLocal();
       if (coords.length > 0) {
         document.getElementById('ovVacio').classList.add('hidden');
         mapInstance.fitBounds(L.latLngBounds(coords), { padding: [55, 55], maxZoom: 15 });
@@ -325,7 +375,7 @@
       }
     }
     function pintarSidebar(puntos) {
-      var html = '<div class="sidebar-title">Clientes asignados</div>';
+      var html = '<div class="sidebar-title">Entregas de la ruta</div>';
       puntos.forEach(function(p) {
         var cls = p.entrega ? 'done' : (p.asignado ? 'pend' : 'sin-gps');
         var estado = p.entrega ? '<i class="fa-solid fa-circle-check"></i> Entregado'
@@ -395,10 +445,21 @@
         }
       } catch(e) {
         document.getElementById('ovCargando').classList.add('hidden');
-        if (ultimoHashDatos === '') {
-          if (e.message === 'sin_datos') mostrarError('Código sin datos', 'El código <strong>' + esc(CODIGO) + '</strong> no tiene clientes asignados.');
-          else mostrarError('No se pudo cargar', esc(e.message));
+        /* ★ PATCH L1 — la ruta se cerró (FIN DE RUTA): limpiar el mapa
+           aunque ya hubiera puntos en pantalla */
+        if (e.message === 'sin_pendientes') {
+          if (markersLayer) { markersLayer.clearLayers(); markerIndex = {}; }
+          var sb = document.getElementById('sidebar'); if (sb) sb.innerHTML = '';
+          if (miUbicacionMarker && mapInstance) { mapInstance.removeLayer(miUbicacionMarker); miUbicacionMarker = null; }
+          ultimoHashDatos = '';
+          document.getElementById('ovVacio').classList.add('hidden');
+          mostrarError('Ruta finalizada', 'No hay entregas pendientes para el código <strong>' + esc(CODIGO) + '</strong>.<br>Las rutas guardadas con FIN DE RUTA ya no se muestran en el mapa.');
+        } else if (e.message === 'sin_datos') {
+          if (ultimoHashDatos === '') mostrarError('Código sin datos', 'El código <strong>' + esc(CODIGO) + '</strong> no tiene clientes asignados.');
+        } else if (ultimoHashDatos === '') {
+          mostrarError('No se pudo cargar', esc(e.message));
         }
+        /* errores de red con datos previos: se mantienen los puntos hasta reconectar */
       } finally {
         var b = document.getElementById('btnRefresh');
         b.disabled = false; b.classList.remove('refrescando');
@@ -431,7 +492,7 @@
         subdomains: 'abcd', maxZoom: 20
       }).addTo(mapInstance);
       markersLayer = L.layerGroup().addTo(mapInstance);
-      mapInstance.setView([-33.45, -70.66], 11); /* vista inicial centrada genérica; ajusta a tu ciudad */
+      mapInstance.setView([-33.45, -70.66], 11); /* vista inicial genérica; ajusta a tu ciudad */
 
       aplicarDatos(true);
       setTimeout(function() { mapInstance.invalidateSize(); }, 100);
