@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 100'%3E%3Crect width='120' height='100' rx='22' fill='%2313161f'/%3E%3Cpath d='M44 20 L84 20 Q88 20 88 24 L88 56 Q88 60 84 60 L44 60 L34 56 L44 53 L23 49 L44 46 L32 42 L44 39 L20 35 L44 32 L28 28 L44 25 L21 21 Z' fill='%23e8913a'/%3E%3Ctext x='66' y='44' text-anchor='middle' font-family='Arial Black, Arial, sans-serif' font-weight='900' font-size='20' fill='%230f1117'%3EET%3C/text%3E%3Cpath d='M92 24 L106 24 L114 38 L114 60 L92 60 Z' fill='%23e8913a'/%3E%3Cpath d='M97 30 L104 30 L109 38 L97 38 Z' fill='%230f1117'/%3E%3Ccircle cx='48' cy='64' r='9' fill='%23ffffff'/%3E%3Ccircle cx='48' cy='64' r='4' fill='%230f1117'/%3E%3Ccircle cx='104' cy='64' r='9' fill='%23ffffff'/%3E%3Ccircle cx='104' cy='64' r='4' fill='%230f1117'/%3E%3C/svg%3E">
+  <title>Mapa de entregas</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <style>
+    :root {
+      --bg: #0c0e14; --bg-surface: #13161f; --card: #1a1e2b; --card-hover: #212637;
+      --border: #282d3e; --fg: #eaedf6; --fg-muted: #7b829a;
+      --accent: #e8913a; --accent-glow: rgba(232,145,58,0.12);
+      --success: #34d399; --danger: #f87171; --info: #60a5fa; --warning: #fbbf24;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--fg); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+    ::-webkit-scrollbar { width: 5px; height: 5px; } ::-webkit-scrollbar-track { background: var(--bg); } ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .map-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--bg-surface); flex-shrink: 0; flex-wrap: wrap; }
+    .map-header-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .map-header h3 { font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .map-header h3 i { color: var(--accent); font-size: 14px; }
+    .map-header h3 .cod { color: var(--accent); font-weight: 700; }
+    .map-subtitle { font-size: 11px; color: var(--fg-muted); font-weight: 500; }
+    .map-header-actions { display: flex; gap: 8px; align-items: center; }
+    .btn-refresh { display: inline-flex; align-items: center; gap: 6px; font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 700; padding: 6px 12px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--card); color: var(--fg-muted); cursor: pointer; transition: all 0.2s ease; }
+    .btn-refresh:hover { border-color: var(--info); color: var(--info); background: rgba(96,165,250,0.08); }
+    .btn-refresh.refrescando i { animation: spin 0.8s linear infinite; }
+    .btn-refresh:disabled { opacity: 0.5; cursor: not-allowed; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .layout { flex: 1; display: flex; min-height: 0; }
+    .map-wrap { position: relative; flex: 1; min-width: 0; }
+    #mapContainer { position: absolute; inset: 0; background: var(--bg); }
+    .sidebar { width: 260px; border-left: 1px solid var(--border); background: var(--bg-surface); overflow-y: auto; flex-shrink: 0; }
+    .sidebar-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-muted); padding: 12px 14px 8px; }
+
+    .map-item { padding: 10px 14px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.2s ease; display: flex; gap: 10px; align-items: flex-start; }
+    .map-item:hover { background: var(--card-hover); }
+    .map-item.sin-gps { cursor: default; opacity: 0.55; }
+    .map-item-num { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; font-family: 'Space Grotesk', sans-serif; }
+    .map-item.done .map-item-num { background: rgba(52,211,153,0.15); color: var(--success); border: 1.5px solid rgba(52,211,153,0.4); }
+    .map-item.pend .map-item-num { background: var(--accent-glow); color: var(--accent); border: 1.5px solid rgba(232,145,58,0.35); }
+    .map-item.sin-gps .map-item-num { background: var(--bg); color: var(--fg-muted); border: 1.5px dashed var(--border); }
+    .map-item-info { min-width: 0; flex: 1; }
+    .map-item-name { font-size: 12.5px; font-weight: 600; color: var(--fg); line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-wrap: break-word; }
+    .map-item-meta { font-size: 10.5px; color: var(--fg-muted); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .map-item-meta b { color: #ffffff; font-weight: 600; }
+    .map-item-status { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; display: inline-flex; align-items: center; gap: 4px; }
+    .map-item.done .map-item-status { color: var(--success); }
+    .map-item.pend .map-item-status { color: var(--accent); }
+    .map-item.sin-gps .map-item-status { color: var(--fg-muted); }
+
+    .map-legend { display: flex; gap: 14px; align-items: center; padding: 9px 16px; border-top: 1px solid var(--border); background: var(--bg-surface); font-size: 10.5px; color: var(--fg-muted); flex-shrink: 0; flex-wrap: wrap; }
+    .lg-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; margin-right: 5px; vertical-align: middle; }
+    .lg-pend { background: var(--accent); } .lg-done { background: var(--success); } .lg-me { background: var(--info); }
+    .btn-me { display: inline-flex; align-items: center; gap: 6px; font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 700; padding: 6px 12px; border-radius: 8px; border: 1.5px solid rgba(96,165,250,0.3); background: rgba(96,165,250,0.1); color: var(--info); cursor: pointer; transition: all 0.2s ease; margin-left: auto; }
+    .btn-me:hover { background: rgba(96,165,250,0.18); border-color: var(--info); }
+    .btn-me:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Overlays */
+    .overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--fg-muted); font-size: 13px; background: var(--bg); z-index: 500; text-align: center; padding: 20px; }
+    .overlay i { font-size: 34px; opacity: 0.25; }
+    .overlay.hidden { display: none; }
+    .overlay .spin-ico { animation: spin 1s linear infinite; opacity: 1; color: var(--info); font-size: 30px; }
+    .overlay h4 { font-family: 'Space Grotesk', sans-serif; font-size: 16px; color: var(--fg); }
+    .overlay .err-titulo { color: var(--danger); }
+    .btn-reintentar { display: inline-flex; align-items: center; gap: 7px; font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 700; padding: 8px 16px; border-radius: 8px; border: 1.5px solid rgba(248,113,113,0.3); background: rgba(248,113,113,0.1); color: var(--danger); cursor: pointer; transition: all 0.2s ease; }
+    .btn-reintentar:hover { background: rgba(248,113,113,0.18); border-color: var(--danger); }
+
+    /* Marcadores */
+    .mk { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 11px; box-shadow: 0 2px 10px rgba(0,0,0,0.6); border: 2px solid rgba(255,255,255,0.9); }
+    .mk-pend { background: var(--accent); color: #0f1117; }
+    .mk-done { background: var(--success); color: #0f1117; }
+    .mk-me { width: 16px; height: 16px; border-radius: 50%; background: var(--info); border: 3px solid #fff; animation: mePulse 2s ease-in-out infinite; }
+    @keyframes mePulse { 0%,100% { box-shadow: 0 0 0 4px rgba(96,165,250,0.25), 0 0 14px rgba(96,165,250,0.55); } 50% { box-shadow: 0 0 0 9px rgba(96,165,250,0.08), 0 0 18px rgba(96,165,250,0.7); } }
+
+    /* Popups Leaflet tema oscuro */
+    .leaflet-popup-content-wrapper { background: var(--card); color: var(--fg); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 34px rgba(0,0,0,0.55); }
+    .leaflet-popup-content { margin: 13px 15px; font-family: 'DM Sans', sans-serif; font-size: 12.5px; line-height: 1.55; }
+    .leaflet-popup-tip { background: var(--card); border: 1px solid var(--border); }
+    a.leaflet-popup-close-button { color: var(--fg-muted); }
+    .leaflet-bar a { background: var(--card); color: var(--fg); border-color: var(--border); }
+    .leaflet-bar a:hover { background: var(--card-hover); color: var(--accent); }
+    .mp { min-width: 175px; }
+    .mp-tag { display: inline-flex; align-items: center; gap: 5px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; padding: 2px 8px; border-radius: 999px; margin-bottom: 7px; }
+    .mp-pend { background: var(--accent-glow); color: var(--accent); border: 1px solid rgba(232,145,58,0.25); }
+    .mp-done { background: rgba(52,211,153,0.12); color: var(--success); border: 1px solid rgba(52,211,153,0.3); }
+    .mp-name { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 14px; color: var(--fg); margin-bottom: 6px; line-height: 1.3; }
+    .mp-row { color: var(--fg-muted); font-size: 12px; display: flex; align-items: center; gap: 7px; }
+    .mp-row i { width: 14px; text-align: center; opacity: 0.75; }
+    .mp-fecha { font-size: 11px; margin-top: 3px; }
+    .mp-acc { color: var(--info); font-weight: 600; }
+    .mp-dist { color: var(--warning); font-size: 11px; margin-top: 2px; }
+    .mp-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 12px; font-weight: 700; color: var(--info); text-decoration: none; padding: 6px 12px; background: rgba(96,165,250,0.1); border: 1px solid rgba(96,165,250,0.3); border-radius: 8px; transition: all 0.2s ease; }
+    .mp-link:hover { background: rgba(96,165,250,0.2); border-color: var(--info); }
+
+    @media (max-width: 640px) {
+      .layout { flex-direction: column; }
+      .sidebar { width: 100%; max-height: 38%; border-left: none; border-top: 1px solid var(--border); }
+      .map-legend { padding: 7px 12px; gap: 10px; font-size: 9.5px; }
+      .btn-me { font-size: 10px; padding: 5px 10px; }
+      .map-header { padding: 10px 12px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="map-header">
+    <div class="map-header-info">
+      <h3><i class="fa-solid fa-map-location-dot"></i> Mapa de entregas <span class="cod" id="codTitulo"></span></h3>
+      <span class="map-subtitle" id="mapSubtitle">Cargando datos...</span>
+    </div>
+    <div class="map-header-actions">
+      <button class="btn-refresh" id="btnRefresh" onclick="refrescarManual()"><i class="fa-solid fa-rotate-right"></i> Actualizar</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <div class="map-wrap">
+      <div id="mapContainer"></div>
+      <div class="overlay" id="ovCargando">
+        <i class="fa-solid fa-circle-notch spin-ico"></i>
+        <p>Cargando mapa de entregas...</p>
+      </div>
+      <div class="overlay hidden" id="ovError">
+        <h4 class="err-titulo" id="errTitulo">Error</h4>
+        <p id="errTexto"></p>
+        <button class="btn-reintentar" onclick="location.reload()"><i class="fa-solid fa-rotate-right"></i> Reintentar</button>
+      </div>
+      <div class="overlay hidden" id="ovVacio">
+        <i class="fa-solid fa-map-pin"></i>
+        <p>No hay puntos con ubicación GPS registrada.<br>Consulta la lista de clientes.</p>
+      </div>
+    </div>
+    <aside class="sidebar" id="sidebar"></aside>
+  </div>
+
+  <div class="map-legend">
+    <span><span class="lg-dot lg-pend"></span>Asignado</span>
+    <span><span class="lg-dot lg-done"></span>Entregado</span>
+    <span><span class="lg-dot lg-me"></span>Tu ubicación</span>
+    <button class="btn-me" id="btnMiUbicacion" onclick="centrarMiUbicacion()"><i class="fa-solid fa-location-crosshairs"></i> Mi ubicación</button>
+  </div>
+
+  <script>
+    /* ===== CONFIG (mismas URLs que el repartidor) ===== */
+    var FIREBASE_DB_URL_CONFIG = "https://datos-formulario-f3cde-default-rtdb.firebaseio.com/formConfig.json";
+    var FIREBASE_DB_URL_BASE_USADOS = "https://datos-formulario-f3cde-default-rtdb.firebaseio.com/codigosUsados";
+
+    var CODIGO = '';
+    var mapInstance = null;
+    var markersLayer = null;
+    var markerIndex = {};
+    var miUbicacionMarker = null;
+    var ultimoHashDatos = '';
+    var REFRESH_MS = 30000;
+
+    /* ===== HELPERS ===== */
+    function esc(s) {
+      return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, function(c) {
+        return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+      });
+    }
+    function num(v) {
+      if (v === null || v === undefined || v === '') return null;
+      var n = (typeof v === 'number') ? v : parseFloat(String(v).trim().replace(',', '.'));
+      return (isFinite(n)) ? n : null;
+    }
+    function limpiarHora(s) { if (!s) return ''; var l = String(s).replace(/[hH]/g,':'); if (/^\d{1,2}:$/.test(l)) l += '00'; return l; }
+    function formatearFechaHora(iso) {
+      var d = new Date(iso);
+      if (!iso || isNaN(d.getTime())) return '';
+      function p(n){ return String(n).padStart(2,'0'); }
+      return p(d.getDate()) + '/' + p(d.getMonth()+1) + '/' + d.getFullYear() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+    }
+    function formatearHoraLocal() {
+      var d = new Date(); function p(n){ return String(n).padStart(2,'0'); }
+      return p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+    }
+    function fetchConTimeout(url, ms) {
+      var c = new AbortController(); var t = setTimeout(function(){ c.abort(); }, ms);
+      return fetch(url, { signal: c.signal }).finally(function(){ clearTimeout(t); });
+    }
+    function mostrarError(titulo, texto) {
+      document.getElementById('ovCargando').classList.add('hidden');
+      document.getElementById('ovVacio').classList.add('hidden');
+      document.getElementById('errTitulo').textContent = titulo;
+      document.getElementById('errTexto').innerHTML = texto;
+      document.getElementById('ovError').classList.remove('hidden');
+    }
+
+    /* ===== CARGA DE DATOS (Firebase) ===== */
+    async function cargarPuntos() {
+      var rConfig, rUsado;
+      try { rConfig = await fetchConTimeout(FIREBASE_DB_URL_CONFIG, 12000); }
+      catch(e) { throw new Error('Sin conexión con el servidor.'); }
+      if (!rConfig.ok) throw new Error('El servidor respondió con un error (' + rConfig.status + ').');
+      var config = await rConfig.json();
+      if (!config) throw new Error('No hay configuración disponible.');
+
+      var usado = null;
+      try {
+        rUsado = await fetchConTimeout(FIREBASE_DB_URL_BASE_USADOS + '/' + encodeURIComponent(CODIGO) + '.json', 12000);
+        if (rUsado.ok) usado = await rUsado.json();
+      } catch(e) { /* sin datos en proceso: seguimos solo con formConfig */ }
+
+      var raw = (config.items && Array.isArray(config.items)) ? config.items : [];
+      var items = raw.map(function(i) {
+        if (typeof i === 'string') return { name: i, codigo: '', sector: '', ini: '', fin: '', gpsRegistrado: null };
+        if (i && typeof i === 'object') {
+          var lat = num(i.Latitud), lng = num(i.Longitud);
+          var gps = (lat !== null && lng !== null && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180)
+            ? { lat: lat, lng: lng, fechaCaptura: i.FechaCaptura || null } : null;
+          return { name: i.name || '', codigo: i.codigo || '', sector: i.sector || '', ini: i.ini || '', fin: i.fin || '', gpsRegistrado: gps };
+        }
+        return { name: '', codigo: '', sector: '', ini: '', fin: '', gpsRegistrado: null };
+      }).filter(function(i){ return i.name !== ''; });
+
+      var filtrados = items.filter(function(it) { return it.codigo.toLowerCase() === CODIGO.toLowerCase(); });
+      if (filtrados.length === 0) throw new Error('sin_datos');
+
+      var datosPrevios = (usado && Array.isArray(usado.datosFormulario)) ? usado.datosFormulario : [];
+      var puntos = [];
+      filtrados.forEach(function(item, idx) {
+        var previo = null;
+        for (var d = 0; d < datosPrevios.length; d++) {
+          if (datosPrevios[d].item && datosPrevios[d].item.toLowerCase() === item.name.toLowerCase()) { previo = datosPrevios[d]; break; }
+        }
+        var sector = (previo && previo.sector) ? previo.sector : (item.sector || '');
+        var ini = (previo && previo.inicio) ? previo.inicio : limpiarHora(item.ini);
+        var fin = (previo && previo.fin) ? previo.fin : limpiarHora(item.fin);
+        var asignado = null, entrega = null;
+        var pOrig = (previo && previo.gpsOriginal) ? previo.gpsOriginal : null;
+        if (pOrig && num(pOrig.lat) !== null && num(pOrig.lng) !== null) {
+          asignado = { lat: num(pOrig.lat), lng: num(pOrig.lng), fecha: pOrig.fechaCaptura || null };
+        } else if (item.gpsRegistrado) {
+          asignado = { lat: item.gpsRegistrado.lat, lng: item.gpsRegistrado.lng, fecha: item.gpsRegistrado.fechaCaptura || null };
+        }
+        if (previo && previo.gps && num(previo.gps.lat) !== null && num(previo.gps.lng) !== null) {
+          entrega = {
+            lat: num(previo.gps.lat), lng: num(previo.gps.lng),
+            fecha: previo.gps.fechaCaptura || null,
+            accuracy: num(previo.gps.accuracy),
+            dist: previo.gps.distanciaOriginalTxt || null
+          };
+        }
+        puntos.push({
+          num: idx + 1, nombre: item.name, sector: sector,
+          horario: (ini || fin) ? ((ini || '--:--') + ' – ' + (fin || '--:--')) : '—',
+          asignado: asignado, entrega: entrega
+        });
+      });
+      return puntos;
+    }
+
+    /* ===== MAPA ===== */
+    function iconoMapa(tipo, n) {
+      var cls = tipo === 'entrega' ? 'mk-done' : 'mk-pend';
+      var inner = tipo === 'entrega' ? '<i class="fa-solid fa-check"></i>' : String(n);
+      return L.divIcon({ className: '', html: '<div class="mk ' + cls + '"><span>' + inner + '</span></div>', iconSize: [26, 26], iconAnchor: [13, 13], popupAnchor: [0, -16] });
+    }
+    function htmlPopup(p, tipo) {
+      var pos = tipo === 'entrega' ? p.entrega : p.asignado;
+      var estado = tipo === 'entrega' ? 'Entrega registrada' : 'Punto asignado';
+      var cls = tipo === 'entrega' ? 'mp-done' : 'mp-pend';
+      var fechaTxt = pos.fecha ? formatearFechaHora(pos.fecha) : '';
+      var acc = (tipo === 'entrega' && pos.accuracy) ? ' <span class="mp-acc">±' + Math.round(pos.accuracy) + ' m</span>' : '';
+      var dist = (tipo === 'entrega' && pos.dist) ? '<div class="mp-row mp-dist"><i class="fa-solid fa-ruler-horizontal"></i> ' + esc(pos.dist) + ' del punto asignado</div>' : '';
+      return '<div class="mp">' +
+        '<div class="mp-tag ' + cls + '">' + estado + '</div>' +
+        '<div class="mp-name">' + esc(p.nombre) + '</div>' +
+        '<div class="mp-row"><i class="fa-solid fa-location-dot"></i> ' + (esc(p.sector) || '—') + '</div>' +
+        '<div class="mp-row"><i class="fa-regular fa-clock"></i> ' + esc(p.horario) + '</div>' +
+        (fechaTxt ? '<div class="mp-row mp-fecha"><i class="fa-regular fa-calendar-check"></i> ' + esc(fechaTxt) + acc + '</div>' : '') +
+        dist +
+        '<a class="mp-link" href="https://www.google.com/maps?q=' + pos.lat + ',' + pos.lng + '" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-arrow-up-right-from-square"></i> Abrir en Google Maps</a>' +
+      '</div>';
+    }
+    function pintarPuntos(puntos) {
+      markersLayer.clearLayers();
+      markerIndex = {};
+      var coords = [];
+      puntos.forEach(function(p) {
+        if (!markerIndex[p.num]) markerIndex[p.num] = {};
+        if (p.asignado) {
+          var m = L.marker([p.asignado.lat, p.asignado.lng], { icon: iconoMapa('asignado', p.num) })
+            .bindPopup(htmlPopup(p, 'asignado'), { maxWidth: 280 });
+          m.addTo(markersLayer); coords.push([p.asignado.lat, p.asignado.lng]);
+          markerIndex[p.num].asignado = m;
+        }
+        if (p.entrega) {
+          var m2 = L.marker([p.entrega.lat, p.entrega.lng], { icon: iconoMapa('entrega', p.num) })
+            .bindPopup(htmlPopup(p, 'entrega'), { maxWidth: 280 });
+          m2.addTo(markersLayer); coords.push([p.entrega.lat, p.entrega.lng]);
+          markerIndex[p.num].entrega = m2;
+        }
+      });
+      pintarSidebar(puntos);
+      var entregados = 0, conGps = 0;
+      puntos.forEach(function(p) { if (p.entrega) entregados++; if (p.asignado || p.entrega) conGps++; });
+      document.getElementById('mapSubtitle').textContent = puntos.length + ' clientes · ' + entregados + ' entregados · ' + conGps + ' en el mapa · Actualizado ' + formatearHoraLocal();
+      if (coords.length > 0) {
+        document.getElementById('ovVacio').classList.add('hidden');
+        mapInstance.fitBounds(L.latLngBounds(coords), { padding: [55, 55], maxZoom: 15 });
+      } else {
+        document.getElementById('ovVacio').classList.remove('hidden');
+      }
+    }
+    function pintarSidebar(puntos) {
+      var html = '<div class="sidebar-title">Clientes asignados</div>';
+      puntos.forEach(function(p) {
+        var cls = p.entrega ? 'done' : (p.asignado ? 'pend' : 'sin-gps');
+        var estado = p.entrega ? '<i class="fa-solid fa-circle-check"></i> Entregado'
+                    : (p.asignado ? '<i class="fa-solid fa-clock"></i> Pendiente'
+                    : '<i class="fa-solid fa-location-slash"></i> Sin ubicación');
+        html += '<div class="map-item ' + cls + '" data-num="' + p.num + '">' +
+          '<div class="map-item-num">' + p.num + '</div>' +
+          '<div class="map-item-info">' +
+            '<div class="map-item-name">' + esc(p.nombre) + '</div>' +
+            '<div class="map-item-meta"><b>' + (esc(p.sector) || '—') + '</b> · ' + esc(p.horario) + '</div>' +
+            '<div class="map-item-status">' + estado + '</div>' +
+          '</div></div>';
+      });
+      var sb = document.getElementById('sidebar');
+      sb.innerHTML = html;
+      sb.querySelectorAll('.map-item').forEach(function(el) {
+        el.addEventListener('click', function() { enfocarPunto(num(el.getAttribute('data-num'))); });
+      });
+    }
+    function enfocarPunto(n) {
+      var ref = markerIndex[n];
+      if (!ref || !mapInstance) return;
+      var m = ref.entrega || ref.asignado;
+      if (!m) return;
+      mapInstance.flyTo(m.getLatLng(), Math.max(mapInstance.getZoom(), 16), { duration: 0.7 });
+      setTimeout(function() { m.openPopup(); }, 720);
+    }
+    function centrarMiUbicacion() {
+      if (!mapInstance) return;
+      if (!navigator.geolocation || !window.isSecureContext) return;
+      var btn = document.getElementById('btnMiUbicacion');
+      var original = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-circle-notch"></i> Ubicando...';
+      navigator.geolocation.getCurrentPosition(
+        function(pos) {
+          btn.disabled = false; btn.innerHTML = original;
+          var ll = [pos.coords.latitude, pos.coords.longitude];
+          if (miUbicacionMarker) { miUbicacionMarker.setLatLng(ll); }
+          else {
+            miUbicacionMarker = L.marker(ll, {
+              icon: L.divIcon({ className: '', html: '<div class="mk-me"></div>', iconSize: [18, 18], iconAnchor: [9, 9] }),
+              interactive: false, keyboard: false
+            }).addTo(mapInstance);
+          }
+          mapInstance.flyTo(ll, Math.max(mapInstance.getZoom(), 15));
+        },
+        function() { btn.disabled = false; btn.innerHTML = original; },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
+      );
+    }
+
+    /* ===== REFRESH ===== */
+    async function aplicarDatos(mostrarCargando) {
+      if (mostrarCargando) document.getElementById('ovCargando').classList.remove('hidden');
+      try {
+        var puntos = await cargarPuntos();
+        var hash = JSON.stringify(puntos);
+        var primeraVez = (ultimoHashDatos === '');
+        if (hash !== ultimoHashDatos || primeraVez) {
+          ultimoHashDatos = hash;
+          document.getElementById('ovCargando').classList.add('hidden');
+          document.getElementById('ovError').classList.add('hidden');
+          pintarPuntos(puntos);
+        } else {
+          document.getElementById('mapSubtitle').textContent = document.getElementById('mapSubtitle').textContent.replace(/Actualizado [\d:]+$/, 'Actualizado ' + formatearHoraLocal());
+        }
+      } catch(e) {
+        document.getElementById('ovCargando').classList.add('hidden');
+        if (ultimoHashDatos === '') {
+          if (e.message === 'sin_datos') mostrarError('Código sin datos', 'El código <strong>' + esc(CODIGO) + '</strong> no tiene clientes asignados.');
+          else mostrarError('No se pudo cargar', esc(e.message));
+        }
+      } finally {
+        var b = document.getElementById('btnRefresh');
+        b.disabled = false; b.classList.remove('refrescando');
+      }
+    }
+    function refrescarManual() {
+      var b = document.getElementById('btnRefresh');
+      b.disabled = true; b.classList.add('refrescando');
+      aplicarDatos(false);
+    }
+    /* Auto-refresh cada 30s (solo si la pestaña está visible) */
+    setInterval(function() {
+      if (document.visibilityState !== 'visible' || !CODIGO) return;
+      aplicarDatos(false);
+    }, REFRESH_MS);
+
+    /* ===== INIT ===== */
+    (function init() {
+      try { CODIGO = new URLSearchParams(window.location.search).get('codigo') || ''; } catch(e) { CODIGO = ''; }
+      CODIGO = CODIGO.trim();
+      document.getElementById('codTitulo').textContent = CODIGO ? '· ' + CODIGO : '';
+      document.title = 'Mapa de entregas' + (CODIGO ? ' — ' + CODIGO : '');
+
+      if (!CODIGO) { mostrarError('Falta el código', 'Abre el mapa desde el formulario del repartidor<br>o agrega <strong>?codigo=TUCODIGO</strong> a la dirección.'); return; }
+      if (!window.L) { mostrarError('No se pudo cargar el mapa', 'Verifica tu conexión e reintenta.'); return; }
+
+      mapInstance = L.map('mapContainer', { zoomControl: true });
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener noreferrer">CARTO</a>',
+        subdomains: 'abcd', maxZoom: 20
+      }).addTo(mapInstance);
+      markersLayer = L.layerGroup().addTo(mapInstance);
+      mapInstance.setView([-33.45, -70.66], 11); /* vista inicial centrada genérica; ajusta a tu ciudad */
+
+      aplicarDatos(true);
+      setTimeout(function() { mapInstance.invalidateSize(); }, 100);
+    })();
+  </script>
+</body>
+</html>
