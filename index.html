@@ -935,14 +935,15 @@
       if (!miniEl) return;
       var latN = num(lat), lngN = num(lng);
       if (latN === null || lngN === null) { miniEl.classList.remove('on'); miniEl.innerHTML=''; miniEl.removeAttribute('href'); miniEl.removeAttribute('title'); return; }
-      var partes = [latN.toFixed(5) + ', ' + lngN.toFixed(5)];
+      /* ★ PATCH M1 — sin coordenadas visibles: icono + precisión + fecha + tag */
+      var partes = [];
       if (num(accuracy) !== null && num(accuracy) > 0) partes.push('~' + Math.round(num(accuracy)) + 'm');
       if (conFecha !== false && fechaISO) partes.push(formatearFechaCorta(fechaISO));
-      var html = '<i class="fa-solid fa-location-dot"></i> ' + partes.join(' · ');
+      var html = '<i class="fa-solid fa-location-dot"></i>' + (partes.length ? ' ' + partes.join(' · ') : '');
       if (etiqueta) html += ' <span class="mini-tag">' + etiqueta + '</span>';
       miniEl.innerHTML = html;
       miniEl.href = 'https://www.google.com/maps?q=' + latN + ',' + lngN;
-      miniEl.title = 'Ver en Google Maps' + ((conFecha !== false && fechaISO) ? ' — ' + formatearFechaHora(fechaISO) : '');
+      miniEl.title = 'Ver en Google Maps' + ((conFecha !== false && fechaISO) ? ' — ' + formatearFechaHora(fechaISO) : '') + ' · ' + latN.toFixed(5) + ', ' + lngN.toFixed(5);
       miniEl.classList.add('on');
     }
     /* ★ PATCH I1 — mini original compacto: solo icono + tag (sigue siendo enlace a Google Maps) */
