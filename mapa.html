@@ -487,10 +487,42 @@
       if (!window.L) { mostrarError('No se pudo cargar el mapa', 'Verifica tu conexión e reintenta.'); return; }
 
       mapInstance = L.map('mapContainer', { zoomControl: true });
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener noreferrer">CARTO</a>',
-        subdomains: 'abcd', maxZoom: 20
-      }).addTo(mapInstance);
+
+      /* ★ PATCH M2 — Tiles SIN API key (CARTO ahora la exige y muestra
+         "API key required" como imagen en el mapa). Principal: Esri Dark
+         Gray (oscuro, sin registro). Respaldo: OpenStreetMap automático. */
+      var TILES_PRINCIPAL = {
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+        refUrl: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}',
+        attribution: 'Tiles &copy; Esri, HERE, Garmin, FAO, NOAA, USGS',
+        maxNativeZoom: 16
+      };
+      var TILES_RESPALDO = {
+        url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        refUrl: null,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors',
+        maxNativeZoom: 19
+      };
+      var tileBaseActual = null;
+      var tileRefActual = null;
+      var cambioARespaldo = false;
+
+      function montarTiles(prov) {
+        if (tileBaseActual) mapInstance.removeLayer(tileBaseActual);
+        if (tileRefActual) mapInstance.removeLayer(tileRefActual);
+        tileBaseActual = L.tileLayer(prov.url, { attribution: prov.attribution, maxNativeZoom: prov.maxNativeZoom, maxZoom: 19 }).addTo(mapInstance);
+        if (prov.refUrl) tileRefActual = L.tileLayer(prov.refUrl, { attribution: '', maxNativeZoom: prov.maxNativeZoom, maxZoom: 19 }).addTo(mapInstance);
+      }
+      montarTiles(TILES_PRINCIPAL);
+
+      /* Si el principal no carga (bloqueo de red, etc.) → OSM automáticamente */
+      var erroresTile = 0;
+      tileBaseActual.on('tileerror', function() {
+        if (cambioARespaldo) return;
+        erroresTile++;
+        if (erroresTile >= 6) { cambioARespaldo = true; montarTiles(TILES_RESPALDO); }
+      });
+
       markersLayer = L.layerGroup().addTo(mapInstance);
       mapInstance.setView([-33.45, -70.66], 11); /* vista inicial genérica; ajusta a tu ciudad */
 
