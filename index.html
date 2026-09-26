@@ -294,7 +294,8 @@
       <div class="empty-state" id="emptyState"><i class="fa-solid fa-inbox"></i><p>Escribe un código de transporte<br>para ver los datos asignados.</p></div>
     </div>
     <div class="acciones">
-      <button class="btn btn-guardar" id="btnGuardar" onclick="ejecutarGuardado()"><i class="fa-solid fa-cloud-arrow-up"></i> Guardar</button>
+      <!-- ★ PATCH J1 — botón con icono de guardar + frase FIN DE RUTA -->
+      <button class="btn btn-guardar" id="btnGuardar" onclick="ejecutarGuardado()"><i class="fa-solid fa-floppy-disk"></i> Finalizar Ruta </button>
       <!-- ★ PATCH E2 — enlace a mapa completo (mapa.html externo, pestaña nueva) -->
       <a class="btn btn-mapa disabled" id="btnMapa" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-map-location-dot"></i> Ver mapa completo</a>
     </div>
@@ -396,6 +397,20 @@
         return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
       });
     }
+
+    /* ============================================================
+       ★ PATCH J1 — Identificador de ruta: hash de los clientes asignados.
+       Si el admin actualiza formConfig (agrega/quita/cambia clientes),
+       el rutaId cambia y el código admite una nueva sesión.
+       ============================================================ */
+    function calcularRutaId(items) {
+      var nombres = items.map(function(i){ return (i.name || '').trim().toLowerCase(); }).sort();
+      var s = nombres.join('|');
+      var h = 5381;
+      for (var i = 0; i < s.length; i++) { h = ((h << 5) + h + s.charCodeAt(i)) & 0xFFFFFFFF; }
+      return (h >>> 0).toString(36) + '-' + nombres.length;
+    }
+    var rutaIdActualSesion = null; /* ★ PATCH J1 */
 
     /* ============================================================
        SEGURO DE DISEÑO — si el logo/camión se altera, la app queda inutilizable
@@ -615,10 +630,10 @@
       if (!codigoTransporteActual || disenoIntacto !== true) return;
       var datos;
       try { datos = recopilarDatosFormulario(); } catch(e) { console.error('Error recopilando datos:', e); return; }
-      var cuerpo = JSON.stringify({ estado: 'en_proceso', fechaInicio: fechaInicioSesion || new Date().toISOString(), ultimaActividad: new Date().toISOString(), dispositivoId: obtenerIdDispositivo(), datosFormulario: datos });
+      var cuerpo = JSON.stringify({ estado: 'en_proceso', rutaId: rutaIdActualSesion || null, fechaInicio: fechaInicioSesion || new Date().toISOString(), ultimaActividad: new Date().toISOString(), dispositivoId: obtenerIdDispositivo(), datosFormulario: datos });
       try {
         fetch(conAuth(FIREBASE_DB_URL_BASE_USADOS + '/' + codigoTransporteActual + '.json'), {
-          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' }, /* ★ PATCH J1 — PATCH preserva rutas[] del historial */
           body: cuerpo,
           keepalive: cuerpo.length < 60000
         }).then(function(r){
@@ -1135,37 +1150,75 @@
     }
 
     /* ========== VERIFICAR CÓDIGO ========== */
-    async function verificarSiCodigoFueUsado(codigo) {
+    /* ★ PATCH J1 — acepta rutaIdActual para distinguir rutas nuevas */
+    async function verificarSiCodigoFueUsado(codigo, rutaIdActual) {
       try {
         var r = await fetch(conAuth(FIREBASE_DB_URL_BASE_USADOS + '/' + codigo + '.json'));
         if (!r.ok) return { usado: true, razon: 'error_red' };
         var data = await r.json();
         if (data === null) return { usado: false };
-        if (data.estado === 'completado') return { usado: true, razon: 'completado' };
+        if (data.estado === 'completado') {
+          /* ★ PATCH J1 — misma ruta finalizada → bloquear;
+             formConfig cambió → permitir nueva sesión */
+          if (data.rutaId && rutaIdActual && data.rutaId !== rutaIdActual) {
+            return { usado: false, nuevaRuta: true };
+          }
+          return { usado: true, razon: 'completado' };
+        }
         if (data.estado === 'en_proceso' && data.fechaInicio) {
           var refTiempo = data.ultimaActividad || data.fechaInicio;
           var inicio = new Date(refTiempo).getTime();
           var transcurrido = Date.now() - inicio;
           if (transcurrido > TIEMPO_LIBERAR_CODIGO_MS) {
-            return { usado: false, liberado: true, datosPrevios: data.datosFormulario || null };
+            return { usado: false, liberado: true };
           }
-          return { usado: false, puedeContinuar: true, datosPrevios: data.datosFormulario || null, dispositivoId: data.dispositivoId || null, fechaInicio: data.fechaInicio || null };
+          /* ★ PATCH J1 — en_proceso de OTRA ruta → no restaurar, nueva sesión */
+          var mismaRuta = (!data.rutaId || !rutaIdActual || data.rutaId === rutaIdActual);
+          return {
+            usado: false,
+            puedeContinuar: mismaRuta,
+            nuevaRuta: !mismaRuta,
+            datosPrevios: mismaRuta ? (data.datosFormulario || null) : null,
+            dispositivoId: data.dispositivoId || null,
+            fechaInicio: mismaRuta ? (data.fechaInicio || null) : null
+          };
         }
         return { usado: true, razon: 'desconocido' };
       } catch(e) { return { usado: true, razon: 'error_red' }; }
     }
 
     /* ========== GUARDAR ========== */
+    /* ★ PATCH J1 — archiva la ruta actual en el historial rutas[] */
     async function guardarFormularioCompleto() {
       if (disenoIntacto !== true) return false;
       var filas = document.querySelectorAll('#tbodyLineas tr');
       if (filas.length === 0 || !codigoTransporteActual) return false;
       var entregas = recopilarDatosFormulario();
       entregas.forEach(function(e) { e.fechaCambio = new Date().toISOString(); });
+      /* ★ PATCH J1 — recuperar historial de rutas anteriores para archivar esta */
+      var historial = [];
+      try {
+        var rPrev = await fetch(conAuth(FIREBASE_DB_URL_BASE_USADOS + '/' + codigoTransporteActual + '.json'));
+        if (rPrev.ok) {
+          var prev = await rPrev.json();
+          if (prev && Array.isArray(prev.rutas)) historial = prev.rutas;
+        }
+      } catch(e) {}
+      if (rutaIdActualSesion) {
+        historial = historial.filter(function(h){ return h.rutaId !== rutaIdActualSesion; }); /* evita duplicados */
+        historial.push({
+          rutaId: rutaIdActualSesion,
+          fechaInicio: fechaInicioSesion || null,
+          fechaFin: new Date().toISOString(),
+          clientes: entregas.length,
+          datosFormulario: entregas
+        });
+        if (historial.length > 5) historial = historial.slice(-5); /* máximo 5 rutas archivadas */
+      }
       try {
         var r = await fetch(conAuth(FIREBASE_DB_URL_BASE_USADOS + '/' + codigoTransporteActual + '.json'), {
           method: 'PUT', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ estado: 'completado', fechaInicio: fechaInicioSesion || null, fechaFin: new Date().toISOString(), dispositivoId: obtenerIdDispositivo(), datosFormulario: entregas })
+          body: JSON.stringify({ estado: 'completado', rutaId: rutaIdActualSesion || null, rutas: historial, fechaInicio: fechaInicioSesion || null, fechaFin: new Date().toISOString(), dispositivoId: obtenerIdDispositivo(), datosFormulario: entregas })
         });
         if (!r.ok) throw new Error('HTTP'); return true;
       } catch(e) { return false; }
@@ -1177,15 +1230,15 @@
       if (filas.length === 0) { msg('No hay datos para guardar.','err'); return; }
       if (!codigoTransporteActual) { msg('No se ha definido un código.','err'); return; }
       btn.disabled = true; btn.classList.add('guardando');
-      msg('Guardando en el servidor...','info');
+      msg('Guardando fin de ruta en el servidor...','info');
       try {
         var ok = await guardarFormularioCompleto();
         if (ok) {
           var codigoGuardado = codigoTransporteActual;
           codigoTransporteActual = '';
           guardadoPendiente = false;
-          msg('Código ' + codigoGuardado + ' guardado con éxito.', 'ok');
-          mostrarToast('Código ' + codigoGuardado + ' guardado');
+          msg('Fin de ruta. Código ' + codigoGuardado + ' guardado con éxito.', 'ok'); /* ★ PATCH J1 */
+          mostrarToast('Fin de ruta guardado'); /* ★ PATCH J1 */
           limpiarSesionDispositivo();
           setTimeout(resetearFormulario, 1500);
         } else { msg('Error de red al guardar.','err'); btn.disabled=false; btn.classList.remove('guardando'); }
@@ -1222,8 +1275,10 @@
         return;
       }
 
+      var rutaIdActual = calcularRutaId(itemsFiltrados); /* ★ PATCH J1 */
+
       msg('Verificando estado del código...','info');
-      var resultado = await verificarSiCodigoFueUsado(codigo);
+      var resultado = await verificarSiCodigoFueUsado(codigo, rutaIdActual); /* ★ PATCH J1 */
       if (resultado.usado && resultado.razon === 'error_red') {
         msg('No se pudo verificar el estado del código (sin conexión al servidor). Reintenta en unos segundos.', 'err');
         return;
@@ -1245,11 +1300,14 @@
         return;
       }
       codigoTransporteActual = codigo;
+      rutaIdActualSesion = rutaIdActual; /* ★ PATCH J1 */
       var datosPrevios = resultado.datosPrevios || null;
       var esContinuacion = resultado.puedeContinuar === true;
       var esLiberado = resultado.liberado === true;
+      var esNuevaRuta = resultado.nuevaRuta === true; /* ★ PATCH J1 */
       if (esContinuacion) msg('Continuando sesión. Datos restaurados.', 'info');
       else if (esLiberado) { msg('Sesión anterior liberada. Iniciando nueva.', 'warn'); datosPrevios = null; }
+      else if (esNuevaRuta) { msg('Nueva ruta detectada. Iniciando sesión con los clientes nuevos.', 'warn'); datosPrevios = null; } /* ★ PATCH J1 */
       else msg('Mostrando ' + itemsFiltrados.length + ' ítem(s).', 'ok');
 
       if (autoRestaurada === true) {
@@ -1339,6 +1397,7 @@
     function resetearFormulario() {
       var input = document.getElementById('codigoTransporteInput');
       codigoTransporteActual = '';
+      rutaIdActualSesion = null; /* ★ PATCH J1 */
       fechaInicioSesion = null;
       document.querySelector('.code-section').classList.remove('hidden');
       input.value = ''; input.disabled = false;
