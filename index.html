@@ -151,6 +151,10 @@
     @keyframes fDot { 0% { transform: translateY(100vh) scale(0); opacity: 0; } 10% { opacity: 0.12; } 90% { opacity: 0.12; } 100% { transform: translateY(-10vh) scale(1); opacity: 0; } }
     .toast-guardado { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--card); border: 1.5px solid var(--success); border-radius: 12px; padding: 14px 24px; display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: var(--success); box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 20px rgba(52,211,153,0.1); z-index: 999; opacity: 0; pointer-events: none; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
     .toast-guardado.visible { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; } .toast-guardado i { font-size: 18px; }
+    /* ★ PATCH E2 — Botón mapa completo (abre mapa.html en pestaña nueva) */
+    .btn-mapa { background: rgba(96,165,250,0.1); color: var(--info); border: 1.5px solid rgba(96,165,250,0.25); }
+    .btn-mapa:hover { background: rgba(96,165,250,0.18); border-color: var(--info); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(96,165,250,0.15); }
+    .btn-mapa.disabled { pointer-events: none; opacity: 0.5; }
     @media (max-width: 640px) {
       body { padding: 16px 10px 40px; } .code-row { flex-direction: column; } .btn { width: 100%; justify-content: center; } .acciones { flex-direction: column; }
       th, td { padding: 8px 8px; font-size: 12px; }
@@ -268,6 +272,8 @@
     </div>
     <div class="acciones">
       <button class="btn btn-guardar" id="btnGuardar" onclick="ejecutarGuardado()"><i class="fa-solid fa-cloud-arrow-up"></i> Guardar</button>
+      <!-- ★ PATCH E2 — enlace a mapa completo (mapa.html externo, pestaña nueva) -->
+      <a class="btn btn-mapa disabled" id="btnMapa" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-map-location-dot"></i> Ver mapa completo</a>
     </div>
     <div id="mensaje"></div>
   </div>
@@ -391,7 +397,7 @@
        SEGURO DE DISEÑO — si el logo/camión se altera, la app queda inutilizable
        ============================================================ */
     var disenoIntacto = null;
-    function normAtt(s) { return (s || '').replace(/\s+/g, ''); }
+    function normAtt(s) { return (s || '').replace(/\s+/g,''); }
     function verificarDiseno() {
       try {
         var svg = document.querySelector('.et-truck');
@@ -1169,6 +1175,9 @@
         try { if (datoPrevio && datoPrevio.gps) aplicarGPSCapturada(fila, datoPrevio.gps); } catch(e) { console.error('Error restaurando GPS fila ' + contador, e); }
       });
       document.getElementById('itemCount').textContent = contador;
+      /* ★ PATCH E2 — activar botón de mapa completo con el código actual */
+      document.getElementById('btnMapa').href = 'mapa.html?codigo=' + encodeURIComponent(codigoTransporteActual);
+      document.getElementById('btnMapa').classList.remove('disabled');
     }
     function resetearFormulario() {
       var input = document.getElementById('codigoTransporteInput');
@@ -1179,6 +1188,9 @@
       document.getElementById('btnCargar').disabled = false;
       document.getElementById('btnGuardar').disabled = false;
       document.getElementById('btnGuardar').classList.remove('guardando');
+      /* ★ PATCH E2 — desactivar botón de mapa completo */
+      var bm = document.getElementById('btnMapa');
+      bm.removeAttribute('href'); bm.classList.add('disabled');
       limpiarTabla();
       document.getElementById('mensaje').textContent = '';
       document.getElementById('mensaje').className = '';
