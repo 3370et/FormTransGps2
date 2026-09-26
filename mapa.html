@@ -36,7 +36,7 @@
 
     .layout { flex: 1; display: flex; min-height: 0; }
     .map-wrap { position: relative; flex: 1; min-width: 0; }
-    #mapContainer { position: absolute; inset: 0; background: var(--bg); }
+    #mapContainer { position: absolute; inset: 0; background: #d4dadc; } /* ★ PATCH M3 — fondo claro mientras cargan los tiles */
     .sidebar { width: 260px; border-left: 1px solid var(--border); background: var(--bg-surface); overflow-y: auto; flex-shrink: 0; }
     .sidebar-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-muted); padding: 12px 14px 8px; }
 
@@ -74,13 +74,13 @@
     .btn-reintentar:hover { background: rgba(248,113,113,0.18); border-color: var(--danger); }
 
     /* Marcadores */
-    .mk { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 11px; box-shadow: 0 2px 10px rgba(0,0,0,0.6); border: 2px solid rgba(255,255,255,0.9); }
+    .mk { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 11px; box-shadow: 0 2px 10px rgba(0,0,0,0.45); border: 2.5px solid #ffffff; }
     .mk-pend { background: var(--accent); color: #0f1117; }
     .mk-done { background: var(--success); color: #0f1117; }
     .mk-me { width: 16px; height: 16px; border-radius: 50%; background: var(--info); border: 3px solid #fff; animation: mePulse 2s ease-in-out infinite; }
-    @keyframes mePulse { 0%,100% { box-shadow: 0 0 0 4px rgba(96,165,250,0.25), 0 0 14px rgba(96,165,250,0.55); } 50% { box-shadow: 0 0 0 9px rgba(96,165,250,0.08), 0 0 18px rgba(96,165,250,0.7); } }
+    @keyframes mePulse { 0%,100% { box-shadow: 0 0 0 4px rgba(96,165,250,0.35), 0 0 14px rgba(96,165,250,0.6); } 50% { box-shadow: 0 0 0 9px rgba(96,165,250,0.12), 0 0 18px rgba(96,165,250,0.75); } }
 
-    /* Popups Leaflet tema oscuro */
+    /* ★ PATCH M3 — Popups OSCUROS (tarjetas flotantes) sobre mapa claro: máxima legibilidad a plena luz */
     .leaflet-popup-content-wrapper { background: var(--card); color: var(--fg); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 34px rgba(0,0,0,0.55); }
     .leaflet-popup-content { margin: 13px 15px; font-family: 'DM Sans', sans-serif; font-size: 12.5px; line-height: 1.55; }
     .leaflet-popup-tip { background: var(--card); border: 1px solid var(--border); }
@@ -180,8 +180,7 @@
       if (a < -90 || a > 90 || b < -180 || b > 180) return false;
       return true;
     }
-    /* ★ PATCH L1 — Normaliza la fecha de despacho (igual que el repartidor K1):
-       "25/9/2026 23:37:03" → "2026-09-25 23:37:03" para comparar sin depender del formato */
+    /* ★ PATCH L1 — Normaliza la fecha de despacho (igual que el repartidor K1) */
     function normalizarFechaDespacho(s) {
       if (s === null || s === undefined) return '';
       var t = String(s).trim().replace(/\s+/g, ' ');
@@ -222,10 +221,7 @@
       document.getElementById('ovError').classList.remove('hidden');
     }
 
-    /* ===== CARGA DE DATOS (Firebase) ===== */
-    /* ★ PATCH L1 — SOLO la ruta pendiente: los despachos cuya fecha de
-       despacho NO esté archivada (FIN DE RUTA) se muestran en el mapa.
-       Las rutas cerradas/guardadas desaparecen, aunque la pestaña siga abierta. */
+    /* ===== CARGA DE DATOS (Firebase) — PATCH L1: solo la ruta pendiente ===== */
     async function cargarPuntos() {
       var rConfig, rUsado;
       try { rConfig = await fetchConTimeout(FIREBASE_DB_URL_CONFIG, 12000); }
@@ -254,7 +250,6 @@
       var filtrados = items.filter(function(it) { return it.codigo.toLowerCase() === CODIGO.toLowerCase(); });
       if (filtrados.length === 0) throw new Error('sin_datos');
 
-      /* Fechas de despacho ya finalizadas (histórico rutas[] + última ruta completada) */
       var finalizadas = {};
       var tieneFechasFinalizadas = false;
       if (usado && Array.isArray(usado.rutas)) {
@@ -266,7 +261,6 @@
         usado.fechasRuta.forEach(function(f) { finalizadas[f] = true; tieneFechasFinalizadas = true; });
       }
 
-      /* Ruta activa (en_proceso): solo sus fechas */
       var fechasActivas = (usado && usado.estado === 'en_proceso' && Array.isArray(usado.fechasRuta) && usado.fechasRuta.length) ? usado.fechasRuta : null;
 
       var itemsRuta;
@@ -276,16 +270,12 @@
         itemsRuta = filtrados.filter(function(it) { return !finalizadas[claveFechaItem(it)]; });
       }
 
-      /* Registro finalizado por versión anterior (sin fechas) + ítems sin fecha → todo cerrado */
       var hayItemsConFecha = filtrados.some(function(it) { return claveFechaItem(it) !== 'sin-fecha'; });
       if (usado && usado.estado === 'completado' && !tieneFechasFinalizadas && !hayItemsConFecha) {
         throw new Error('sin_pendientes');
       }
-
       if (itemsRuta.length === 0) throw new Error('sin_pendientes');
 
-      /* Entregas registradas: SOLO de la sesión en_proceso (las rutas
-         completadas ya no aportan puntos al mapa) */
       var datosPrevios = (usado && usado.estado === 'en_proceso' && Array.isArray(usado.datosFormulario)) ? usado.datosFormulario : [];
 
       var puntos = [];
@@ -369,7 +359,7 @@
       document.getElementById('mapSubtitle').textContent = puntos.length + ' pendientes · ' + entregados + ' entregados · ' + conGps + ' en el mapa · Actualizado ' + formatearHoraLocal();
       if (coords.length > 0) {
         document.getElementById('ovVacio').classList.add('hidden');
-        mapInstance.fitBounds(L.latLngBounds(coords), { padding: [55, 55], maxZoom: 15 });
+        mapInstance.fitBounds(L.latLngBounds(coords), { padding: [55, 55], maxZoom: 16 });
       } else {
         document.getElementById('ovVacio').classList.remove('hidden');
       }
@@ -400,7 +390,7 @@
       if (!ref || !mapInstance) return;
       var m = ref.entrega || ref.asignado;
       if (!m) return;
-      mapInstance.flyTo(m.getLatLng(), Math.max(mapInstance.getZoom(), 16), { duration: 0.7 });
+      mapInstance.flyTo(m.getLatLng(), Math.max(mapInstance.getZoom(), 17), { duration: 0.7 });
       setTimeout(function() { m.openPopup(); }, 720);
     }
     function centrarMiUbicacion() {
@@ -445,8 +435,7 @@
         }
       } catch(e) {
         document.getElementById('ovCargando').classList.add('hidden');
-        /* ★ PATCH L1 — la ruta se cerró (FIN DE RUTA): limpiar el mapa
-           aunque ya hubiera puntos en pantalla */
+        /* ★ PATCH L1 — ruta cerrada: limpiar el mapa aunque haya puntos en pantalla */
         if (e.message === 'sin_pendientes') {
           if (markersLayer) { markersLayer.clearLayers(); markerIndex = {}; }
           var sb = document.getElementById('sidebar'); if (sb) sb.innerHTML = '';
@@ -459,7 +448,6 @@
         } else if (ultimoHashDatos === '') {
           mostrarError('No se pudo cargar', esc(e.message));
         }
-        /* errores de red con datos previos: se mantienen los puntos hasta reconectar */
       } finally {
         var b = document.getElementById('btnRefresh');
         b.disabled = false; b.classList.remove('refrescando');
@@ -470,7 +458,6 @@
       b.disabled = true; b.classList.add('refrescando');
       aplicarDatos(false);
     }
-    /* Auto-refresh cada 30s (solo si la pestaña está visible) */
     setInterval(function() {
       if (document.visibilityState !== 'visible' || !CODIGO) return;
       aplicarDatos(false);
@@ -488,19 +475,19 @@
 
       mapInstance = L.map('mapContainer', { zoomControl: true });
 
-      /* ★ PATCH M2 — Tiles SIN API key (CARTO ahora la exige y muestra
-         "API key required" como imagen en el mapa). Principal: Esri Dark
-         Gray (oscuro, sin registro). Respaldo: OpenStreetMap automático. */
+      /* ★ PATCH M3 — PLAN B: OpenStreetMap estándar (tema claro, más detalle:
+         calles locales, negocios, nombres de barrios; nítido hasta zoom 19).
+         Respaldo automático: Esri World Street Map (también claro, sin key). */
       var TILES_PRINCIPAL = {
-        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
-        refUrl: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}',
-        attribution: 'Tiles &copy; Esri, HERE, Garmin, FAO, NOAA, USGS',
-        maxNativeZoom: 16
-      };
-      var TILES_RESPALDO = {
         url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
         refUrl: null,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors',
+        maxNativeZoom: 19
+      };
+      var TILES_RESPALDO = {
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+        refUrl: null,
+        attribution: 'Tiles &copy; Esri, HERE, Garmin, FAO, NOAA, USGS',
         maxNativeZoom: 19
       };
       var tileBaseActual = null;
@@ -515,7 +502,7 @@
       }
       montarTiles(TILES_PRINCIPAL);
 
-      /* Si el principal no carga (bloqueo de red, etc.) → OSM automáticamente */
+      /* Si OSM falla (bloqueo de red, caída del servicio) → Esri automáticamente */
       var erroresTile = 0;
       tileBaseActual.on('tileerror', function() {
         if (cambioARespaldo) return;
@@ -524,7 +511,7 @@
       });
 
       markersLayer = L.layerGroup().addTo(mapInstance);
-      mapInstance.setView([-33.45, -70.66], 11); /* vista inicial genérica; ajusta a tu ciudad */
+      mapInstance.setView([-0.1807, -78.4678], 11); /* ★ M3 — Quito (según tu formConfig de ejemplo); se reencuadra al cargar los puntos */
 
       aplicarDatos(true);
       setTimeout(function() { mapInstance.invalidateSize(); }, 100);
