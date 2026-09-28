@@ -99,6 +99,8 @@
     .gps-mini-orig i { font-size: 13px; animation: origPulse 2.2s ease-in-out infinite; text-shadow: 0 0 8px rgba(232,145,58,0.55); }
     @keyframes origPulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.25); opacity: 0.75; } }
     @media (prefers-reduced-motion: reduce) { .gps-mini-orig i { animation: none; } }
+    /* ★ PATCH M1 — icono de entrega un poco más visible */
+    .gps-mini-nueva i { font-size: 13px; text-shadow: 0 0 8px rgba(52,211,153,0.55); }
     .gps-error-detail { font-size: 10px; color: var(--danger); line-height: 1.5; padding: 5px 7px; background: rgba(248,113,113,0.04); border-radius: 5px; border: 1px solid rgba(248,113,113,0.12); display: none; animation: fadeUp 0.3s ease; }
     .gps-error-detail.visible { display: block; }
     .gps-distancia { display: none; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 5px; width: fit-content; margin-top: 2px; }
@@ -189,7 +191,7 @@
       .et-truck { width: 34px; }
       /* ★ PATCH G2/H1 — ajustes móviles */
       .btn-perm { font-size: 10px; padding: 4px 8px; }
-      .input-com { flex-basis: 100%; min-width: 100%; } /* comentario baja a línea completa */
+      .input-com { flex-basis: 100%; min-width: 100%; }
       .perm-grid { grid-template-columns: repeat(5, 1fr); }
     }
   </style>
@@ -294,9 +296,9 @@
       <div class="empty-state" id="emptyState"><i class="fa-solid fa-inbox"></i><p>Escribe un código de transporte<br>para ver los datos asignados.</p></div>
     </div>
     <div class="acciones">
-      <!-- ★ PATCH J1 — botón con icono de guardar + frase FIN DE RUTA -->
-      <button class="btn btn-guardar" id="btnGuardar" onclick="ejecutarGuardado()"><i class="fa-solid fa-floppy-disk"></i> FIN DE RUTA</button>
-      <!-- ★ PATCH E2 — enlace a mapa completo (mapa.html externo, pestaña nueva) -->
+      <!-- ★ PATCH J1/R2 — botón FIN DE RUTA: inicia deshabilitado, se habilita solo tras carga exitosa -->
+      <button class="btn btn-guardar" id="btnGuardar" onclick="ejecutarGuardado()" disabled><i class="fa-solid fa-floppy-disk"></i> FIN DE RUTA</button>
+      <!-- ★ PATCH E2/R2 — enlace a mapa completo: inicia deshabilitado, se habilita solo tras carga exitosa -->
       <a class="btn btn-mapa disabled" id="btnMapa" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-map-location-dot"></i> Ver mapa completo</a>
     </div>
     <div id="mensaje"></div>
@@ -399,12 +401,24 @@
     }
 
     /* ============================================================
+       ★ PATCH O1 — JORNADAS POR DÍA EN FIREBASE
+       codigosUsados/{YYYY-MM-DD}/{codigo}. La ruta pertenece al día
+       en que INICIÓ la sesión (aunque cruce la medianoche).
+       ============================================================ */
+    function claveDiaLocal(offsetDias) {
+      var d = new Date();
+      if (offsetDias) d.setDate(d.getDate() + offsetDias);
+      function p(n) { return String(n).padStart(2, '0'); }
+      return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+    }
+    var diaSesionActual = null;
+    function urlCodigoDia(codigo) {
+      var dia = diaSesionActual || claveDiaLocal();
+      return FIREBASE_DB_URL_BASE_USADOS + '/' + dia + '/' + encodeURIComponent(codigo);
+    }
+
+    /* ============================================================
        ★ PATCH K1 — RUTAS IDENTIFICADAS POR FECHA DE DESPACHO
-       El campo "fecha" del formConfig (generado por la macro de Excel)
-       es único por despacho. La ruta = ítems con fechas PENDIENTES.
-       FIN DE RUTA archiva esas fechas; al recargar el código solo
-       aparecen los despachos nuevos (mismo cliente con fecha distinta
-       = nueva entrega).
        ============================================================ */
     function normalizarFechaDespacho(s) {
       if (s === null || s === undefined) return '';
@@ -434,8 +448,8 @@
       for (var i = 0; i < s.length; i++) { h = ((h << 5) + h + s.charCodeAt(i)) & 0xFFFFFFFF; }
       return (h >>> 0).toString(36) + '-' + items.length;
     }
-    var rutaIdActualSesion = null; /* ★ PATCH K1 */
-    var fechasRutaSesion = []; /* ★ PATCH K1 — fechas de despacho de la sesión actual */
+    var rutaIdActualSesion = null;
+    var fechasRutaSesion = [];
 
     /* ============================================================
        SEGURO DE DISEÑO — si el logo/camión se altera, la app queda inutilizable
@@ -655,11 +669,9 @@
       if (!codigoTransporteActual || disenoIntacto !== true) return;
       var datos;
       try { datos = recopilarDatosFormulario(); } catch(e) { console.error('Error recopilando datos:', e); return; }
-      /* ★ PATCH K1 — incluye fechasRuta (fechas de despacho de la sesión);
-         PATCH preserva el historial rutas[] */
-      var cuerpo = JSON.stringify({ estado: 'en_proceso', rutaId: rutaIdActualSesion || null, fechasRuta: fechasRutaSesion || [], fechaInicio: fechaInicioSesion || new Date().toISOString(), ultimaActividad: new Date().toISOString(), dispositivoId: obtenerIdDispositivo(), datosFormulario: datos });
+      var cuerpo = JSON.stringify({ estado: 'en_proceso', dia: diaSesionActual || claveDiaLocal(), rutaId: rutaIdActualSesion || null, fechasRuta: fechasRutaSesion || [], fechaInicio: fechaInicioSesion || new Date().toISOString(), ultimaActividad: new Date().toISOString(), dispositivoId: obtenerIdDispositivo(), datosFormulario: datos });
       try {
-        fetch(conAuth(FIREBASE_DB_URL_BASE_USADOS + '/' + codigoTransporteActual + '.json'), {
+        fetch(conAuth(urlCodigoDia(codigoTransporteActual) + '.json'), {
           method: 'PATCH', headers: { 'Content-Type': 'application/json' },
           body: cuerpo,
           keepalive: cuerpo.length < 60000
@@ -674,6 +686,12 @@
       } catch(e) { console.error('Error enviando a Firebase:', e); guardadoPendiente = true; }
     }
 
+    /* ============================================================
+       ★ PATCH P1 — ESCRITOR LIGERO: solo datos crudos.
+       Los campos derivados (mapsUrl, textos de fecha/distancia,
+       duracionTxt) se calculan al leer; recapturado solo si true;
+       accuracy a 1 decimal. Reduce el nodo ~60%.
+       ============================================================ */
     function recopilarDatosFormulario() {
       var filas = document.querySelectorAll('#tbodyLineas tr');
       var entregas = [];
@@ -686,49 +704,39 @@
         var inicio = horEl ? (horEl.dataset.inicio || '') : '';
         var fin = horEl ? (horEl.dataset.fin || '') : '';
         var btnGPS = fila.querySelector('.btn-gps');
-        /* ★ PATCH K1 — fecha de despacho del ítem (identificador de ruta) */
         var reg = { item: nombre, codclnt: fila.dataset.codclnt || '', sector: sector, inicio: inicio, fin: fin, fechaDespacho: fila.dataset.fechaDespacho || '' };
 
         if (btnGPS && btnGPS.dataset.origLat && btnGPS.dataset.origLng) {
-          var oLat = num(btnGPS.dataset.origLat), oLng = num(btnGPS.dataset.origLng), oFecha = btnGPS.dataset.origFecha || null;
           reg.gpsOriginal = {
-            lat: oLat, lng: oLng, origen: 'firebase',
-            fechaCaptura: oFecha,
-            fechaCapturaTxt: oFecha ? formatearFechaHora(oFecha) : null,
-            mapsUrl: 'https://www.google.com/maps?q=' + oLat + ',' + oLng
+            lat: num(btnGPS.dataset.origLat), lng: num(btnGPS.dataset.origLng),
+            fechaCaptura: btnGPS.dataset.origFecha || null
           };
         }
         if (btnGPS && btnGPS.dataset.lat && btnGPS.dataset.lng) {
           var nLat = num(btnGPS.dataset.lat), nLng = num(btnGPS.dataset.lng);
-          var nFecha = btnGPS.dataset.fecha || new Date().toISOString();
           var nAcc = btnGPS.dataset.accuracy ? num(btnGPS.dataset.accuracy) : null;
           var distOrig = null;
           if (tieneCalcDist && btnGPS.dataset.origLat && btnGPS.dataset.origLng) {
             try { distOrig = Math.round(distanciaMetros(num(btnGPS.dataset.origLat), num(btnGPS.dataset.origLng), nLat, nLng)); } catch(e) { distOrig = null; }
           }
-          reg.gps = {
-            lat: nLat, lng: nLng, accuracy: nAcc, origen: 'dispositivo',
-            distanciaOriginal: distOrig,
-            distanciaOriginalTxt: (distOrig !== null) ? formatearDistancia(distOrig) : null,
-            recapturado: btnGPS.dataset.recapturado ? true : false,
-            fechaCaptura: nFecha,
-            fechaCapturaTxt: formatearFechaHora(nFecha),
-            mapsUrl: 'https://www.google.com/maps?q=' + nLat + ',' + nLng
+          var gpsLean = {
+            lat: nLat, lng: nLng,
+            accuracy: (nAcc !== null) ? Math.round(nAcc * 10) / 10 : null,
+            origen: 'dispositivo',
+            fechaCaptura: btnGPS.dataset.fecha || new Date().toISOString(),
+            distanciaOriginal: distOrig
           };
+          if (btnGPS.dataset.recapturado) gpsLean.recapturado = true;
+          reg.gps = gpsLean;
         }
-        /* ★ PATCH G2 — permanencia seleccionada + comentario */
         var btnPerm = fila.querySelector('.btn-perm');
         if (btnPerm && btnPerm.dataset.permMin) {
           var mins = num(btnPerm.dataset.permMin);
           if (mins !== null && mins > 0) {
-            reg.permanencia = {
-              minutos: mins,
-              duracionTxt: formatearMinutos(mins),
-              registradoEn: btnPerm.dataset.permFecha || new Date().toISOString()
-            };
+            reg.permanencia = { minutos: mins, registradoEn: btnPerm.dataset.permFecha || new Date().toISOString() };
           }
         }
-        var taCom = fila.querySelector('.input-com'); /* ★ PATCH H1 — campo inline */
+        var taCom = fila.querySelector('.input-com');
         reg.comentario = taCom ? String(taCom.value || '').trim() : '';
         entregas.push(reg);
       });
@@ -1035,7 +1043,7 @@
       var pop = document.getElementById('permPopover');
       pop.classList.remove('visible');
       pop.style.visibility = 'hidden';
-      pop.style.display = 'flex'; /* medir sin mostrar */
+      pop.style.display = 'flex';
       var rect = boton.getBoundingClientRect();
       var w = pop.offsetWidth, h = pop.offsetHeight;
       var left = Math.max(8, Math.min(rect.left, window.innerWidth - w - 8));
@@ -1092,14 +1100,12 @@
       quitar.onclick = quitarPermanenciaSel;
       pop.appendChild(titulo); pop.appendChild(grid); pop.appendChild(quitar);
       document.body.appendChild(pop);
-      /* Cerrar al tocar fuera */
       document.addEventListener('click', function(e) {
         if (!pop.classList.contains('visible')) return;
         if (pop.contains(e.target)) return;
         if (e.target.closest && e.target.closest('.btn-perm')) return;
         cerrarPopoverPerm();
       }, true);
-      /* Cerrar al scrollear o rotar pantalla */
       window.addEventListener('scroll', cerrarPopoverPerm, true);
       window.addEventListener('resize', cerrarPopoverPerm);
     })();
@@ -1125,7 +1131,7 @@
     }
     function aplicarComentario(fila, texto) {
       if (!texto) return;
-      var inp = fila.querySelector('.input-com'); /* ★ PATCH H1 */
+      var inp = fila.querySelector('.input-com');
       if (inp) inp.value = String(texto).substring(0, 500);
     }
 
@@ -1137,6 +1143,32 @@
     }
     function verificarExpiracion(c) { if (!c||!c.expiration) return false; return new Date()>new Date(c.expiration); }
 
+    /* ============================================================
+       ★ PATCH R1 — RECARGA DE CONFIGURACIÓN EN CADA "CARGAR DATOS"
+       formConfig y codigosValidos se releen del servidor en cada
+       carga, así los despachos nuevos del admin aparecen sin F5.
+       Si la recarga falla, se continúa con la última conocida.
+       ============================================================ */
+    async function recargarConfiguracion() {
+      var config = null;
+      try { config = await cargarConfiguracionRemota(); } catch(e) { config = null; }
+      if (!config) return { ok: false, expirado: false, config: null };
+      if (verificarExpiracion(config)) return { ok: true, expirado: true, config: config };
+
+      var raw = config.items && Array.isArray(config.items) ? config.items : [];
+      allItemsConfig = raw.map(function(i) {
+        if (typeof i === 'string') return {name:i,codigo:'',sector:'',ini:'',fin:'',codclnt:'',fecha:'',gpsRegistrado:null};
+        if (i && typeof i === 'object') return {name:i.name||'',codigo:i.codigo||'',sector:i.sector||'',ini:i.ini||'',fin:i.fin||'',codclnt:String(i.CODCLNT || i.codclnt || ''),fecha:String(i.fecha || i.Fecha || ''),gpsRegistrado:extraerGPSDeItem(i)};
+        return {name:'',codigo:'',sector:'',ini:'',fin:'',codclnt:'',fecha:'',gpsRegistrado:null};
+      }).filter(function(i){return i.name !== '';});
+
+      try {
+        var rCV = await fetch(conAuth(FIREBASE_DB_URL_ROOT + '/codigosValidos.json'));
+        if (rCV.ok) codigosValidosMap = (await rCV.json()) || {};
+      } catch(e) { /* se conserva el mapa anterior */ }
+      return { ok: true, expirado: false, config: config };
+    }
+
     async function inicializarApp() {
       if (!verificarDiseno()) { activarBloqueoDiseno(); return; }
       disenoIntacto = true;
@@ -1144,26 +1176,19 @@
       status('Conectando con el servidor...','load');
       await iniciarFirebaseAuth();
       try {
-        var config = await cargarConfiguracionRemota();
-        if (!config) throw new Error('Configuración vacía');
-        if (verificarExpiracion(config)) {
+        var recarga = await recargarConfiguracion(); /* ★ PATCH R1 — carga inicial compartida */
+        if (!recarga.ok) throw new Error('Sin conexión con el servidor');
+        if (recarga.expirado) {
           status('Formulario expirado.','err');
           document.getElementById('mainContent').classList.add('hidden');
           document.getElementById('expiredScreen').classList.remove('hidden');
-          document.getElementById('mensajeExpiracion').textContent = 'Este formulario expiró el ' + new Date(config.expiration).toLocaleString() + '.';
+          document.getElementById('mensajeExpiracion').textContent = 'Este formulario expiró el ' + new Date(recarga.config.expiration).toLocaleString() + '.';
           return;
         }
-        var raw = config.items && Array.isArray(config.items) ? config.items : [];
-        /* ★ PATCH K1 — se conserva el campo fecha (fecha/hora única del despacho) */
-        allItemsConfig = raw.map(function(i) {
-          if (typeof i === 'string') return {name:i,codigo:'',sector:'',ini:'',fin:'',codclnt:'',fecha:'',gpsRegistrado:null};
-          if (i && typeof i === 'object') return {name:i.name||'',codigo:i.codigo||'',sector:i.sector||'',ini:i.ini||'',fin:i.fin||'',codclnt:String(i.CODCLNT || i.codclnt || ''),fecha:String(i.fecha || i.Fecha || ''),gpsRegistrado:extraerGPSDeItem(i)};
-          return {name:'',codigo:'',sector:'',ini:'',fin:'',codclnt:'',fecha:'',gpsRegistrado:null};
-        }).filter(function(i){return i.name !== '';});
-        try { var rCV = await fetch(conAuth(FIREBASE_DB_URL_ROOT + '/codigosValidos.json')); codigosValidosMap = (await rCV.json()) || {}; } catch(e) { codigosValidosMap = {}; }
         status('', 'ok');
         document.getElementById('mainContent').classList.remove('hidden');
         document.getElementById('expiredScreen').classList.add('hidden');
+        /* ★ PATCH R2 — botones ya inician deshabilitados desde el HTML */
         limpiarTabla();
 
         var recordado = obtenerSesionRecordada();
@@ -1180,11 +1205,10 @@
     }
 
     /* ========== VERIFICAR CÓDIGO ========== */
-    /* ★ PATCH K1 — devuelve las fechas de despacho ya finalizadas (histórico)
-       para que el filtrado cargue solo los ítems con fechas pendientes */
     async function verificarSiCodigoFueUsado(codigo) {
       try {
-        var r = await fetch(conAuth(FIREBASE_DB_URL_BASE_USADOS + '/' + codigo + '.json'));
+        var diaHoy = claveDiaLocal();
+        var r = await fetch(conAuth(FIREBASE_DB_URL_BASE_USADOS + '/' + diaHoy + '/' + encodeURIComponent(codigo) + '.json'));
         if (!r.ok) return { usado: true, razon: 'error_red' };
         var data = await r.json();
         if (data === null) return { usado: false };
@@ -1193,7 +1217,7 @@
         var tieneFechas = false;
         if (Array.isArray(data.rutas)) {
           data.rutas.forEach(function(h) {
-            if (h && h.incompleta === true) return; /* rutas huerfanas: no bloquean re-despachos */
+            if (h && h.incompleta === true) return;
             if (Array.isArray(h.fechas) && h.fechas.length) tieneFechas = true;
             (Array.isArray(h.fechas) ? h.fechas : []).forEach(function(f) { completadas[f] = true; });
           });
@@ -1218,74 +1242,55 @@
       } catch(e) { return { usado: true, razon: 'error_red' }; }
     }
 
-    /* ★ PATCH K1 — archiva una sesión previa cuyos ítems ya no existen en
-       formConfig (el admin reemplazó la lista): se conserva su trabajo */
-    async function archivarRutasHuerfanas(codigo, previo) {
+    /* ============================================================
+       ★ PATCH P1 — ARCHIVAR LA RUTA ANTERIOR
+       Al iniciar una ruta NUEVA (completada, liberada o huerfana),
+       la ruta anterior pasa a rutas[] justo antes de sobrescribir
+       datosFormulario. Así nunca hay duplicado y el histórico se
+       conserva (máx. 5).
+       ============================================================ */
+    async function archivarRutaAnterior(codigo, previo) {
       if (!previo || !Array.isArray(previo.datosFormulario) || !previo.datosFormulario.length) return;
       try {
         var rutas = [];
-        var rr = await fetch(conAuth(FIREBASE_DB_URL_BASE_USADOS + '/' + codigo + '/rutas.json'));
+        var rr = await fetch(conAuth(urlCodigoDia(codigo) + '/rutas.json'));
         if (rr.ok) { var j = await rr.json(); if (Array.isArray(j)) rutas = j; }
+        if (previo.rutaId) rutas = rutas.filter(function(h){ return h.rutaId !== previo.rutaId; });
         rutas.push({
           rutaId: previo.rutaId || null,
           fechas: Array.isArray(previo.fechasRuta) ? previo.fechasRuta : [],
-          fechaFin: new Date().toISOString(),
+          fechaInicio: previo.fechaInicio || null,
+          fechaFin: previo.fechaFin || new Date().toISOString(),
           clientes: previo.datosFormulario.length,
           datosFormulario: previo.datosFormulario,
-          incompleta: true
+          incompleta: previo.estado !== 'completado'
         });
         if (rutas.length > 5) rutas = rutas.slice(-5);
-        await fetch(conAuth(FIREBASE_DB_URL_BASE_USADOS + '/' + codigo + '/rutas.json'), {
+        await fetch(conAuth(urlCodigoDia(codigo) + '/rutas.json'), {
           method: 'PUT', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(rutas)
         });
-      } catch(e) { console.error('No se pudo archivar la sesión previa:', e); }
+      } catch(e) { console.error('No se pudo archivar la ruta anterior:', e); }
     }
 
     /* ========== GUARDAR ========== */
-    /* ★ PATCH K1 — FIN DE RUTA: archiva la ruta actual (por sus fechas de
-       despacho) en el histórico rutas[] y marca el código como completado */
+    /* ★ PATCH P1 — la ruta actual vive SOLO en datosFormulario;
+       rutas[] queda para las anteriores del día (se archivan al iniciar
+       una ruta nueva). Sin fechaCambio (redundante con fechaFin). */
     async function guardarFormularioCompleto() {
       if (disenoIntacto !== true) return false;
       var filas = document.querySelectorAll('#tbodyLineas tr');
       if (filas.length === 0 || !codigoTransporteActual) return false;
       var entregas = recopilarDatosFormulario();
-      entregas.forEach(function(e) { e.fechaCambio = new Date().toISOString(); });
-      /* recuperar historial para archivar esta ruta */
       var historial = [];
-      var prev = null;
       try {
-        var rPrev = await fetch(conAuth(FIREBASE_DB_URL_BASE_USADOS + '/' + codigoTransporteActual + '.json'));
-        if (rPrev.ok) prev = await rPrev.json();
+        var rPrev = await fetch(conAuth(urlCodigoDia(codigoTransporteActual) + '/rutas.json'));
+        if (rPrev.ok) { var j = await rPrev.json(); if (Array.isArray(j)) historial = j; }
       } catch(e) {}
-      if (prev && Array.isArray(prev.rutas)) historial = prev.rutas.slice();
-      /* si quedó una sesión en_proceso de OTRA ruta, se archiva para no perder datos */
-      if (prev && prev.estado === 'en_proceso' && prev.rutaId && prev.rutaId !== (rutaIdActualSesion || null) && Array.isArray(prev.datosFormulario) && prev.datosFormulario.length) {
-        historial.push({
-          rutaId: prev.rutaId,
-          fechas: Array.isArray(prev.fechasRuta) ? prev.fechasRuta : [],
-          fechaFin: new Date().toISOString(),
-          clientes: prev.datosFormulario.length,
-          datosFormulario: prev.datosFormulario,
-          incompleta: true
-        });
-      }
-      if (rutaIdActualSesion) {
-        historial = historial.filter(function(h){ return h.rutaId !== rutaIdActualSesion; }); /* evita duplicados */
-        historial.push({
-          rutaId: rutaIdActualSesion,
-          fechas: fechasRutaSesion || [],
-          fechaInicio: fechaInicioSesion || null,
-          fechaFin: new Date().toISOString(),
-          clientes: entregas.length,
-          datosFormulario: entregas
-        });
-        if (historial.length > 5) historial = historial.slice(-5); /* máximo 5 rutas archivadas */
-      }
       try {
-        var r = await fetch(conAuth(FIREBASE_DB_URL_BASE_USADOS + '/' + codigoTransporteActual + '.json'), {
+        var r = await fetch(conAuth(urlCodigoDia(codigoTransporteActual) + '.json'), {
           method: 'PUT', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ estado: 'completado', rutaId: rutaIdActualSesion || null, fechasRuta: fechasRutaSesion || [], rutas: historial, fechaInicio: fechaInicioSesion || null, fechaFin: new Date().toISOString(), dispositivoId: obtenerIdDispositivo(), datosFormulario: entregas })
+          body: JSON.stringify({ estado: 'completado', dia: diaSesionActual || claveDiaLocal(), rutaId: rutaIdActualSesion || null, fechasRuta: fechasRutaSesion || [], rutas: historial, fechaInicio: fechaInicioSesion || null, fechaFin: new Date().toISOString(), dispositivoId: obtenerIdDispositivo(), datosFormulario: entregas })
         });
         if (!r.ok) throw new Error('HTTP'); return true;
       } catch(e) { return false; }
@@ -1304,8 +1309,8 @@
           var codigoGuardado = codigoTransporteActual;
           codigoTransporteActual = '';
           guardadoPendiente = false;
-          msg('Fin de ruta. Código ' + codigoGuardado + ' guardado con éxito.', 'ok'); /* ★ PATCH J1 */
-          mostrarToast('Fin de ruta guardado'); /* ★ PATCH J1 */
+          msg('Fin de ruta. Código ' + codigoGuardado + ' guardado con éxito.', 'ok');
+          mostrarToast('Fin de ruta guardado');
           limpiarSesionDispositivo();
           setTimeout(resetearFormulario, 1500);
         } else { msg('Error de red al guardar.','err'); btn.disabled=false; btn.classList.remove('guardando'); }
@@ -1327,6 +1332,21 @@
       var btnCargar = document.getElementById('btnCargar');
       var codigo = input.value.trim();
       if (!codigo) { msg('Escribe un código de transporte.','warn'); input.focus(); return; }
+
+      /* ★ PATCH R1 — recargar configuración para ver despachos nuevos sin F5.
+         En la restauración automática se omite (acaba de cargarse). */
+      if (autoRestaurada !== true) {
+        msg('Actualizando datos del servidor...','info');
+        var recarga = await recargarConfiguracion();
+        if (recarga.expirado) {
+          status('Formulario expirado.','err');
+          document.getElementById('mainContent').classList.add('hidden');
+          document.getElementById('expiredScreen').classList.remove('hidden');
+          document.getElementById('mensajeExpiracion').textContent = 'Este formulario expiró el ' + new Date(recarga.config.expiration).toLocaleString() + '.';
+          return;
+        }
+        if (!recarga.ok) msg('Sin conexión para actualizar datos. Usando la última configuración cargada.', 'warn');
+      }
 
       var itemsFiltrados = allItemsConfig.filter(function(item) { return item.codigo.toLowerCase() === codigo.toLowerCase(); });
       var hayNodoValidos = Object.keys(codigosValidosMap).length > 0;
@@ -1359,8 +1379,6 @@
       var esContinuacion = false;
       var esLiberado = resultado.liberado === true;
 
-      /* ★ PATCH K1 — sesión en progreso: restaurar SOLO los ítems de sus fechas
-         (los despachos nuevos aparecen después del FIN DE RUTA) */
       if (resultado.puedeContinuar === true) {
         var miDispositivo = obtenerIdDispositivo();
         if (resultado.dispositivoId && resultado.dispositivoId !== miDispositivo) {
@@ -1378,7 +1396,6 @@
             esContinuacion = true;
           }
         } else if (resultado.datosPrevios && resultado.datosPrevios.length) {
-          /* registro de versión anterior (sin fechas): continuar con lo pendiente */
           itemsSesion = itemsFiltrados.filter(function(it) { return !completadas[claveFechaItem(it)]; });
           if (itemsSesion.length === 0) itemsSesion = itemsFiltrados;
           datosPrevios = resultado.datosPrevios;
@@ -1386,15 +1403,9 @@
         }
       }
 
-      /* ★ PATCH K1 — nueva ruta: solo ítems con fecha de despacho NO finalizada */
       if (!itemsSesion) {
-        if (resultado.puedeContinuar === true && resultado.datosPrevios && resultado.datosPrevios.length) {
-          /* los ítems de la sesión previa ya no están en formConfig: archivar su trabajo */
-          await archivarRutasHuerfanas(codigo, resultado.previo);
-        }
         var hayItemsConFecha = itemsFiltrados.some(function(it) { return claveFechaItem(it) !== 'sin-fecha'; });
         if (resultado.nuevaRuta === true && resultado.tieneFechas !== true && !hayItemsConFecha) {
-          /* registro finalizado por versión anterior + ítems sin fecha → bloqueado (clásico) */
           msg('Sin datos para asignar', 'err');
           limpiarSesionDispositivo(); input.value = ''; input.focus();
           return;
@@ -1408,12 +1419,19 @@
       }
 
       codigoTransporteActual = codigo;
-      fechasRutaSesion = fechasDeItems(itemsSesion); /* ★ PATCH K1 */
+      diaSesionActual = (esContinuacion && resultado.previo && resultado.previo.dia) ? resultado.previo.dia : claveDiaLocal();
+      fechasRutaSesion = fechasDeItems(itemsSesion);
       rutaIdActualSesion = calcularRutaId(itemsSesion);
+
+      /* ★ PATCH P1 — antes de sobrescribir, se archiva la ruta anterior del día
+         (completada, liberada o huerfana). Solo cuando NO es continuación. */
+      if (!esContinuacion && resultado.previo && Array.isArray(resultado.previo.datosFormulario) && resultado.previo.datosFormulario.length) {
+        await archivarRutaAnterior(codigo, resultado.previo);
+      }
 
       if (esContinuacion) msg('Continuando sesión. Datos restaurados.', 'info');
       else if (esLiberado) { msg('Sesión anterior liberada. Iniciando nueva.', 'warn'); }
-      else if (resultado.nuevaRuta) { msg('Nueva ruta detectada: ' + itemsSesion.length + ' despacho(s) pendiente(s).', 'warn'); } /* ★ PATCH K1 */
+      else if (resultado.nuevaRuta) { msg('Nueva ruta detectada: ' + itemsSesion.length + ' despacho(s) pendiente(s).', 'warn'); }
       else msg('Mostrando ' + itemsSesion.length + ' ítem(s).', 'ok');
 
       if (autoRestaurada === true) {
@@ -1423,8 +1441,12 @@
 
       guardarSesionEnDispositivo(codigo);
       input.disabled = true; btnCargar.disabled = true;
+      /* ★ PATCH R2 — FIN DE RUTA y Ver mapa visibles solo con datos cargados */
+      document.getElementById('btnGuardar').disabled = true;
       fechaInicioSesion = esContinuacion ? (resultado.fechaInicio || new Date().toISOString()) : new Date().toISOString();
       poblarTabla(itemsSesion, datosPrevios);
+      /* ★ PATCH R2 — habilitar solo tras carga exitosa y tabla poblada */
+      document.getElementById('btnGuardar').disabled = false;
       if (!esContinuacion) guardarEstadoActualEnFirebase();
       iniciarTimerInactividad();
     }
@@ -1447,7 +1469,7 @@
         contador++;
         var fila = document.createElement('tr');
         fila.dataset.codclnt = item.codclnt || '';
-        fila.dataset.fechaDespacho = item.fecha || ''; /* ★ PATCH K1 — fecha del despacho */
+        fila.dataset.fechaDespacho = item.fecha || '';
         fila.style.animation = 'fadeUp 0.35s ease ' + Math.min(idx * 30, 400) + 'ms both';
         var sectorValue = esc((item.sector || '').toUpperCase());
         var iniValue = limpiarHora(item.ini);
@@ -1492,27 +1514,26 @@
         var gpsOrig = (datoPrevio && datoPrevio.gpsOriginal) ? datoPrevio.gpsOriginal : (item.gpsRegistrado || null);
         try { if (gpsOrig) aplicarGPSOriginal(fila, gpsOrig); } catch(e) { console.error('Error GPS original fila ' + contador, e); }
         try { if (datoPrevio && datoPrevio.gps) aplicarGPSCapturada(fila, datoPrevio.gps); } catch(e) { console.error('Error restaurando GPS fila ' + contador, e); }
-        /* ★ PATCH G2 — restaurar permanencia + comentario */
         try { if (datoPrevio && datoPrevio.permanencia) aplicarPermanencia(fila, datoPrevio.permanencia); } catch(e) { console.error('Error restaurando permanencia fila ' + contador, e); }
         try { if (datoPrevio && datoPrevio.comentario) aplicarComentario(fila, datoPrevio.comentario); } catch(e) { console.error('Error restaurando comentario fila ' + contador, e); }
       });
       document.getElementById('itemCount').textContent = contador;
-      /* ★ PATCH E2 — activar botón de mapa completo con el código actual */
-      document.getElementById('btnMapa').href = 'mapa.html?codigo=' + encodeURIComponent(codigoTransporteActual);
+      document.getElementById('btnMapa').href = 'mapa.html?codigo=' + encodeURIComponent(codigoTransporteActual) + '&dia=' + (diaSesionActual || claveDiaLocal());
       document.getElementById('btnMapa').classList.remove('disabled');
     }
     function resetearFormulario() {
       var input = document.getElementById('codigoTransporteInput');
       codigoTransporteActual = '';
-      rutaIdActualSesion = null; /* ★ PATCH K1 */
-      fechasRutaSesion = []; /* ★ PATCH K1 */
+      diaSesionActual = null;
+      rutaIdActualSesion = null;
+      fechasRutaSesion = [];
       fechaInicioSesion = null;
       document.querySelector('.code-section').classList.remove('hidden');
       input.value = ''; input.disabled = false;
       document.getElementById('btnCargar').disabled = false;
-      document.getElementById('btnGuardar').disabled = false;
+      /* ★ PATCH R2 — botones vuelven a estado deshabilitado (sin datos cargados) */
+      document.getElementById('btnGuardar').disabled = true;
       document.getElementById('btnGuardar').classList.remove('guardando');
-      /* ★ PATCH E2 — desactivar botón de mapa completo */
       var bm = document.getElementById('btnMapa');
       bm.removeAttribute('href'); bm.classList.add('disabled');
       limpiarTabla();
