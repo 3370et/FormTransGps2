@@ -35,7 +35,8 @@
     .page-header h1 span { color: var(--accent); }
     /* Barra de estado compacta (solo icono cuando no hay texto) */
     .status { display: flex; align-items: center; gap: 10px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; margin-bottom: 24px; font-size: 13px; font-weight: 500; color: var(--fg-muted); animation: fadeUp 0.4s ease; }
-    .status.ok { padding: 8px 12px; width: fit-content; }
+    /* ★ PATCH S1-D — contador de sincronización visible */
+    .status.ok { padding: 8px 12px; width: auto; max-width: 100%; }
     .status.ok span:empty { display: none; }
     .status i { font-size: 14px; } .status.ok i { color: var(--success); } .status.warn i { color: var(--warning); } .status.err i { color: var(--danger); } .status.load i { color: var(--info); animation: spin 1s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -157,7 +158,7 @@
     .btn-mapa { background: rgba(96,165,250,0.1); color: var(--info); border: 1.5px solid rgba(96,165,250,0.25); }
     .btn-mapa:hover { background: rgba(96,165,250,0.18); border-color: var(--info); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(96,165,250,0.15); }
     .btn-mapa.disabled { pointer-events: none; opacity: 0.5; }
-    /* ★ PATCH G2 — Permanencia por selección rápida (10m a 2h) */
+    /* ★ PATCH G2 — Permanencia por selección rápida (5m a 2h) */
     .btn-perm { display: inline-flex; align-items: center; gap: 5px; font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 11px; padding: 5px 10px; border-radius: 7px; border: 1.5px solid rgba(167,139,250,0.25); background: rgba(167,139,250,0.08); color: var(--purple); cursor: pointer; transition: all 0.25s ease; white-space: nowrap; width: fit-content; font-variant-numeric: tabular-nums; }
     .btn-perm:hover { background: rgba(167,139,250,0.16); border-color: var(--purple); transform: translateY(-1px); }
     .btn-perm:active { transform: scale(0.95); }
@@ -415,8 +416,6 @@
 
     /* ============================================================
        ★ PATCH O1 — JORNADAS POR DÍA EN FIREBASE
-       codigosUsados/{YYYY-MM-DD}/{codigo}. La ruta pertenece al día
-       en que INICIÓ la sesión (aunque cruce la medianoche).
        ============================================================ */
     function claveDiaLocal(offsetDias) {
       var d = new Date();
@@ -649,9 +648,13 @@
       }
     }
 
+    /* ★ PATCH S1-B — Guardar en Firebase ANTES del reset por inactividad,
+       para que la futura restauración recupere TODAS las capturas */
     function forzarResetPorInactividad(tipo) {
       detenerTimerInactividad();
       var codigoPrevio = codigoTransporteActual;
+      /* ★ PATCH S1-B — guardar el estado ANTES de limpiar la tabla */
+      if (codigoTransporteActual && disenoIntacto === true) guardarEstadoActualEnFirebase();
       try { localStorage.removeItem(LS_KEY); } catch(e) {}
       resetearFormulario();
       if (tipo === 'bloqueo') {
@@ -663,6 +666,8 @@
 
     /* ============================================================
        GUARDADO AUTOMÁTICO AL CERRAR PÁGINA + AUTO-SYNC AL RECONECTAR
+       + ★ PATCH S1-A — Guardar al bloquear Y desbloquear pantalla
+       + ★ PATCH S1-C — Reintento de seguridad cada 60s
        ============================================================ */
     window.addEventListener('beforeunload', function() {
       if (codigoTransporteActual && disenoIntacto === true) guardarEstadoActualEnFirebase();
@@ -673,6 +678,28 @@
     setInterval(function() {
       if (guardadoPendiente && navigator.onLine && codigoTransporteActual && disenoIntacto === true) guardarEstadoActualEnFirebase();
     }, 30000);
+
+    /* ★ PATCH S1-A — Guardar SIEMPRE al cambiar visibilidad:
+       - Al pasar a hidden (bloquear pantalla, cambiar app): guardar YA
+         antes de que el SO congele el proceso y mate el fetch.
+       - Al volver a visible (desbloquear): reintentar el guardado.
+         Esto recupera cualquier PATCH que murió mientras estuvo
+         en background — la tabla en pantalla tiene TODAS las capturas,
+         así que el PATCH de recuperación envía el estado completo. */
+    document.addEventListener('visibilitychange', function() {
+      if (!codigoTransporteActual || disenoIntacto !== true) return;
+      guardarEstadoActualEnFirebase();
+    });
+
+    /* ★ PATCH S1-C — Sincronización de seguridad cada 60s:
+         no depende de guardadoPendiente. Si el repartidor está
+         activo, el estado completo se reenvía periódicamente.
+         Un PATCH de ~10KB cada minuto es despreciable. */
+    setInterval(function() {
+      if (codigoTransporteActual && disenoIntacto === true && navigator.onLine && document.visibilityState === 'visible') {
+        guardarEstadoActualEnFirebase();
+      }
+    }, 60000);
 
     function despuesDeCapturarGPS() {
       actualizarActividadEnDispositivo();
@@ -689,21 +716,35 @@
           body: cuerpo,
           keepalive: cuerpo.length < 60000
         }).then(function(r){
-          if (!r.ok) { console.error('Firebase respondió HTTP', r.status); guardadoPendiente = true; status('Sin conexión — guardado pendiente', 'warn'); }
-          else { guardadoPendiente = false; status('', 'ok'); }
+          if (!r.ok) {
+            console.error('Firebase respondió HTTP', r.status);
+            guardadoPendiente = true;
+            status('⚠ Sin conexión — entregas pendientes de sincronizar', 'warn');
+          } else {
+            guardadoPendiente = false;
+            /* ★ PATCH S1-D — contador visible de sincronización */
+            var filas = document.querySelectorAll('#tbodyLineas tr');
+            var entregadas = 0;
+            filas.forEach(function(f) {
+              var b = f.querySelector('.btn-gps');
+              if (b && b.dataset.origen === 'dispositivo' && b.dataset.lat) entregadas++;
+            });
+            if (filas.length > 0) {
+              status(entregadas + ' de ' + filas.length + ' entregas sincronizadas ✓', 'ok');
+            } else {
+              status('', 'ok');
+            }
+          }
         }).catch(function(e){
           console.error('Error de red guardando:', e);
           guardadoPendiente = true;
-          status('Sin conexión — guardado pendiente', 'warn');
+          status('⚠ Sin conexión — entregas pendientes de sincronizar', 'warn');
         });
       } catch(e) { console.error('Error enviando a Firebase:', e); guardadoPendiente = true; }
     }
 
     /* ============================================================
        ★ PATCH P1 — ESCRITOR LIGERO: solo datos crudos.
-       Los campos derivados (mapsUrl, textos de fecha/distancia,
-       duracionTxt) se calculan al leer; recapturado solo si true;
-       accuracy a 1 decimal. Reduce el nodo ~60%.
        ============================================================ */
     function recopilarDatosFormulario() {
       var filas = document.querySelectorAll('#tbodyLineas tr');
@@ -884,7 +925,7 @@
           if (esGPSApagado(error)) { boton.innerHTML = '<i class="fa-solid fa-location-crosshairs"></i> GPS apagado'; abrirModalGPS(boton); return; }
           boton.classList.add('error-gps'); var t='',d='';
           switch(error.code) {
-            case error.PERMISSION_DENIED: t='<i class="fa-solid fa-ban"></i> Permiso denegado'; d='<div class="gps-error-title perm-denied"><i class="fa-solid fa-ban"></i> Permiso denegado</div>El navegador bloqueó el acceso.<ul><li>Toca el <strong>candado</strong> junto a la dirección</li><li>Busca <strong>Ubicación</strong> → <strong>Permitir</strong></li><li>Recarga y reintenta</li></ul>'; break;
+            case error.PERMISSION_DENIED: t='<i class="fa-solid fa-ban"></i> Permiso denegado'; d='<div class="gps-error-title perm-denied"><i class="fa-solid fa-ban"></i> Permiso denegado</div>El navegador bloqueó el acceso.<ul><li>Toca el <strong>candado</strong> junto a la dirección</li><li>Search <strong>Ubicación</strong> → <strong>Permitir</strong></li><li>Recarga y reintenta</li></ul>'; break;
             case error.POSITION_UNAVAILABLE: t='<i class="fa-solid fa-satellite-dish"></i> Sin señal'; d='<div class="gps-error-title no-signal"><i class="fa-solid fa-satellite-dish"></i> Sin señal GPS</div>Verifica GPS y reintenta.'; break;
             case error.TIMEOUT: t='<i class="fa-solid fa-clock"></i> Tiempo agotado'; d='<div class="gps-error-title timeout"><i class="fa-solid fa-clock"></i> Tiempo agotado</div>Verifica GPS y reintenta.'; break;
             default: t='<i class="fa-solid fa-xmark"></i> Error'; d='<div class="gps-error-title perm-denied"><i class="fa-solid fa-xmark"></i> Error</div>';
@@ -1025,7 +1066,8 @@
     }
 
     /* ============================================================
-       ★ PATCH G2 — PERMANENCIA POR SELECCIÓN RÁPIDA (10m – 2h)
+       ★ PATCH G2/S1b — PERMANENCIA POR SELECCIÓN RÁPIDA (5m – 2h)
+       ★ PATCH S1b — rango ampliado: ahora inicia en 5 minutos
        + Comentarios por cliente (★ PATCH H1 — campo inline)
        ============================================================ */
     function formatearMinutos(m) {
@@ -1103,7 +1145,8 @@
       var grid = document.createElement('div');
       grid.className = 'perm-grid';
       var html = '';
-      for (var m = 10; m <= 120; m += 5) {
+      /* ★ PATCH S1b — desde 5 minutos: 5,10,15,20,25,30...120 (24 chips) */
+      for (var m = 5; m <= 120; m += 5) {
         html += '<button type="button" class="perm-chip" data-min="' + m + '" onclick="seleccionarPermanencia(' + m + ')">' + m + '<small>m</small></button>';
       }
       grid.innerHTML = html;
@@ -1158,9 +1201,6 @@
 
     /* ============================================================
        ★ PATCH R1 — RECARGA DE CONFIGURACIÓN EN CADA "CARGAR DATOS"
-       formConfig y codigosValidos se releen del servidor en cada
-       carga, así los despachos nuevos del admin aparecen sin F5.
-       Si la recarga falla, se continúa con la última conocida.
        ============================================================ */
     async function recargarConfiguracion() {
       var config = null;
@@ -1257,10 +1297,6 @@
 
     /* ============================================================
        ★ PATCH P1 — ARCHIVAR LA RUTA ANTERIOR
-       Al iniciar una ruta NUEVA (completada, liberada o huerfana),
-       la ruta anterior pasa a rutas[] justo antes de sobrescribir
-       datosFormulario. Así nunca hay duplicado y el histórico se
-       conserva (máx. 5).
        ============================================================ */
     async function archivarRutaAnterior(codigo, previo) {
       if (!previo || !Array.isArray(previo.datosFormulario) || !previo.datosFormulario.length) return;
@@ -1287,9 +1323,7 @@
     }
 
     /* ========== GUARDAR ========== */
-    /* ★ PATCH P1 — la ruta actual vive SOLO en datosFormulario;
-       rutas[] queda para las anteriores del día (se archivan al iniciar
-       una ruta nueva). Sin fechaCambio (redundante con fechaFin). */
+    /* ★ PATCH P1 — la ruta actual vive SOLO en datosFormulario; */
     async function guardarFormularioCompleto() {
       if (disenoIntacto !== true) return false;
       var filas = document.querySelectorAll('#tbodyLineas tr');
@@ -1346,8 +1380,7 @@
       var codigo = input.value.trim();
       if (!codigo) { msg('Escribe un código de transporte.','warn'); input.focus(); return; }
 
-      /* ★ PATCH R1 — recargar configuración para ver despachos nuevos sin F5.
-         En la restauración automática se omite (acaba de cargarse). */
+      /* ★ PATCH R1 — recargar configuración para ver despachos nuevos sin F5 */
       if (autoRestaurada !== true) {
         msg('Actualizando datos del servidor...','info');
         var recarga = await recargarConfiguracion();
@@ -1436,8 +1469,7 @@
       fechasRutaSesion = fechasDeItems(itemsSesion);
       rutaIdActualSesion = calcularRutaId(itemsSesion);
 
-      /* ★ PATCH P1 — antes de sobrescribir, se archiva la ruta anterior del día
-         (completada, liberada o huerfana). Solo cuando NO es continuación. */
+      /* ★ PATCH P1 — antes de sobrescribir, se archiva la ruta anterior del día */
       if (!esContinuacion && resultado.previo && Array.isArray(resultado.previo.datosFormulario) && resultado.previo.datosFormulario.length) {
         await archivarRutaAnterior(codigo, resultado.previo);
       }
@@ -1500,8 +1532,7 @@
 
         var horarioTxt = (iniR || finR) ? ((iniR || '--:--') + ' – ' + (finR || '--:--')) : '—';
 
-        /* ★ PATCH H1 — fila compacta: GPS + permanencia + comentario en una línea;
-           sector y horario al nivel de la ubicación original */
+        /* ★ PATCH H1 — fila compacta */
         fila.innerHTML =
           '<td><span class="row-num">' + contador + '</span></td>' +
           '<td class="celda-nombre"><span class="item-name-text">' + esc(item.name) + '</span></td>' +
