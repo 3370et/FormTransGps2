@@ -345,7 +345,15 @@
     var codigosValidosMap = {};
 
     /* ★ PATCH D1 — FIREBASE ANONYMOUS AUTH (capa opcional de seguridad) */
-    var FIREBASE_APP_CONFIG = null;
+    var FIREBASE_APP_CONFIG = {
+      apiKey: "AIzaSyCrnroA2yd2coEVyn6Jm-q8sM6rvOb6Y3k",
+      authDomain: "datos-formulario-f3cde.firebaseapp.com",
+      databaseURL: "https://datos-formulario-f3cde-default-rtdb.firebaseio.com",
+      projectId: "datos-formulario-f3cde",
+      storageBucket: "datos-formulario-f3cde.firebasestorage.app",
+      messagingSenderId: "1060204671476",
+      appId: "1:1060204671476:web:a476539fa122fd04fa89a1"
+    };
     var fbAuthToken = null;
 
     function conAuth(url) {
@@ -375,8 +383,13 @@
               if (user) { user.getIdToken().then(function(t) { fbAuthToken = t; }).catch(function(){}); }
               else { fbAuthToken = null; }
             });
-            return firebase.auth().signInAnonymously().then(function() { return true; }).catch(function(e) {
-              console.warn('Auth anónima no disponible, continuando sin token:', e && e.message);
+            return firebase.auth().signInAnonymously().then(function() {
+              /* ★ SEGURIDAD — token listo ANTES del primer fetch */
+              var u = firebase.auth().currentUser;
+              if (u) return u.getIdToken().then(function(t) { fbAuthToken = t; return true; });
+              return true;
+            }).catch(function(e) {
+              console.warn('Auth anónima no disponible:', e && e.message);
               return false;
             });
           }),
