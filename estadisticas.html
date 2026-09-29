@@ -92,6 +92,20 @@
     .bf-ok{background:var(--success)} .bf-warn{background:var(--warning)} .bf-bad{background:var(--danger)} .bf-info{background:var(--info)} .bf-purple{background:var(--purple)} .bf-accent{background:var(--accent)}
     .barra-meta{flex:0 0 130px;font-size:10.5px;color:var(--fg3);white-space:nowrap}
 
+    /* ★ Barras segmentadas por calidad de entrega */
+    .barra-seg{display:flex;height:100%;border-radius:5px;overflow:hidden}
+    .seg{height:100%;transition:width .6s ease;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-size:9px;font-weight:800;color:#0f1117;overflow:hidden}
+    .seg-at-ok{background:var(--success)}       /* a tiempo + alineado <100m */
+    .seg-at-med{background:var(--info)}          /* a tiempo + 100-500m */
+    .seg-at-lej{background:var(--accent)}       /* a tiempo + >500m */
+    .seg-atr{background:var(--danger)}          /* capturadas atrasadas */
+    .seg-pend{background:#2a2f40;color:#7b829a} /* pendientes sin capturar */
+    /* Leyenda de segmentos */
+    .seg-legenda{display:flex;gap:12px;flex-wrap:wrap;font-size:9.5px;color:var(--fg2);margin-bottom:10px}
+    .seg-legenda span{display:inline-flex;align-items:center;gap:4px}
+    .slg{width:10px;height:10px;border-radius:3px;display:inline-block;flex-shrink:0}
+    .slg-at-ok{background:var(--success)} .slg-at-med{background:var(--info)} .slg-at-lej{background:var(--accent)} .slg-atr{background:var(--danger)} .slg-pend{background:#2a2f40;border:1px solid var(--border)}
+
     /* Distribución horaria */
     .hist{display:flex;align-items:flex-end;gap:3px;height:130px;padding-top:8px}
     .hist-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
@@ -148,6 +162,7 @@
       .kpi .k-value{font-size:22px}
       .barra-label{flex-basis:100px;font-size:10.5px}
       .barra-meta{flex-basis:110px;font-size:9.5px}
+      .seg-legenda{gap:8px;font-size:9px}
     }
   </style>
 </head>
@@ -218,9 +233,16 @@
       </div>
     </div>
 
-    <!-- ★ Cumplimiento por código de ruta -->
+    <!-- ★ Cumplimiento por código de ruta (barras segmentadas) -->
     <div class="seccion">
       <div class="sec-title"><i class="fa-solid fa-route"></i> Cumplimiento por código de ruta <span class="st-sub" id="secRutasSub"></span></div>
+      <div class="seg-legenda">
+        <span><span class="slg slg-at-ok"></span>A tiempo · en sitio (&lt;100m)</span>
+        <span><span class="slg slg-at-med"></span>A tiempo · alejado (100–500m)</span>
+        <span><span class="slg slg-at-lej"></span>A tiempo · muy lejos (&gt;500m)</span>
+        <span><span class="slg slg-atr"></span>Atrasadas</span>
+        <span><span class="slg slg-pend"></span>Pendientes sin capturar</span>
+      </div>
       <div class="card" id="cardRutas"><div class="sin-datos"><i class="fa-solid fa-route"></i><p>Sin datos para el rango seleccionado.</p></div></div>
     </div>
 
@@ -529,7 +551,7 @@
     function renderTodo() {
       renderKPIs();
       renderSectores();
-      renderRutas();          /* ★ Cumplimiento por código de ruta */
+      renderRutas();
       renderHoras();
       renderTendencia();
       renderDesviaciones();
@@ -544,8 +566,7 @@
       var sinGps = f.length - conGps.length;
       document.getElementById('kEntregas').textContent = f.length;
       document.getElementById('kEntregasSub').textContent = conGps.length + ' con GPS · ' + sinGps + ' pendientes';
-      /* ★ Cumplimiento sobre el 100% planificado: las entregas SIN capturar
-         GPS (negligencia o pendientes) cuentan en contra del porcentaje */
+      /* ★ % sobre el 100% planificado: sin capturar = incumple */
       document.getElementById('kATiempo').textContent = f.length ? Math.round(aTiempo.length / f.length * 100) + '%' : '—';
       document.getElementById('kATiempoSub').textContent = aTiempo.length + ' de ' + f.length + ' planificadas';
       document.getElementById('kAtrasadas').textContent = atrasadas.length;
@@ -590,37 +611,52 @@
       card.innerHTML = html;
     }
 
-    /* ★ Cumplimiento por código de ruta: % sobre el total planificado
-       (las entregas sin capturar GPS pesan en contra) */
+    /* ★ Cumplimiento por código de ruta — barra SEGMENTADA por calidad:
+       verde (a tiempo y en sitio) + azul (alejado) + naranja (muy lejos)
+       + rojo (atrasadas) + gris oscuro (pendientes sin capturar).
+       El % mostrado sigue siendo sobre el 100% planificado. */
     function renderRutas() {
       var f = datosActuales;
       var card = document.getElementById('cardRutas');
       if (!f.length) { card.innerHTML = '<div class="sin-datos"><i class="fa-solid fa-route"></i><p>Sin entregas en el rango.</p></div>'; document.getElementById('secRutasSub').textContent = ''; return; }
       var grupos = {};
       f.forEach(function(x) {
-        if (!grupos[x.codigo]) grupos[x.codigo] = { total: 0, ok: 0, atrasadas: 0, conGps: 0 };
+        if (!grupos[x.codigo]) grupos[x.codigo] = { atOk: 0, atMed: 0, atLej: 0, atr: 0, pend: 0, total: 0 };
         grupos[x.codigo].total++;
-        if (x.entregado) {
-          grupos[x.codigo].conGps++;
-          if (x.atrasoMin != null && x.atrasoMin <= 0) grupos[x.codigo].ok++;
-          else if (x.atrasoMin != null && x.atrasoMin > 0) grupos[x.codigo].atrasadas++;
-        }
+        if (!x.entregado) { grupos[x.codigo].pend++; return; }
+        if (x.atrasoMin != null && x.atrasoMin > 0) { grupos[x.codigo].atr++; return; }
+        /* A tiempo: clasificar por distancia al punto original */
+        if (x.distNum == null) { grupos[x.codigo].atMed++; return; } /* sin dato de distancia = neutro */
+        if (x.distNum < 100) grupos[x.codigo].atOk++;
+        else if (x.distNum < 500) grupos[x.codigo].atMed++;
+        else grupos[x.codigo].atLej++;
       });
       var rutas = Object.keys(grupos).map(function(c) {
         var g = grupos[c];
-        /* ★ % sobre el total planificado (sinGps pesa en contra) */
-        return { cod: c, total: g.total, ok: g.ok, atrasadas: g.atrasadas, sinGps: g.total - g.conGps,
-                 pct: g.total ? Math.round(g.ok / g.total * 100) : 0 };
+        var okTotal = g.atOk + g.atMed + g.atLej;
+        return { cod: c, g: g, total: g.total,
+                 pct: g.total ? Math.round(okTotal / g.total * 100) : 0 };
       });
       rutas.sort(function(a, b) { return b.total - a.total; });
       document.getElementById('secRutasSub').textContent = rutas.length + ' rutas';
       var html = '';
       rutas.forEach(function(r) {
-        var cls = r.pct >= 80 ? 'bf-ok' : (r.pct >= 50 ? 'bf-warn' : 'bf-bad');
+        var g = r.g;
+        function w(n) { return r.total ? (n / r.total * 100) : 0; }
+        function lbl(n, anchoPct) { return anchoPct >= 9 ? n : ''; }
+        var wOk = w(g.atOk), wMed = w(g.atMed), wLej = w(g.atLej), wAtr = w(g.atr), wPend = w(g.pend);
         html += '<div class="barra-row">' +
           '<div class="barra-label" title="Ruta ' + esc(r.cod) + '" style="font-family:\'Space Grotesk\',sans-serif;font-weight:700;color:var(--accent)">Ruta ' + esc(r.cod) + '</div>' +
-          '<div class="barra-track"><div class="barra-fill ' + cls + '" style="width:' + r.pct + '%">' + r.pct + '%</div></div>' +
-          '<div class="barra-meta">' + r.ok + ' ok · ' + r.atrasadas + ' atras. · ' + r.sinGps + ' pend.</div>' +
+          '<div class="barra-track" title="A tiempo en sitio: ' + g.atOk + ' · alejado: ' + g.atMed + ' · muy lejos: ' + g.atLej + ' · atrasadas: ' + g.atr + ' · pendientes: ' + g.pend + '">' +
+            '<div class="barra-seg">' +
+              (g.atOk ? '<div class="seg seg-at-ok" style="width:' + wOk + '%">' + lbl(g.atOk, wOk) + '</div>' : '') +
+              (g.atMed ? '<div class="seg seg-at-med" style="width:' + wMed + '%">' + lbl(g.atMed, wMed) + '</div>' : '') +
+              (g.atLej ? '<div class="seg seg-at-lej" style="width:' + wLej + '%">' + lbl(g.atLej, wLej) + '</div>' : '') +
+              (g.atr ? '<div class="seg seg-atr" style="width:' + wAtr + '%">' + lbl(g.atr, wAtr) + '</div>' : '') +
+              (g.pend ? '<div class="seg seg-pend" style="width:' + wPend + '%">' + lbl(g.pend, wPend) + '</div>' : '') +
+            '</div>' +
+          '</div>' +
+          '<div class="barra-meta">' + r.pct + '% · ' + r.total + ' ent.</div>' +
         '</div>';
       });
       card.innerHTML = html;
@@ -688,7 +724,6 @@
       var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;display:block">';
       svg += '<line x1="' + PAD + '" y1="' + (H - PAD) + '" x2="' + (W - PAD / 2) + '" y2="' + (H - PAD) + '" stroke="#22273a" stroke-width="1"/>';
       var puntosPct = dias.map(function(d, i) {
-        /* ★ % sobre el total planificado del día */
         var pct = porDia[d].total ? Math.round(porDia[d].ok / porDia[d].total * 100) : 0;
         return xAt(i) + ',' + yPct(pct);
       }).join(' ');
@@ -702,7 +737,6 @@
         svg += '<text x="' + xAt(i) + '" y="' + (y - 4) + '" text-anchor="middle" font-size="9" fill="#e8913a" font-family="Space Grotesk">' + porDia[d].total + '</text>';
       });
       dias.forEach(function(d, i) {
-        /* ★ % sobre el total planificado del día */
         var pct = porDia[d].total ? Math.round(porDia[d].ok / porDia[d].total * 100) : 0;
         svg += '<circle cx="' + xAt(i) + '" cy="' + yPct(pct) + '" r="3.5" fill="#34d399"><title>' + diaBonito(d) + ': ' + pct + '% a tiempo</title></circle>';
         svg += '<text x="' + xAt(i) + '" y="' + (yPct(pct) - 8) + '" text-anchor="middle" font-size="9" fill="#34d399" font-family="Space Grotesk">' + pct + '%</text>';
