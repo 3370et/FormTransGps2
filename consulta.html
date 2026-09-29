@@ -76,7 +76,7 @@
     .sesion-bar.danger{background:rgba(248,113,113,.06);border-color:rgba(248,113,113,.15);color:var(--danger)}
 
     /* ===== RESUMEN ===== */
-    .resumen{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px}
+    .resumen{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px;margin-bottom:24px}
     .resumen-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 14px}
     .resumen-card .rc-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--fg3);margin-bottom:6px;display:flex;align-items:center;gap:6px}
     .resumen-card .rc-label i{font-size:11px}
@@ -85,7 +85,7 @@
     /* ===== TABLA ===== */
     .table-wrap{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:20px}
     .table-scroll{overflow-x:auto}
-    table{width:100%;border-collapse:collapse;min-width:900px}
+    table{width:100%;border-collapse:collapse;min-width:1040px}
     thead{background:var(--bg2)}
     th{padding:11px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--fg3);border-bottom:1px solid var(--border);white-space:nowrap}
     th i{margin-right:4px;font-size:10px;opacity:.7}
@@ -96,6 +96,9 @@
     .cod-clnt{font-family:'Space Grotesk',monospace;font-size:11px;color:var(--fg3);white-space:nowrap}
     .nombre-cliente{font-weight:600;color:var(--fg)}
     .hora-entrega{font-family:'Space Grotesk',monospace;font-size:12px;white-space:nowrap}
+    /* ★ Estado de ruta en la celda Fin */
+    .estado-curso{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:var(--info);background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.25);padding:2px 8px;border-radius:99px;white-space:nowrap}
+    .estado-curso i{font-size:8px;animation:spin 2.5s linear infinite}
     .perm-val{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--purple);background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.2);padding:2px 8px;border-radius:6px;white-space:nowrap}
     .dist-val{font-size:11px;font-weight:700;white-space:nowrap}
     .dist-ok{color:var(--success)} .dist-warn{color:var(--warning)} .dist-bad{color:var(--danger)}
@@ -129,7 +132,7 @@
       .resumen{grid-template-columns:repeat(2,1fr)}
       .resumen-card .rc-value{font-size:20px}
       th,td{padding:8px 8px;font-size:11px}
-      table{min-width:800px}
+      table{min-width:940px}
     }
   </style>
 </head>
@@ -183,6 +186,10 @@
         <div class="rc-value" style="color:var(--accent)" id="rcRutas">0</div>
       </div>
       <div class="resumen-card">
+        <div class="rc-label"><i class="fa-solid fa-person-running" style="color:var(--info)"></i> En curso</div>
+        <div class="rc-value" style="color:var(--info)" id="rcCurso">0</div>
+      </div>
+      <div class="resumen-card">
         <div class="rc-label"><i class="fa-solid fa-box" style="color:var(--info)"></i> Entregas</div>
         <div class="rc-value" style="color:var(--info)" id="rcEntregas">0</div>
       </div>
@@ -205,6 +212,8 @@
         <table>
           <thead><tr>
             <th><i class="fa-solid fa-route"></i> Ruta</th>
+            <th><i class="fa-solid fa-play"></i> Inicio</th>
+            <th><i class="fa-solid fa-stop"></i> Fin</th>
             <th><i class="fa-solid fa-id-card"></i> Cod. Cliente</th>
             <th><i class="fa-solid fa-user"></i> Cliente</th>
             <th><i class="fa-regular fa-clock"></i> Hora entrega</th>
@@ -229,9 +238,11 @@
     var SESSION_DURACION_MS = 60 * 60 * 1000; /* ★ 60 minutos de sesión */
     var SESSION_CLAVE = 'consulta_sesion';
     var LS_DEVICE_KEY = 'consulta_dispositivo_id';
+    var REFRESH_MS = 60000; /* ★ auto-refresh de rutas en curso cada 60s */
 
     /* ===== ESTADO ===== */
     var datosGlobales = [];
+    var rutasEnCurso = 0;
     var jornadaSeleccionada = null;
     var timerSesion = null;
     var verificandoAcceso = false;
@@ -319,10 +330,6 @@
       function p(n){ return String(n).padStart(2,'0'); }
       return p(d.getHours()) + ':' + p(d.getMinutes());
     }
-    function fetchConTimeout(url, ms) {
-      var c = new AbortController(); var t = setTimeout(function(){ c.abort(); }, ms);
-      return fetch(url, { signal: c.signal }).finally(function(){ clearTimeout(t); });
-    }
     function mostrarToast(texto, tipo) {
       var t = document.getElementById('toast');
       var iconCls = tipo === 'ok' ? 'fa-circle-check ok' : 'fa-circle-xmark err';
@@ -345,7 +352,7 @@
       }
     }
 
-    /* ===== SESIÓN ===== */
+    /* ===== SESIÓN (60 min, renueva con actividad) ===== */
     function guardarSesion(clave, nombre) {
       try {
         localStorage.setItem(SESSION_CLAVE, JSON.stringify({ c: clave, n: nombre, t: Date.now(), d: obtenerIdDispositivo() }));
@@ -368,7 +375,6 @@
       claveSesionActual = null;
       try { localStorage.removeItem(SESSION_CLAVE); } catch(e) {}
     }
-    /* ★ Timer de sesión — 60 min, se renueva con cada interacción */
     function iniciarTimerSesion() {
       detenerTimerSesion();
       timerSesion = setInterval(function() {
@@ -408,7 +414,6 @@
         }
       }, { passive: true });
     });
-    /* Al volver de background, verificar si la sesión sigue válida */
     document.addEventListener('visibilitychange', function() {
       if (!document.hidden && claveSesionActual) {
         var s = leerSesion();
@@ -481,7 +486,7 @@
     async function restaurarSesion() {
       var s = leerSesion();
       if (!s) return;
-      /* ★ Verificar mismo dispositivo */
+      /* ★ Verificar mismo dispositivo (una sesión a la vez) */
       if (s.d && s.d !== obtenerIdDispositivo()) {
         borrarSesion();
         return;
@@ -588,7 +593,6 @@
         pintarChipsJornadas(fechas, legacy);
 
         /* Paso 2: resolver jornada activa */
-        var cache = { fechas: fechas, legacy: legacy };
         if (jornadaSeleccionada === '__legacy__' && !legacy.length) jornadaSeleccionada = null;
         if (jornadaSeleccionada && jornadaSeleccionada !== '__legacy__' && fechas.indexOf(jornadaSeleccionada) === -1) jornadaSeleccionada = null;
         if (!jornadaSeleccionada) {
@@ -611,8 +615,12 @@
         if (!r.ok) throw new Error('HTTP ' + r.status);
         var data = await r.json();
 
-        /* Paso 4: extraer datos (solo lectura — sin fusionar rutas[] para no duplicar) */
+        /* Paso 4: extraer datos — INCLUYE rutas en_proceso (en curso):
+           cada entrega ya capturada aparece con los datos de su ruta.
+           La ruta actual (en_proceso) usa entry.fechaInicio; como aún no
+           tiene fechaFin, la columna Fin muestra el badge "En curso". */
         var filas = [];
+        var enCurso = 0;
         var sesiones = {};
         if (jornadaSeleccionada === '__legacy__') {
           Object.keys(data || {}).forEach(function(k) { if (!esCarpetaDia(k)) sesiones[k] = data[k]; });
@@ -623,20 +631,32 @@
         Object.keys(sesiones).forEach(function(codigo) {
           var entry = sesiones[codigo];
           if (!entry || typeof entry !== 'object') return;
-          /* Ruta actual */
+          var esCurso = (entry.estado === 'en_proceso');
+          if (esCurso) enCurso++;
+
+          /* Ruta ACTUAL (incluye las EN CURSO con sus entregas ya capturadas) */
+          var rutaInfoActual = { fechaInicio: entry.fechaInicio || null, fechaFin: entry.fechaFin || null, enCurso: esCurso };
           (Array.isArray(entry.datosFormulario) ? entry.datosFormulario : []).forEach(function(item) {
-            filas.push(extraerFila(codigo, item));
+            filas.push(extraerFila(codigo, item, rutaInfoActual));
           });
-          /* Rutas archivadas del día */
+
+          /* Rutas ARCHIVADAS del día — cada una con sus propias inicio/fin */
           (Array.isArray(entry.rutas) ? entry.rutas : []).forEach(function(h) {
-            if (h && Array.isArray(h.datosFormulario)) {
-              h.datosFormulario.forEach(function(item) { filas.push(extraerFila(codigo, item)); });
+            if (h && Array.isArray(h.datosFormulario) && h.datosFormulario.length) {
+              var rutaInfoH = { fechaInicio: h.fechaInicio || null, fechaFin: h.fechaFin || null, enCurso: false };
+              h.datosFormulario.forEach(function(item) { filas.push(extraerFila(codigo, item, rutaInfoH)); });
             }
           });
         });
 
-        filas.sort(function(a, b) { return (a.horaMs || 0) - (b.horaMs || 0); });
+        /* Orden: agrupado por ruta, luego hora de entrega */
+        filas.sort(function(a, b) {
+          if (a.codigo !== b.codigo) return String(a.codigo).localeCompare(String(b.codigo), 'es', { numeric: true });
+          return (a.horaMs || 0) - (b.horaMs || 0);
+        });
+
         datosGlobales = filas;
+        rutasEnCurso = enCurso;
         renderTabla(filas);
         actualizarResumen(filas);
         renovarSesion();
@@ -648,7 +668,8 @@
       }
     }
 
-    function extraerFila(codigo, item) {
+    /* ===== EXTRACCIÓN DE FILA ===== */
+    function extraerFila(codigo, item, rutaInfo) {
       if (!item) item = {};
       var gps = item.gps || null;
       var horaEntrega = '';
@@ -671,6 +692,10 @@
         }
         if (distNum != null) dist = formatearDistancia(distNum);
       }
+      /* ★ Inicio/Fin de la ruta a la que pertenece esta entrega */
+      var inicio = (rutaInfo && rutaInfo.fechaInicio) ? formatearHoraCorta(rutaInfo.fechaInicio) : '';
+      var fin = (rutaInfo && rutaInfo.fechaFin) ? formatearHoraCorta(rutaInfo.fechaFin) : '';
+      var enCurso = !!(rutaInfo && rutaInfo.enCurso);
       return {
         codigo: codigo,
         codclnt: item.codclnt || '',
@@ -680,10 +705,14 @@
         permanencia: perm,
         distancia: dist,
         distNum: distNum,
-        comentario: item.comentario || ''
+        comentario: item.comentario || '',
+        inicio: inicio,
+        fin: fin,
+        enCurso: enCurso
       };
     }
 
+    /* ===== RENDER ===== */
     function renderTabla(filas) {
       var tbody = document.getElementById('tbodyDatos');
       var sinDatos = document.getElementById('sinDatos');
@@ -699,8 +728,19 @@
         if (f.distNum != null) {
           distCls = f.distNum < 100 ? 'dist-ok' : (f.distNum < 500 ? 'dist-warn' : 'dist-bad');
         }
+        /* ★ Celda Fin: hora, o badge "En curso" si la ruta sigue activa */
+        var finHtml;
+        if (f.fin) {
+          finHtml = '<span class="hora-entrega">' + esc(f.fin) + '</span>';
+        } else if (f.enCurso) {
+          finHtml = '<span class="estado-curso" title="Ruta en progreso — sin FIN DE RUTA"><i class="fa-solid fa-circle-notch"></i> En curso</span>';
+        } else {
+          finHtml = '<span class="vacio">—</span>';
+        }
         html += '<tr>' +
           '<td class="cod-ruta">' + esc(f.codigo) + '</td>' +
+          '<td class="hora-entrega">' + (f.inicio ? esc(f.inicio) : '<span class="vacio">—</span>') + '</td>' +
+          '<td>' + finHtml + '</td>' +
           '<td class="cod-clnt">' + (f.codclnt ? esc(f.codclnt) : '<span class="vacio">—</span>') + '</td>' +
           '<td class="nombre-cliente">' + esc(f.cliente || '—') + '</td>' +
           '<td class="hora-entrega">' + (f.horaEntrega ? esc(f.horaEntrega) : '<span class="vacio">—</span>') + '</td>' +
@@ -713,7 +753,8 @@
     }
 
     function actualizarResumen(filas) {
-      document.getElementById('rcRutas').textContent = new Set(filas.map(function(f){ return f.codigo; })).size;
+      document.getElementById('rcRutas').textContent = new Set(filas.map(function(f){ return f.codigo + '|' + f.inicio + '|' + f.fin; })).size;
+      document.getElementById('rcCurso').textContent = rutasEnCurso;
       document.getElementById('rcEntregas').textContent = filas.length;
       document.getElementById('rcGps').textContent = filas.filter(function(f){ return f.horaEntrega !== ''; }).length;
       document.getElementById('rcPerm').textContent = filas.filter(function(f){ return f.permanencia !== ''; }).length;
@@ -728,10 +769,11 @@
     function descargarCSV() {
       if (!datosGlobales.length) { mostrarToast('No hay datos para descargar', 'err'); return; }
       var sep = ';';
-      var lineas = ['\uFEFF' + ['Jornada','CodigoRuta','CodCliente','Cliente','HoraEntrega','Permanencia','DistanciaOriginal','Comentario'].join(sep)];
+      var lineas = ['\uFEFF' + ['Jornada','CodigoRuta','Inicio','Fin','EstadoRuta','CodCliente','Cliente','HoraEntrega','Permanencia','DistanciaOriginal','Comentario'].join(sep)];
       var etiquetaJornada = jornadaSeleccionada === '__legacy__' ? 'antiguos' : jornadaSeleccionada;
       datosGlobales.forEach(function(f) {
-        lineas.push([etiquetaJornada, f.codigo, f.codclnt, f.cliente, f.horaEntrega, f.permanencia, f.distancia, f.comentario].map(csvCampo).join(sep));
+        var estadoRuta = f.enCurso ? 'En curso' : (f.fin ? 'Finalizada' : '');
+        lineas.push([etiquetaJornada, f.codigo, f.inicio, f.fin, estadoRuta, f.codclnt, f.cliente, f.horaEntrega, f.permanencia, f.distancia, f.comentario].map(csvCampo).join(sep));
       });
       var blob = new Blob([lineas.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
       var a = document.createElement('a');
@@ -741,6 +783,16 @@
       URL.revokeObjectURL(a.href);
       mostrarToast('CSV descargado', 'ok');
     }
+
+    /* ===== AUTO-REFRESH (rutas en curso se actualizan solas) ===== */
+    setInterval(function() {
+      if (document.visibilityState === 'visible' &&
+          document.getElementById('dashboard').classList.contains('visible') &&
+          claveSesionActual &&
+          jornadaSeleccionada) {
+        cargarDatos();
+      }
+    }, REFRESH_MS);
 
     /* ===== INIT ===== */
     iniciarFirebaseAuth().then(function() {
