@@ -84,15 +84,15 @@
     .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
     @media(max-width:800px){.grid2{grid-template-columns:1fr}}
 
-    /* Barras horizontales (cumplimiento por sector) */
+    /* Barras horizontales */
     .barra-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
     .barra-label{flex:0 0 150px;font-size:12px;color:var(--fg2);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .barra-track{flex:1;height:20px;background:var(--bg);border-radius:5px;overflow:hidden;position:relative}
     .barra-fill{height:100%;border-radius:5px;transition:width .6s ease;display:flex;align-items:center;justify-content:flex-end;padding-right:7px;font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;color:#0f1117;min-width:34px}
     .bf-ok{background:var(--success)} .bf-warn{background:var(--warning)} .bf-bad{background:var(--danger)} .bf-info{background:var(--info)} .bf-purple{background:var(--purple)} .bf-accent{background:var(--accent)}
-    .barra-meta{flex:0 0 90px;font-size:10.5px;color:var(--fg3);white-space:nowrap}
+    .barra-meta{flex:0 0 130px;font-size:10.5px;color:var(--fg3);white-space:nowrap}
 
-    /* Distribución horaria (columnas) */
+    /* Distribución horaria */
     .hist{display:flex;align-items:flex-end;gap:3px;height:130px;padding-top:8px}
     .hist-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
     .hist-bar{width:100%;max-width:26px;border-radius:4px 4px 0 0;background:var(--info);transition:height .6s ease;position:relative;min-height:2px}
@@ -100,7 +100,7 @@
     .hist-num{font-family:'Space Grotesk',sans-serif;font-size:9px;font-weight:700;color:var(--fg2)}
     .hist-hora{font-size:8.5px;color:var(--fg3)}
 
-    /* Tendencia (línea SVG) */
+    /* Tendencia */
     .tendencia-wrap{position:relative}
     .tend-legenda{display:flex;gap:14px;font-size:10.5px;color:var(--fg2);margin-bottom:8px;flex-wrap:wrap}
     .tend-legenda span{display:inline-flex;align-items:center;gap:5px}
@@ -115,7 +115,7 @@
     .top-dist{font-family:'Space Grotesk',monospace;font-size:11px;font-weight:700;flex-shrink:0}
     .td-ok{color:var(--success)} .td-warn{color:var(--warning)} .td-bad{color:var(--danger)}
 
-    /* Permanencia distribución */
+    /* Permanencia */
     .perm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px}
     .perm-box{text-align:center;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 6px}
     .perm-box .pb-val{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:800;color:var(--purple)}
@@ -147,6 +147,7 @@
       .kpis{grid-template-columns:repeat(2,1fr)}
       .kpi .k-value{font-size:22px}
       .barra-label{flex-basis:100px;font-size:10.5px}
+      .barra-meta{flex-basis:110px;font-size:9.5px}
     }
   </style>
 </head>
@@ -198,6 +199,7 @@
       <div class="kpi"><div class="k-label"><i class="fa-solid fa-box" style="color:var(--info)"></i> Entregas</div><div class="k-value" style="color:var(--info)" id="kEntregas">0</div><div class="k-sub" id="kEntregasSub">—</div></div>
       <div class="kpi"><div class="k-label"><i class="fa-solid fa-check-double" style="color:var(--success)"></i> A tiempo</div><div class="k-value" style="color:var(--success)" id="kATiempo">0%</div><div class="k-sub" id="kATiempoSub">—</div></div>
       <div class="kpi"><div class="k-label"><i class="fa-solid fa-triangle-exclamation" style="color:var(--danger)"></i> Atrasadas</div><div class="k-value" style="color:var(--danger)" id="kAtrasadas">0</div><div class="k-sub" id="kAtrasadasSub">—</div></div>
+      <div class="kpi"><div class="k-label"><i class="fa-solid fa-hourglass-half" style="color:var(--fg2)"></i> Sin capturar</div><div class="k-value" style="color:var(--fg2)" id="kSinGps">0</div><div class="k-sub">pesan en el cumplimiento</div></div>
       <div class="kpi"><div class="k-label"><i class="fa-regular fa-clock" style="color:var(--warning)"></i> Retraso prom.</div><div class="k-value" style="color:var(--warning)" id="kRetraso">—</div><div class="k-sub">solo en atrasadas</div></div>
       <div class="kpi"><div class="k-label"><i class="fa-solid fa-location-dot" style="color:var(--accent)"></i> Alineadas</div><div class="k-value" style="color:var(--accent)" id="kAlineadas">—</div><div class="k-sub" id="kAlineadasSub">distancia &lt; 100 m</div></div>
       <div class="kpi"><div class="k-label"><i class="fa-solid fa-stopwatch" style="color:var(--purple)"></i> Permanencia prom.</div><div class="k-value" style="color:var(--purple)" id="kPermanencia">—</div><div class="k-sub" id="kPermanenciaSub">—</div></div>
@@ -216,12 +218,18 @@
       </div>
     </div>
 
+    <!-- ★ Cumplimiento por código de ruta -->
+    <div class="seccion">
+      <div class="sec-title"><i class="fa-solid fa-route"></i> Cumplimiento por código de ruta <span class="st-sub" id="secRutasSub"></span></div>
+      <div class="card" id="cardRutas"><div class="sin-datos"><i class="fa-solid fa-route"></i><p>Sin datos para el rango seleccionado.</p></div></div>
+    </div>
+
     <div class="grid2">
       <!-- Tendencia -->
       <div class="seccion">
         <div class="sec-title"><i class="fa-solid fa-arrow-trend-up"></i> Evolución <span class="st-sub" id="tendSub"></span></div>
         <div class="card tendencia-wrap">
-          <div class="tend-legenda"><span><span class="lg-dot lg-a"></span>Entregas</span><span><span class="lg-dot lg-b"></span>% a tiempo</span></div>
+          <div class="tend-legenda"><span><span class="lg-dot lg-a"></span>Entregas</span><span><span class="lg-dot lg-b"></span>% a tiempo (sobre plan)</span></div>
           <div id="tendSvg"></div>
         </div>
       </div>
@@ -315,7 +323,6 @@
       t.classList.add('visible');
       setTimeout(function(){ t.classList.remove('visible'); }, 3000);
     }
-    /* "HH:MM" o "10h00" -> minutos desde medianoche */
     function minutosHora(h) {
       if (!h || typeof h !== 'string') return null;
       var l = h.trim().replace(/[hH]/g, ':');
@@ -441,7 +448,6 @@
         if (!jornadaSeleccionada || diasDisponibles.indexOf(jornadaSeleccionada) === -1) {
           jornadaSeleccionada = diasDisponibles.indexOf(claveDiaLocal()) !== -1 ? claveDiaLocal() : (diasDisponibles[0] || null);
         }
-        /* Determinar días a leer */
         var diasALeer = [];
         if (rangoActual === 'dia') {
           diasALeer = jornadaSeleccionada ? [jornadaSeleccionada] : [];
@@ -452,14 +458,12 @@
           ? (jornadaSeleccionada ? 'Jornada ' + diaBonito(jornadaSeleccionada) : 'Sin jornadas')
           : 'Últimos ' + diasALeer.length + ' días con datos';
 
-        /* Leer todas las jornadas del rango (en paralelo) */
         var cargas = diasALeer.map(function(dia) {
           return fetch(conAuth(FIREBASE_URL + '/' + dia + '.json')).then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; })
             .then(function(data){ return { dia: dia, data: data }; });
         });
         var resultados = await Promise.all(cargas);
 
-        /* Normalizar filas: ruta actual + archivadas, cada una con su día */
         var filas = [];
         resultados.forEach(function(res) {
           if (!res.data || typeof res.data !== 'object') return;
@@ -525,6 +529,7 @@
     function renderTodo() {
       renderKPIs();
       renderSectores();
+      renderRutas();          /* ★ Cumplimiento por código de ruta */
       renderHoras();
       renderTendencia();
       renderDesviaciones();
@@ -539,10 +544,13 @@
       var sinGps = f.length - conGps.length;
       document.getElementById('kEntregas').textContent = f.length;
       document.getElementById('kEntregasSub').textContent = conGps.length + ' con GPS · ' + sinGps + ' pendientes';
-      document.getElementById('kATiempo').textContent = conGps.length ? Math.round(aTiempo.length / conGps.length * 100) + '%' : '—';
-      document.getElementById('kATiempoSub').textContent = aTiempo.length + ' de ' + conGps.length;
+      /* ★ Cumplimiento sobre el 100% planificado: las entregas SIN capturar
+         GPS (negligencia o pendientes) cuentan en contra del porcentaje */
+      document.getElementById('kATiempo').textContent = f.length ? Math.round(aTiempo.length / f.length * 100) + '%' : '—';
+      document.getElementById('kATiempoSub').textContent = aTiempo.length + ' de ' + f.length + ' planificadas';
       document.getElementById('kAtrasadas').textContent = atrasadas.length;
-      document.getElementById('kAtrasadasSub').textContent = conGps.length ? Math.round(atrasadas.length / conGps.length * 100) + '% del total' : '';
+      document.getElementById('kAtrasadasSub').textContent = f.length ? Math.round(atrasadas.length / f.length * 100) + '% del plan' : '';
+      document.getElementById('kSinGps').textContent = sinGps;
       var retrasoProm = atrasadas.length ? Math.round(atrasadas.reduce(function(s,x){ return s + x.atrasoMin; }, 0) / atrasadas.length) : null;
       document.getElementById('kRetraso').textContent = retrasoProm != null ? retrasoProm + ' min' : '—';
       var conDist = conGps.filter(function(x){ return x.distNum != null; });
@@ -556,7 +564,8 @@
     }
 
     function renderSectores() {
-      var f = datosActuales.filter(function(x){ return x.entregado; });
+      /* ★ Todas las planificadas: sin capturar = no cumplidas */
+      var f = datosActuales;
       var card = document.getElementById('cardSectores');
       if (!f.length) { card.innerHTML = '<div class="sin-datos"><i class="fa-solid fa-map-pin"></i><p>Sin entregas en el rango.</p></div>'; document.getElementById('secSectoresSub').textContent = ''; return; }
       var grupos = {};
@@ -576,6 +585,42 @@
           '<div class="barra-label" title="' + esc(sec.s) + '">' + esc(sec.s) + '</div>' +
           '<div class="barra-track"><div class="barra-fill ' + cls + '" style="width:' + sec.pct + '%">' + sec.pct + '%</div></div>' +
           '<div class="barra-meta">' + sec.ok + '/' + sec.total + '</div>' +
+        '</div>';
+      });
+      card.innerHTML = html;
+    }
+
+    /* ★ Cumplimiento por código de ruta: % sobre el total planificado
+       (las entregas sin capturar GPS pesan en contra) */
+    function renderRutas() {
+      var f = datosActuales;
+      var card = document.getElementById('cardRutas');
+      if (!f.length) { card.innerHTML = '<div class="sin-datos"><i class="fa-solid fa-route"></i><p>Sin entregas en el rango.</p></div>'; document.getElementById('secRutasSub').textContent = ''; return; }
+      var grupos = {};
+      f.forEach(function(x) {
+        if (!grupos[x.codigo]) grupos[x.codigo] = { total: 0, ok: 0, atrasadas: 0, conGps: 0 };
+        grupos[x.codigo].total++;
+        if (x.entregado) {
+          grupos[x.codigo].conGps++;
+          if (x.atrasoMin != null && x.atrasoMin <= 0) grupos[x.codigo].ok++;
+          else if (x.atrasoMin != null && x.atrasoMin > 0) grupos[x.codigo].atrasadas++;
+        }
+      });
+      var rutas = Object.keys(grupos).map(function(c) {
+        var g = grupos[c];
+        /* ★ % sobre el total planificado (sinGps pesa en contra) */
+        return { cod: c, total: g.total, ok: g.ok, atrasadas: g.atrasadas, sinGps: g.total - g.conGps,
+                 pct: g.total ? Math.round(g.ok / g.total * 100) : 0 };
+      });
+      rutas.sort(function(a, b) { return b.total - a.total; });
+      document.getElementById('secRutasSub').textContent = rutas.length + ' rutas';
+      var html = '';
+      rutas.forEach(function(r) {
+        var cls = r.pct >= 80 ? 'bf-ok' : (r.pct >= 50 ? 'bf-warn' : 'bf-bad');
+        html += '<div class="barra-row">' +
+          '<div class="barra-label" title="Ruta ' + esc(r.cod) + '" style="font-family:\'Space Grotesk\',sans-serif;font-weight:700;color:var(--accent)">Ruta ' + esc(r.cod) + '</div>' +
+          '<div class="barra-track"><div class="barra-fill ' + cls + '" style="width:' + r.pct + '%">' + r.pct + '%</div></div>' +
+          '<div class="barra-meta">' + r.ok + ' ok · ' + r.atrasadas + ' atras. · ' + r.sinGps + ' pend.</div>' +
         '</div>';
       });
       card.innerHTML = html;
@@ -618,7 +663,6 @@
         cont.innerHTML = '<div class="sin-datos"><i class="fa-solid fa-arrow-trend-up"></i><p>Selecciona "7 días" o "30 días" para ver la evolución.</p></div>';
         return;
       }
-      /* Agrupar por día */
       var porDia = {};
       datosActuales.forEach(function(x) {
         if (!porDia[x.dia]) porDia[x.dia] = { total: 0, ok: 0, conGps: 0 };
@@ -642,15 +686,13 @@
       function yTotal(v){ return H - PAD - (v / maxTotal) * (H - PAD * 2); }
       function yPct(v){ return H - PAD - (v / 100) * (H - PAD * 2); }
       var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;display:block">';
-      /* Ejes */
       svg += '<line x1="' + PAD + '" y1="' + (H - PAD) + '" x2="' + (W - PAD / 2) + '" y2="' + (H - PAD) + '" stroke="#22273a" stroke-width="1"/>';
-      /* Línea % a tiempo */
       var puntosPct = dias.map(function(d, i) {
-        var pct = porDia[d].conGps ? Math.round(porDia[d].ok / porDia[d].conGps * 100) : 0;
+        /* ★ % sobre el total planificado del día */
+        var pct = porDia[d].total ? Math.round(porDia[d].ok / porDia[d].total * 100) : 0;
         return xAt(i) + ',' + yPct(pct);
       }).join(' ');
       svg += '<polyline points="' + puntosPct + '" fill="none" stroke="#34d399" stroke-width="2" stroke-linejoin="round"/>';
-      /* Barras de entregas */
       dias.forEach(function(d, i) {
         var bw = Math.min(26, pasoX * 0.5);
         var x = xAt(i) - bw / 2;
@@ -659,9 +701,9 @@
         svg += '<text x="' + xAt(i) + '" y="' + (H - PAD + 14) + '" text-anchor="middle" font-size="9" fill="#565e74">' + diaBonito(d) + '</text>';
         svg += '<text x="' + xAt(i) + '" y="' + (y - 4) + '" text-anchor="middle" font-size="9" fill="#e8913a" font-family="Space Grotesk">' + porDia[d].total + '</text>';
       });
-      /* Puntos % */
       dias.forEach(function(d, i) {
-        var pct = porDia[d].conGps ? Math.round(porDia[d].ok / porDia[d].conGps * 100) : 0;
+        /* ★ % sobre el total planificado del día */
+        var pct = porDia[d].total ? Math.round(porDia[d].ok / porDia[d].total * 100) : 0;
         svg += '<circle cx="' + xAt(i) + '" cy="' + yPct(pct) + '" r="3.5" fill="#34d399"><title>' + diaBonito(d) + ': ' + pct + '% a tiempo</title></circle>';
         svg += '<text x="' + xAt(i) + '" y="' + (yPct(pct) - 8) + '" text-anchor="middle" font-size="9" fill="#34d399" font-family="Space Grotesk">' + pct + '%</text>';
       });
