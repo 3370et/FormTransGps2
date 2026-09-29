@@ -90,21 +90,19 @@
     .barra-track{flex:1;height:20px;background:var(--bg);border-radius:5px;overflow:hidden;position:relative}
     .barra-fill{height:100%;border-radius:5px;transition:width .6s ease;display:flex;align-items:center;justify-content:flex-end;padding-right:7px;font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:700;color:#0f1117;min-width:34px}
     .bf-ok{background:var(--success)} .bf-warn{background:var(--warning)} .bf-bad{background:var(--danger)} .bf-info{background:var(--info)} .bf-purple{background:var(--purple)} .bf-accent{background:var(--accent)}
-    .barra-meta{flex:0 0 130px;font-size:10.5px;color:var(--fg3);white-space:nowrap}
+    .barra-meta{flex:0 0 80px;font-size:10.5px;color:var(--fg3);white-space:nowrap}
 
-    /* ★ Barras segmentadas por calidad de entrega */
+    /* ★ Barras segmentadas simplificadas (3 segmentos) */
     .barra-seg{display:flex;height:100%;border-radius:5px;overflow:hidden}
-    .seg{height:100%;transition:width .6s ease;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-size:9px;font-weight:800;color:#0f1117;overflow:hidden}
-    .seg-at-ok{background:var(--success)}       /* a tiempo + alineado <100m */
-    .seg-at-med{background:var(--info)}          /* a tiempo + 100-500m */
-    .seg-at-lej{background:var(--accent)}       /* a tiempo + >500m */
-    .seg-atr{background:var(--danger)}          /* capturadas atrasadas */
-    .seg-pend{background:#2a2f40;color:#7b829a} /* pendientes sin capturar */
-    /* Leyenda de segmentos */
-    .seg-legenda{display:flex;gap:12px;flex-wrap:wrap;font-size:9.5px;color:var(--fg2);margin-bottom:10px}
-    .seg-legenda span{display:inline-flex;align-items:center;gap:4px}
+    .seg{height:100%;transition:width .6s ease;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:800;color:#0f1117;overflow:hidden}
+    .seg-at-ok{background:var(--success)}       /* a tiempo */
+    .seg-atr{background:var(--danger)}            /* atrasadas */
+    .seg-pend{background:#2a2f40;color:#7b829a}  /* sin registrar */
+    /* Leyenda */
+    .seg-legenda{display:flex;gap:14px;flex-wrap:wrap;font-size:10px;color:var(--fg2);margin-bottom:10px}
+    .seg-legenda span{display:inline-flex;align-items:center;gap:5px}
     .slg{width:10px;height:10px;border-radius:3px;display:inline-block;flex-shrink:0}
-    .slg-at-ok{background:var(--success)} .slg-at-med{background:var(--info)} .slg-at-lej{background:var(--accent)} .slg-atr{background:var(--danger)} .slg-pend{background:#2a2f40;border:1px solid var(--border)}
+    .slg-at-ok{background:var(--success)} .slg-atr{background:var(--danger)} .slg-pend{background:#2a2f40;border:1px solid var(--border)}
 
     /* Distribución horaria */
     .hist{display:flex;align-items:flex-end;gap:3px;height:130px;padding-top:8px}
@@ -161,8 +159,8 @@
       .kpis{grid-template-columns:repeat(2,1fr)}
       .kpi .k-value{font-size:22px}
       .barra-label{flex-basis:100px;font-size:10.5px}
-      .barra-meta{flex-basis:110px;font-size:9.5px}
-      .seg-legenda{gap:8px;font-size:9px}
+      .barra-meta{flex-basis:70px;font-size:9.5px}
+      .seg-legenda{gap:10px;font-size:9px}
     }
   </style>
 </head>
@@ -233,7 +231,7 @@
       </div>
     </div>
 
-    <!-- ★ Cumplimiento por código de ruta (barras segmentadas) -->
+    <!-- ★ Cumplimiento por código de ruta (barras segmentadas simples) -->
     <div class="seccion">
       <div class="sec-title"><i class="fa-solid fa-route"></i> Cumplimiento por código de ruta <span class="st-sub" id="secRutasSub"></span></div>
       <div class="seg-legenda">
@@ -241,6 +239,9 @@
         <span><span class="slg slg-atr"></span>Atrasadas</span>
         <span><span class="slg slg-pend"></span>Sin registrar</span>
       </div>
+      <div class="card" id="cardRutas"><div class="sin-datos"><i class="fa-solid fa-route"></i><p>Sin datos para el rango seleccionado.</p></div></div>
+    </div>
+
     <div class="grid2">
       <!-- Tendencia -->
       <div class="seccion">
@@ -608,7 +609,7 @@
 
     /* ★ Cumplimiento por código de ruta — barra SIMPLE:
        verde (% a tiempo) + rojo (atrasadas) + gris (sin registrar).
-       El % dentro del segmento verde es lo único que se muestra. */
+       Solo el % dentro del segmento verde. Detalle en tooltip. */
     function renderRutas() {
       var f = datosActuales;
       var card = document.getElementById('cardRutas');
