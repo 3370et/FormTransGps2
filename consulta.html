@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 100'%3E%3Crect width='120' height='100' rx='22' fill='%2313161f'/%3E%3Cpath d='M44 20 L84 20 Q88 20 88 24 L88 56 Q88 60 84 60 L44 60 L34 56 L44 53 L23 49 L44 46 L32 42 L44 39 L20 35 L44 32 L28 28 L44 25 L21 21 Z' fill='%23e8913a'/%3E%3Ctext x='66' y='44' text-anchor='middle' font-family='Arial Black, Arial, sans-serif' font-weight='900' font-size='20' fill='%230f1117'%3EET%3C/text%3E%3Cpath d='M92 24 L106 24 L114 38 L114 60 L92 60 Z' fill='%23e8913a'/%3E%3Cpath d='M97 30 L104 30 L109 38 L97 38 Z' fill='%230f1117'/%3E%3Ccircle cx='48' cy='64' r='9' fill='%23ffffff'/%3E%3Ccircle cx='48' cy='64' r='4' fill='%230f1117'/%3E%3Ccircle cx='104' cy='64' r='9' fill='%23ffffff'/%3E%3Ccircle cx='104' cy='64' r='4' fill='%230f1117'/%3E%3C/svg%3E">
+  <title>Consulta de entregas</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    :root {
+      --bg:#08090d;--bg2:#0e1018;--card:#14171f;--card2:#191d28;
+      --border:#22273a;--fg:#e4e8f1;--fg2:#8891a8;--fg3:#565e74;
+      --accent:#e8913a;--success:#34d399;--danger:#f87171;
+      --info:#60a5fa;--warning:#fbbf24;--purple:#a78bfa;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--fg);min-height:100vh}
+    ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+    /* ===== LOGIN ===== */
+    .login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+    .login-box{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:40px 32px;max-width:380px;width:100%;text-align:center}
+    .login-icon{width:64px;height:64px;border-radius:50%;background:rgba(96,165,250,.08);border:2px solid rgba(96,165,250,.2);display:flex;align-items:center;justify-content:center;margin:0 auto 20px}
+    .login-icon i{font-size:26px;color:var(--info)}
+    .login-box h2{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;margin-bottom:8px}
+    .login-box p{font-size:13px;color:var(--fg2);margin-bottom:24px;line-height:1.5}
+    .login-input{width:100%;background:var(--bg);border:1.5px solid var(--border);color:var(--fg);border-radius:10px;padding:13px 16px;font-family:'DM Sans',sans-serif;font-size:15px;outline:none;transition:all .25s;margin-bottom:16px;text-align:center;letter-spacing:3px}
+    .login-input::placeholder{letter-spacing:.3px;color:var(--fg3)}
+    .login-input:focus{border-color:var(--info);box-shadow:0 0 0 3px rgba(96,165,250,.12)}
+    .login-btn{width:100%;padding:13px;border-radius:10px;border:none;background:var(--info);color:#0f1117;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all .25s}
+    .login-btn:hover{background:#7cb5fa;box-shadow:0 4px 20px rgba(96,165,250,.3)}
+    .login-btn:disabled{opacity:.65;cursor:wait}
+    .login-error{margin-top:14px;padding:10px;border-radius:8px;font-size:13px;background:rgba(248,113,113,.06);border:1px solid rgba(248,113,113,.15);color:var(--danger);display:none}
+    .login-error.visible{display:block}
+
+    /* ===== DASHBOARD ===== */
+    .dashboard{display:none;padding:24px 16px 60px;max-width:1200px;margin:auto}
+    .dashboard.visible{display:block}
+    .dash-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px}
+    .dash-header h1{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;display:flex;align-items:center;gap:10px}
+    .dash-header h1 i{color:var(--info);font-size:18px}
+    .dash-header-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .dash-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--fg2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap}
+    .dash-btn:hover{border-color:var(--fg3);color:var(--fg);background:var(--card2)}
+    .dash-btn.actualizando{pointer-events:none;opacity:.6}
+    .dash-btn.actualizando i{animation:spin 1s linear infinite}
+    .dash-btn.salir{border-color:rgba(248,113,113,.2);color:var(--danger)}
+    .dash-btn.salir:hover{background:rgba(248,113,113,.08);border-color:var(--danger)}
+    .dash-btn.csv{border-color:rgba(96,165,250,.2);color:var(--info)}
+    .dash-btn.csv:hover{background:rgba(96,165,250,.08);border-color:var(--info)}
+    .dash-usuario{display:none;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--fg2);font-size:12px;font-weight:600;white-space:nowrap}
+    .dash-usuario i{color:var(--info);font-size:11px}
+    .dash-usuario.visible{display:inline-flex}
+
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+    /* ===== CHIPS DE JORNADAS ===== */
+    .jornadas-bar{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 12px;margin-bottom:8px}
+    .jornadas-bar::-webkit-scrollbar{height:3px}
+    .jornadas-bar::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+    .chip-jor{flex-shrink:0;display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--fg2);font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap}
+    .chip-jor:hover{border-color:var(--fg3);color:var(--fg);transform:translateY(-1px)}
+    .chip-jor.sel{border-color:var(--info);color:var(--info);background:rgba(96,165,250,.08);box-shadow:0 2px 10px rgba(96,165,250,.12)}
+    .chip-jor .jor-hoy{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;background:var(--success);color:#0f1117;border-radius:99px;padding:2px 6px}
+    .chip-jor.legacy{border-style:dashed;color:var(--fg3);font-size:11px}
+    .chip-jor.legacy.sel{border-color:var(--fg2);color:var(--fg2);background:rgba(139,145,168,.06)}
+
+    /* ===== BARRA DE SESIÓN ===== */
+    .sesion-bar{display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:8px;font-size:11px;font-weight:600;margin-bottom:16px;background:rgba(52,211,153,.06);border:1px solid rgba(52,211,153,.15);color:var(--success)}
+    .sesion-bar i{font-size:12px}
+    .sesion-bar .ses-time{font-family:'Space Grotesk',monospace;font-weight:700;margin-left:auto}
+    .sesion-bar.warn{background:rgba(251,191,36,.06);border-color:rgba(251,191,36,.15);color:var(--warning)}
+    .sesion-bar.danger{background:rgba(248,113,113,.06);border-color:rgba(248,113,113,.15);color:var(--danger)}
+
+    /* ===== RESUMEN ===== */
+    .resumen{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px}
+    .resumen-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 14px}
+    .resumen-card .rc-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--fg3);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+    .resumen-card .rc-label i{font-size:11px}
+    .resumen-card .rc-value{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:800;line-height:1}
+
+    /* ===== TABLA ===== */
+    .table-wrap{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:20px}
+    .table-scroll{overflow-x:auto}
+    table{width:100%;border-collapse:collapse;min-width:900px}
+    thead{background:var(--bg2)}
+    th{padding:11px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--fg3);border-bottom:1px solid var(--border);white-space:nowrap}
+    th i{margin-right:4px;font-size:10px;opacity:.7}
+    td{padding:10px 12px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle;color:var(--fg2)}
+    tbody tr:last-child td{border-bottom:none}
+    tbody tr:hover{background:rgba(96,165,250,.02)}
+    .cod-ruta{font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--accent);white-space:nowrap}
+    .cod-clnt{font-family:'Space Grotesk',monospace;font-size:11px;color:var(--fg3);white-space:nowrap}
+    .nombre-cliente{font-weight:600;color:var(--fg)}
+    .hora-entrega{font-family:'Space Grotesk',monospace;font-size:12px;white-space:nowrap}
+    .perm-val{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--purple);background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.2);padding:2px 8px;border-radius:6px;white-space:nowrap}
+    .dist-val{font-size:11px;font-weight:700;white-space:nowrap}
+    .dist-ok{color:var(--success)} .dist-warn{color:var(--warning)} .dist-bad{color:var(--danger)}
+    .com-txt{font-size:12px;color:var(--fg);max-width:220px;white-space:normal;word-wrap:break-word;line-height:1.4}
+    .vacio{color:var(--fg3);font-style:italic;font-size:11px}
+    .sin-datos{text-align:center;padding:40px 20px;color:var(--fg3)}
+    .sin-datos i{font-size:32px;opacity:.2;display:block;margin-bottom:12px}
+    .sin-datos p{font-size:13px}
+
+    /* ===== MODAL EXPIRACIÓN ===== */
+    .expired-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);z-index:3000;display:none;align-items:center;justify-content:center;padding:20px}
+    .expired-overlay.visible{display:flex}
+    .expired-box{background:var(--card);border:1px solid rgba(248,113,113,.2);border-radius:18px;padding:40px 32px;max-width:400px;width:100%;text-align:center;animation:fadeUp .4s ease}
+    .expired-icon{width:70px;height:70px;border-radius:50%;background:rgba(248,113,113,.06);border:2px solid rgba(248,113,113,.15);display:flex;align-items:center;justify-content:center;margin:0 auto 20px}
+    .expired-icon i{font-size:28px;color:var(--danger)}
+    .expired-box h2{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:800;color:var(--danger);margin-bottom:10px}
+    .expired-box p{font-size:14px;color:var(--fg2);line-height:1.6;margin-bottom:24px}
+    .expired-btn{padding:12px 28px;border-radius:10px;border:none;background:var(--info);color:#0f1117;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .25s}
+    .expired-btn:hover{background:#7cb5fa}
+
+    /* ===== TOAST ===== */
+    .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 20px;font-size:13px;font-weight:600;color:var(--fg2);box-shadow:0 8px 32px rgba(0,0,0,.5);z-index:999;opacity:0;pointer-events:none;transition:all .35s ease;display:flex;align-items:center;gap:8px}
+    .toast.visible{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
+    .toast i.ok{color:var(--success)}
+    .toast i.err{color:var(--danger)}
+
+    @media(max-width:640px){
+      .dashboard{padding:16px 10px 40px}
+      .dash-header{flex-direction:column;align-items:flex-start}
+      .dash-header-actions{width:100%;flex-wrap:wrap}
+      .resumen{grid-template-columns:repeat(2,1fr)}
+      .resumen-card .rc-value{font-size:20px}
+      th,td{padding:8px 8px;font-size:11px}
+      table{min-width:800px}
+    }
+  </style>
+</head>
+<body>
+
+  <!-- LOGIN -->
+  <div class="login-screen" id="loginScreen">
+    <div class="login-box">
+      <div class="login-icon"><i class="fa-solid fa-user-lock"></i></div>
+      <h2>Consulta de entregas</h2>
+      <p>Ingresa tu clave para consultar los datos de las jornadas.</p>
+      <input type="password" class="login-input" id="loginPass" placeholder="Clave de acceso" autocomplete="off">
+      <button class="login-btn" onclick="verificarAcceso()"><i class="fa-solid fa-right-to-bracket"></i> Ingresar</button>
+      <div class="login-error" id="loginError"><i class="fa-solid fa-xmark"></i> Clave incorrecta</div>
+    </div>
+  </div>
+
+  <!-- EXPIRACIÓN DE SESIÓN -->
+  <div class="expired-overlay" id="expiredOverlay">
+    <div class="expired-box">
+      <div class="expired-icon"><i class="fa-solid fa-hourglass-end"></i></div>
+      <h2>Sesión expirada</h2>
+      <p>Tu sesión de consulta ha expirado por inactividad (60 minutos).<br>Ingresa nuevamente tu clave para continuar.</p>
+      <button class="expired-btn" onclick="volverALogin()"><i class="fa-solid fa-rotate-right"></i> Volver a ingresar</button>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="dashboard" id="dashboard">
+    <div class="dash-header">
+      <h1><i class="fa-solid fa-table-list"></i> Consulta de entregas</h1>
+      <div class="dash-header-actions">
+        <button class="dash-btn" id="btnActualizar" onclick="cargarDatos()"><i class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
+        <button class="dash-btn csv" onclick="descargarCSV()"><i class="fa-solid fa-file-csv"></i> CSV</button>
+        <span class="dash-usuario" id="dashUsuario"><i class="fa-solid fa-user-shield"></i><span id="dashUsuarioTxt"></span></span>
+        <button class="dash-btn salir" onclick="cerrarSesion()"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
+      </div>
+    </div>
+
+    <div class="jornadas-bar" id="jornadasBar"></div>
+
+    <div class="sesion-bar" id="sesionBar">
+      <i class="fa-solid fa-clock"></i>
+      <span>Sesión activa — expira en </span>
+      <span class="ses-time" id="sesTime">60:00</span>
+    </div>
+
+    <div class="resumen" id="resumenRow">
+      <div class="resumen-card">
+        <div class="rc-label"><i class="fa-solid fa-route" style="color:var(--accent)"></i> Rutas</div>
+        <div class="rc-value" style="color:var(--accent)" id="rcRutas">0</div>
+      </div>
+      <div class="resumen-card">
+        <div class="rc-label"><i class="fa-solid fa-box" style="color:var(--info)"></i> Entregas</div>
+        <div class="rc-value" style="color:var(--info)" id="rcEntregas">0</div>
+      </div>
+      <div class="resumen-card">
+        <div class="rc-label"><i class="fa-solid fa-check-double" style="color:var(--success)"></i> Con GPS</div>
+        <div class="rc-value" style="color:var(--success)" id="rcGps">0</div>
+      </div>
+      <div class="resumen-card">
+        <div class="rc-label"><i class="fa-solid fa-stopwatch" style="color:var(--purple)"></i> Con permanencia</div>
+        <div class="rc-value" style="color:var(--purple)" id="rcPerm">0</div>
+      </div>
+      <div class="resumen-card">
+        <div class="rc-label"><i class="fa-solid fa-comment-dots" style="color:var(--fg2)"></i> Con comentario</div>
+        <div class="rc-value" style="color:var(--fg2)" id="rcCom">0</div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <div class="table-scroll">
+        <table>
+          <thead><tr>
+            <th><i class="fa-solid fa-route"></i> Ruta</th>
+            <th><i class="fa-solid fa-id-card"></i> Cod. Cliente</th>
+            <th><i class="fa-solid fa-user"></i> Cliente</th>
+            <th><i class="fa-regular fa-clock"></i> Hora entrega</th>
+            <th><i class="fa-solid fa-stopwatch"></i> Permanencia</th>
+            <th><i class="fa-solid fa-ruler-horizontal"></i> Distancia</th>
+            <th><i class="fa-regular fa-comment-dots"></i> Comentario</th>
+          </tr></thead>
+          <tbody id="tbodyDatos"></tbody>
+        </table>
+      </div>
+      <div class="sin-datos" id="sinDatos" style="display:none"><i class="fa-solid fa-inbox"></i><p>No hay entregas registradas en esta jornada.</p></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"><i class="fa-solid fa-circle-check ok"></i><span id="toastMsg"></span></div>
+
+  <script>
+    /* ===== CONFIG ===== */
+    var FIREBASE_BASE = 'https://datos-formulario-f3cde-default-rtdb.firebaseio.com';
+    var FIREBASE_URL = FIREBASE_BASE + '/codigosUsados';
+    var FIREBASE_URL_SUPER = FIREBASE_BASE + '/superUsuarios';
+    var SESSION_DURACION_MS = 60 * 60 * 1000; /* ★ 60 minutos de sesión */
+    var SESSION_CLAVE = 'consulta_sesion';
+    var LS_DEVICE_KEY = 'consulta_dispositivo_id';
+
+    /* ===== ESTADO ===== */
+    var datosGlobales = [];
+    var jornadaSeleccionada = null;
+    var timerSesion = null;
+    var verificandoAcceso = false;
+    var usuarioActual = null;
+    var claveSesionActual = null;
+
+    /* ===== FIREBASE AUTH ===== */
+    var FIREBASE_APP_CONFIG = {
+      apiKey: "AIzaSyCrnroA2yd2coEVyn6Jm-q8sM6rvOb6Y3k",
+      authDomain: "datos-formulario-f3cde.firebaseapp.com",
+      databaseURL: "https://datos-formulario-f3cde-default-rtdb.firebaseio.com",
+      projectId: "datos-formulario-f3cde",
+      storageBucket: "datos-formulario-f3cde.firebasestorage.app",
+      messagingSenderId: "1060204671476",
+      appId: "1:1060204671476:web:a476539fa122fd04fa89a1"
+    };
+    var fbAuthToken = null;
+    function conAuth(url) {
+      if (fbAuthToken) return url + (url.indexOf('?') === -1 ? '?' : '&') + 'auth=' + fbAuthToken;
+      return url;
+    }
+    function cargarScriptAsync(src) {
+      return new Promise(function(resolver, rechazar) {
+        var s = document.createElement('script');
+        s.src = src; s.onload = resolver;
+        s.onerror = function() { rechazar(new Error('No se pudo cargar ' + src)); };
+        document.head.appendChild(s);
+      });
+    }
+    async function iniciarFirebaseAuth() {
+      try {
+        var base = 'https://www.gstatic.com/firebasejs/10.12.0/';
+        await cargarScriptAsync(base + 'firebase-app-compat.js');
+        await cargarScriptAsync(base + 'firebase-auth-compat.js');
+        if (!firebase.apps.length) firebase.initializeApp(FIREBASE_APP_CONFIG);
+        firebase.auth().onIdTokenChanged(function(user) {
+          if (user) { user.getIdToken().then(function(t) { fbAuthToken = t; }).catch(function(){}); }
+          else { fbAuthToken = null; }
+        });
+        await firebase.auth().signInAnonymously();
+        var u = firebase.auth().currentUser;
+        if (u) fbAuthToken = await u.getIdToken();
+        return true;
+      } catch(e) { console.warn('Auth no disponible:', e && e.message); return false; }
+    }
+
+    /* ===== HELPERS ===== */
+    function esc(v) {
+      return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+    function numLimpio(v) {
+      if (v == null || v === '') return null;
+      var n = Number(v);
+      return isFinite(n) ? n : null;
+    }
+    function esCarpetaDia(k) { return /^\d{4}-\d{2}-\d{2}$/.test(k); }
+    function claveDiaLocal() {
+      var d = new Date(); function p(n) { return String(n).padStart(2,'0'); }
+      return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate());
+    }
+    function diaBonito(iso) {
+      if (!esCarpetaDia(iso)) return iso;
+      var p = iso.split('-'); return p[2] + '/' + p[1] + '/' + p[0];
+    }
+    function distMetros(lat1,lng1,lat2,lng2) {
+      var R=6371000,f=Math.PI/180;
+      var a=Math.sin((lat2-lat1)*f/2)*Math.sin((lat2-lat1)*f/2)+Math.cos(lat1*f)*Math.cos(lat2*f)*Math.sin((lng2-lng1)*f/2)*Math.sin((lng2-lng1)*f/2);
+      return 2*R*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+    }
+    function formatearDistancia(m) {
+      if (m == null) return '';
+      if (m < 1000) return Math.round(m) + ' m';
+      return (m/1000).toFixed(2) + ' km';
+    }
+    function formatearMinutos(m) {
+      if (m == null) return '';
+      m = Math.round(m);
+      if (m < 60) return m + ' min';
+      var h = Math.floor(m/60), r = m%60;
+      return h + 'h' + (r > 0 ? ' ' + r + 'm' : '');
+    }
+    function formatearHoraCorta(iso) {
+      var d = new Date(iso);
+      if (!iso || isNaN(d.getTime())) return '';
+      function p(n){ return String(n).padStart(2,'0'); }
+      return p(d.getHours()) + ':' + p(d.getMinutes());
+    }
+    function fetchConTimeout(url, ms) {
+      var c = new AbortController(); var t = setTimeout(function(){ c.abort(); }, ms);
+      return fetch(url, { signal: c.signal }).finally(function(){ clearTimeout(t); });
+    }
+    function mostrarToast(texto, tipo) {
+      var t = document.getElementById('toast');
+      var iconCls = tipo === 'ok' ? 'fa-circle-check ok' : 'fa-circle-xmark err';
+      t.innerHTML = '<i class="fa-solid ' + iconCls + '"></i><span>' + texto + '</span>';
+      t.classList.add('visible');
+      setTimeout(function(){ t.classList.remove('visible'); }, 3000);
+    }
+
+    /* ===== DISPOSITIVO (bloqueo multi-dispositivo) ===== */
+    function obtenerIdDispositivo() {
+      try {
+        var id = localStorage.getItem(LS_DEVICE_KEY);
+        if (!id) {
+          id = 'cons-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2,10);
+          localStorage.setItem(LS_DEVICE_KEY, id);
+        }
+        return id;
+      } catch(e) {
+        return 'cons-temp-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2,10);
+      }
+    }
+
+    /* ===== SESIÓN ===== */
+    function guardarSesion(clave, nombre) {
+      try {
+        localStorage.setItem(SESSION_CLAVE, JSON.stringify({ c: clave, n: nombre, t: Date.now(), d: obtenerIdDispositivo() }));
+      } catch(e) {}
+    }
+    function leerSesion() {
+      try {
+        var s = JSON.parse(localStorage.getItem(SESSION_CLAVE));
+        if (s && typeof s.c === 'string' && s.c && typeof s.n === 'string' && isFinite(s.t)) {
+          if (Date.now() - s.t < SESSION_DURACION_MS) return s;
+          localStorage.removeItem(SESSION_CLAVE);
+        }
+      } catch(e) {}
+      return null;
+    }
+    function renovarSesion() {
+      if (claveSesionActual) guardarSesion(claveSesionActual, usuarioActual);
+    }
+    function borrarSesion() {
+      claveSesionActual = null;
+      try { localStorage.removeItem(SESSION_CLAVE); } catch(e) {}
+    }
+    /* ★ Timer de sesión — 60 min, se renueva con cada interacción */
+    function iniciarTimerSesion() {
+      detenerTimerSesion();
+      timerSesion = setInterval(function() {
+        var s = leerSesion();
+        if (!s) { expirarSesion(); return; }
+        var restante = SESSION_DURACION_MS - (Date.now() - s.t);
+        if (restante <= 0) { expirarSesion(); return; }
+        var min = Math.floor(restante / 60000);
+        var seg = Math.floor((restante % 60000) / 1000);
+        document.getElementById('sesTime').textContent = String(min).padStart(2,'0') + ':' + String(seg).padStart(2,'0');
+        var barra = document.getElementById('sesionBar');
+        barra.classList.remove('warn','danger');
+        if (restante < 5 * 60 * 1000) {
+          barra.classList.add('danger');
+          barra.querySelector('i').className = 'fa-solid fa-triangle-exclamation';
+        } else if (restante < 15 * 60 * 1000) {
+          barra.classList.add('warn');
+          barra.querySelector('i').className = 'fa-solid fa-clock';
+        }
+      }, 5000);
+    }
+    function detenerTimerSesion() {
+      if (timerSesion) { clearInterval(timerSesion); timerSesion = null; }
+    }
+    function expirarSesion() {
+      detenerTimerSesion();
+      borrarSesion();
+      usuarioActual = null;
+      document.getElementById('dashboard').classList.remove('visible');
+      document.getElementById('expiredOverlay').classList.add('visible');
+    }
+    /* Renovar sesión con cada interacción del usuario */
+    ['click','keydown','touchstart'].forEach(function(ev) {
+      document.addEventListener(ev, function() {
+        if (claveSesionActual && document.getElementById('dashboard').classList.contains('visible')) {
+          renovarSesion();
+        }
+      }, { passive: true });
+    });
+    /* Al volver de background, verificar si la sesión sigue válida */
+    document.addEventListener('visibilitychange', function() {
+      if (!document.hidden && claveSesionActual) {
+        var s = leerSesion();
+        if (!s) expirarSesion();
+        else renovarSesion();
+      }
+    });
+
+    /* ===== LOGIN ===== */
+    document.getElementById('loginPass').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') verificarAcceso();
+    });
+
+    async function verificarAcceso() {
+      if (verificandoAcceso) return;
+      var input = document.getElementById('loginPass');
+      var btn = document.querySelector('.login-btn');
+      var err = document.getElementById('loginError');
+      var pass = input.value.trim();
+      err.classList.remove('visible');
+      if (!pass) { input.focus(); return; }
+      verificandoAcceso = true;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Verificando...';
+      try {
+        var nombre = await validarClaveEnFirebase(pass);
+        if (nombre === null) {
+          err.innerHTML = '<i class="fa-solid fa-xmark"></i> Clave incorrecta';
+          err.classList.add('visible');
+          input.value = '';
+          input.focus();
+        } else {
+          entrar(nombre, pass);
+          guardarSesion(pass, nombre);
+        }
+      } catch(e) {
+        err.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Error de conexión, no se pudo verificar la clave';
+        err.classList.add('visible');
+      } finally {
+        verificandoAcceso = false;
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Ingresar';
+      }
+    }
+
+    async function validarClaveEnFirebase(clave) {
+      var r = await fetch(conAuth(FIREBASE_URL_SUPER + '/' + encodeURIComponent(clave) + '.json'));
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      var data = await r.json();
+      if (data === null) return null;
+      return (data && typeof data === 'object' && data.nombre) ? data.nombre : clave;
+    }
+
+    function entrar(nombre, clave) {
+      usuarioActual = nombre;
+      claveSesionActual = clave || null;
+      document.getElementById('loginPass').value = '';
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('dashboard').classList.add('visible');
+      document.getElementById('dashUsuarioTxt').textContent = nombre;
+      document.getElementById('dashUsuario').classList.add('visible');
+      var barra = document.getElementById('sesionBar');
+      barra.classList.remove('warn','danger');
+      barra.querySelector('i').className = 'fa-solid fa-clock';
+      iniciarTimerSesion();
+      cargarDatos();
+      mostrarToast('Bienvenido: ' + esc(nombre), 'ok');
+    }
+
+    async function restaurarSesion() {
+      var s = leerSesion();
+      if (!s) return;
+      /* ★ Verificar mismo dispositivo */
+      if (s.d && s.d !== obtenerIdDispositivo()) {
+        borrarSesion();
+        return;
+      }
+      var input = document.getElementById('loginPass');
+      var btn = document.querySelector('.login-btn');
+      verificandoAcceso = true;
+      input.disabled = true;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Restaurando sesión...';
+      try {
+        var nombre = await validarClaveEnFirebase(s.c);
+        if (nombre !== null) {
+          entrar(nombre, s.c);
+          guardarSesion(s.c, nombre);
+        } else {
+          borrarSesion();
+          var err = document.getElementById('loginError');
+          err.innerHTML = '<i class="fa-solid fa-xmark"></i> La clave guardada ya no es válida, ingresa de nuevo';
+          err.classList.add('visible');
+        }
+      } catch(e) {
+        entrar(s.n, s.c);
+        guardarSesion(s.c, s.n);
+        mostrarToast('Sesión restaurada sin verificación (sin conexión)', 'ok');
+      } finally {
+        verificandoAcceso = false;
+        input.disabled = false;
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Ingresar';
+      }
+    }
+
+    function cerrarSesion() {
+      detenerTimerSesion();
+      borrarSesion();
+      usuarioActual = null;
+      document.getElementById('dashUsuario').classList.remove('visible');
+      document.getElementById('dashboard').classList.remove('visible');
+      document.getElementById('loginScreen').style.display = '';
+      document.getElementById('loginPass').focus();
+    }
+
+    function volverALogin() {
+      document.getElementById('expiredOverlay').classList.remove('visible');
+      document.getElementById('loginScreen').style.display = '';
+      document.getElementById('loginPass').focus();
+    }
+
+    /* ===== JORNADAS ===== */
+    async function leerClaves(url, permitirFallback) {
+      try {
+        var r = await fetch(conAuth(url + '.json?shallow=true'));
+        if (r.ok) {
+          var j = await r.json();
+          if (j === null) return [];
+          if (typeof j === 'object') return Object.keys(j);
+        }
+      } catch(e) {}
+      if (!permitirFallback) return null;
+      var r2 = await fetch(conAuth(url + '.json'));
+      if (!r2.ok) throw new Error('HTTP ' + r2.status);
+      var j2 = await r2.json();
+      return (j2 && typeof j2 === 'object') ? Object.keys(j2) : [];
+    }
+
+    function pintarChipsJornadas(fechas, legacy) {
+      var bar = document.getElementById('jornadasBar');
+      if (!fechas.length && !legacy.length) { bar.innerHTML = ''; return; }
+      var hoyK = claveDiaLocal();
+      var h = '';
+      fechas.forEach(function(f) {
+        h += '<button class="chip-jor" data-jor="' + esc(f) + '"><i class="fa-regular fa-calendar"></i> ' + esc(diaBonito(f)) + (f === hoyK ? ' <span class="jor-hoy">Hoy</span>' : '') + '</button>';
+      });
+      if (legacy.length) {
+        h += '<button class="chip-jor legacy" data-jor="__legacy__" title="Registros anteriores al agrupado por jornadas"><i class="fa-solid fa-box-archive"></i> Antiguos <span style="font-size:10px;opacity:.7">(' + legacy.length + ')</span></button>';
+      }
+      bar.innerHTML = h;
+      marcarChipSeleccionado();
+    }
+    function marcarChipSeleccionado() {
+      document.querySelectorAll('.chip-jor').forEach(function(c) {
+        c.classList.toggle('sel', c.getAttribute('data-jor') === jornadaSeleccionada);
+      });
+    }
+    document.getElementById('jornadasBar').addEventListener('click', function(e) {
+      var b = e.target && e.target.closest ? e.target.closest('.chip-jor') : null;
+      if (!b) return;
+      var j = b.getAttribute('data-jor');
+      if (j === jornadaSeleccionada) return;
+      jornadaSeleccionada = j;
+      cargarDatos();
+    });
+
+    /* ===== CARGAR DATOS ===== */
+    async function cargarDatos() {
+      var btn = document.getElementById('btnActualizar');
+      btn.classList.add('actualizando');
+      try {
+        /* Paso 1: listar jornadas */
+        var clavesRaiz = await leerClaves(FIREBASE_URL, true);
+        var fechas = (clavesRaiz || []).filter(esCarpetaDia).sort().reverse();
+        var legacy = (clavesRaiz || []).filter(function(k){ return !esCarpetaDia(k); });
+        pintarChipsJornadas(fechas, legacy);
+
+        /* Paso 2: resolver jornada activa */
+        var cache = { fechas: fechas, legacy: legacy };
+        if (jornadaSeleccionada === '__legacy__' && !legacy.length) jornadaSeleccionada = null;
+        if (jornadaSeleccionada && jornadaSeleccionada !== '__legacy__' && fechas.indexOf(jornadaSeleccionada) === -1) jornadaSeleccionada = null;
+        if (!jornadaSeleccionada) {
+          var hoyK = claveDiaLocal();
+          if (fechas.indexOf(hoyK) !== -1) jornadaSeleccionada = hoyK;
+          else if (fechas.length) jornadaSeleccionada = fechas[0];
+          else if (legacy.length) jornadaSeleccionada = '__legacy__';
+          marcarChipSeleccionado();
+        }
+        if (!jornadaSeleccionada) {
+          document.getElementById('sinDatos').style.display = '';
+          document.getElementById('tbodyDatos').innerHTML = '';
+          actualizarResumen([]);
+          return;
+        }
+
+        /* Paso 3: leer la jornada */
+        var urlLectura = jornadaSeleccionada === '__legacy__' ? FIREBASE_URL : FIREBASE_URL + '/' + jornadaSeleccionada;
+        var r = await fetch(conAuth(urlLectura + '.json'));
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        var data = await r.json();
+
+        /* Paso 4: extraer datos (solo lectura — sin fusionar rutas[] para no duplicar) */
+        var filas = [];
+        var sesiones = {};
+        if (jornadaSeleccionada === '__legacy__') {
+          Object.keys(data || {}).forEach(function(k) { if (!esCarpetaDia(k)) sesiones[k] = data[k]; });
+        } else {
+          sesiones = (data && typeof data === 'object') ? data : {};
+        }
+
+        Object.keys(sesiones).forEach(function(codigo) {
+          var entry = sesiones[codigo];
+          if (!entry || typeof entry !== 'object') return;
+          /* Ruta actual */
+          (Array.isArray(entry.datosFormulario) ? entry.datosFormulario : []).forEach(function(item) {
+            filas.push(extraerFila(codigo, item));
+          });
+          /* Rutas archivadas del día */
+          (Array.isArray(entry.rutas) ? entry.rutas : []).forEach(function(h) {
+            if (h && Array.isArray(h.datosFormulario)) {
+              h.datosFormulario.forEach(function(item) { filas.push(extraerFila(codigo, item)); });
+            }
+          });
+        });
+
+        filas.sort(function(a, b) { return (a.horaMs || 0) - (b.horaMs || 0); });
+        datosGlobales = filas;
+        renderTabla(filas);
+        actualizarResumen(filas);
+        renovarSesion();
+      } catch(e) {
+        console.error('Error:', e);
+        mostrarToast('Error al cargar: ' + e.message, 'err');
+      } finally {
+        btn.classList.remove('actualizando');
+      }
+    }
+
+    function extraerFila(codigo, item) {
+      if (!item) item = {};
+      var gps = item.gps || null;
+      var horaEntrega = '';
+      var horaMs = 0;
+      if (gps && gps.fechaCaptura) {
+        var t = Date.parse(gps.fechaCaptura);
+        if (!isNaN(t)) { horaEntrega = formatearHoraCorta(gps.fechaCaptura); horaMs = t; }
+      }
+      var perm = '';
+      if (item.permanencia && numLimpio(item.permanencia.minutos) != null) {
+        perm = formatearMinutos(numLimpio(item.permanencia.minutos));
+      }
+      var dist = '';
+      var distNum = null;
+      if (gps) {
+        if (numLimpio(gps.distanciaOriginal) != null) {
+          distNum = numLimpio(gps.distanciaOriginal);
+        } else if (item.gpsOriginal && numLimpio(item.gpsOriginal.lat) != null && numLimpio(gps.lat) != null) {
+          distNum = distMetros(numLimpio(item.gpsOriginal.lat), numLimpio(item.gpsOriginal.lng), numLimpio(gps.lat), numLimpio(gps.lng));
+        }
+        if (distNum != null) dist = formatearDistancia(distNum);
+      }
+      return {
+        codigo: codigo,
+        codclnt: item.codclnt || '',
+        cliente: item.item || '',
+        horaEntrega: horaEntrega,
+        horaMs: horaMs,
+        permanencia: perm,
+        distancia: dist,
+        distNum: distNum,
+        comentario: item.comentario || ''
+      };
+    }
+
+    function renderTabla(filas) {
+      var tbody = document.getElementById('tbodyDatos');
+      var sinDatos = document.getElementById('sinDatos');
+      if (!filas.length) {
+        tbody.innerHTML = '';
+        sinDatos.style.display = '';
+        return;
+      }
+      sinDatos.style.display = 'none';
+      var html = '';
+      filas.forEach(function(f) {
+        var distCls = '';
+        if (f.distNum != null) {
+          distCls = f.distNum < 100 ? 'dist-ok' : (f.distNum < 500 ? 'dist-warn' : 'dist-bad');
+        }
+        html += '<tr>' +
+          '<td class="cod-ruta">' + esc(f.codigo) + '</td>' +
+          '<td class="cod-clnt">' + (f.codclnt ? esc(f.codclnt) : '<span class="vacio">—</span>') + '</td>' +
+          '<td class="nombre-cliente">' + esc(f.cliente || '—') + '</td>' +
+          '<td class="hora-entrega">' + (f.horaEntrega ? esc(f.horaEntrega) : '<span class="vacio">—</span>') + '</td>' +
+          '<td>' + (f.permanencia ? '<span class="perm-val"><i class="fa-solid fa-stopwatch"></i> ' + esc(f.permanencia) + '</span>' : '<span class="vacio">—</span>') + '</td>' +
+          '<td>' + (f.distancia ? '<span class="dist-val ' + distCls + '">' + esc(f.distancia) + '</span>' : '<span class="vacio">—</span>') + '</td>' +
+          '<td>' + (f.comentario ? '<span class="com-txt">' + esc(f.comentario) + '</span>' : '<span class="vacio">—</span>') + '</td>' +
+        '</tr>';
+      });
+      tbody.innerHTML = html;
+    }
+
+    function actualizarResumen(filas) {
+      document.getElementById('rcRutas').textContent = new Set(filas.map(function(f){ return f.codigo; })).size;
+      document.getElementById('rcEntregas').textContent = filas.length;
+      document.getElementById('rcGps').textContent = filas.filter(function(f){ return f.horaEntrega !== ''; }).length;
+      document.getElementById('rcPerm').textContent = filas.filter(function(f){ return f.permanencia !== ''; }).length;
+      document.getElementById('rcCom').textContent = filas.filter(function(f){ return f.comentario !== ''; }).length;
+    }
+
+    /* ===== CSV ===== */
+    function csvCampo(v) {
+      var s = String(v == null ? '' : v);
+      return '"' + s.replace(/"/g, '""') + '"';
+    }
+    function descargarCSV() {
+      if (!datosGlobales.length) { mostrarToast('No hay datos para descargar', 'err'); return; }
+      var sep = ';';
+      var lineas = ['\uFEFF' + ['Jornada','CodigoRuta','CodCliente','Cliente','HoraEntrega','Permanencia','DistanciaOriginal','Comentario'].join(sep)];
+      var etiquetaJornada = jornadaSeleccionada === '__legacy__' ? 'antiguos' : jornadaSeleccionada;
+      datosGlobales.forEach(function(f) {
+        lineas.push([etiquetaJornada, f.codigo, f.codclnt, f.cliente, f.horaEntrega, f.permanencia, f.distancia, f.comentario].map(csvCampo).join(sep));
+      });
+      var blob = new Blob([lineas.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'consulta_' + etiquetaJornada + '.csv';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+      mostrarToast('CSV descargado', 'ok');
+    }
+
+    /* ===== INIT ===== */
+    iniciarFirebaseAuth().then(function() {
+      restaurarSesion();
+    });
+  </script>
+</body>
+</html>
