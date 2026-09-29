@@ -235,9 +235,9 @@
     <div class="seccion">
       <div class="sec-title"><i class="fa-solid fa-route"></i> Cumplimiento por código de ruta <span class="st-sub" id="secRutasSub"></span></div>
       <div class="seg-legenda">
-        <span><span class="slg slg-at-ok"></span>A tiempo (%)</span>
-        <span><span class="slg slg-atr"></span>Atrasadas</span>
-        <span><span class="slg slg-pend"></span>Sin registrar</span>
+        <span><span class="slg slg-at-ok"></span>A tiempo (verde)</span>
+        <span><span class="slg slg-atr"></span>Con atraso (rojo)</span>
+        <span><span class="slg slg-pend"></span>Sin registro (gris)</span>
       </div>
       <div class="card" id="cardRutas"><div class="sin-datos"><i class="fa-solid fa-route"></i><p>Sin datos para el rango seleccionado.</p></div></div>
     </div>
@@ -607,9 +607,9 @@
       card.innerHTML = html;
     }
 
-    /* ★ Cumplimiento por código de ruta — barra SIMPLE:
-       verde (% a tiempo) + rojo (atrasadas) + gris (sin registrar).
-       Solo el % dentro del segmento verde. Detalle en tooltip. */
+    /* ★ Cumplimiento por código de ruta — barra con textos:
+       verde "A tiempo X%" + rojo "Con atraso" + gris "Sin registro".
+       Los textos aparecen solo si el segmento es suficientemente ancho. */
     function renderRutas() {
       var f = datosActuales;
       var card = document.getElementById('cardRutas');
@@ -635,13 +635,17 @@
         var wAt = r.total ? (g.at / r.total * 100) : 0;
         var wAtr = r.total ? (g.atr / r.total * 100) : 0;
         var wPend = r.total ? (g.pend / r.total * 100) : 0;
+        /* Textos dentro: "A tiempo 60%" / "Con atraso" / "Sin registro" — solo si caben */
+        var txtAt = wAt >= 22 ? 'A tiempo ' + r.pct + '%' : (wAt >= 12 ? r.pct + '%' : '');
+        var txtAtr = wAtr >= 20 ? 'Con atraso' : (wAtr >= 10 ? 'Atraso' : '');
+        var txtPend = wPend >= 22 ? 'Sin registro' : (wPend >= 12 ? 'Sin reg.' : '');
         html += '<div class="barra-row">' +
           '<div class="barra-label" title="Ruta ' + esc(r.cod) + '" style="font-family:\'Space Grotesk\',sans-serif;font-weight:700;color:var(--accent)">Ruta ' + esc(r.cod) + '</div>' +
-          '<div class="barra-track" title="A tiempo: ' + g.at + ' · atrasadas: ' + g.atr + ' · sin registrar: ' + g.pend + '">' +
+          '<div class="barra-track" title="A tiempo: ' + g.at + ' · con atraso: ' + g.atr + ' · sin registro: ' + g.pend + '">' +
             '<div class="barra-seg">' +
-              '<div class="seg seg-at-ok" style="width:' + wAt + '%">' + (wAt >= 12 ? r.pct + '%' : '') + '</div>' +
-              '<div class="seg seg-atr" style="width:' + wAtr + '%"></div>' +
-              '<div class="seg seg-pend" style="width:' + wPend + '%"></div>' +
+              '<div class="seg seg-at-ok" style="width:' + wAt + '%">' + txtAt + '</div>' +
+              '<div class="seg seg-atr" style="width:' + wAtr + '%">' + txtAtr + '</div>' +
+              '<div class="seg seg-pend" style="width:' + wPend + '%">' + txtPend + '</div>' +
             '</div>' +
           '</div>' +
           '<div class="barra-meta">' + r.total + ' ent.</div>' +
@@ -649,7 +653,6 @@
       });
       card.innerHTML = html;
     }
-
     function renderHoras() {
       var f = datosActuales.filter(function(x){ return x.entregado && x.capMs != null; });
       var cont = document.getElementById('histHoras');
