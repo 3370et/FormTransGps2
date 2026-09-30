@@ -106,7 +106,37 @@
     .leyenda-heat::before{content:'menos';left:0}
     .leyenda-heat::after{content:'más';right:0}
     .leyenda-txt{font-size:9px;color:var(--fg3);text-align:center;margin-top:20px}
-
+    /* ★ Puntos planificados — pin vistoso */
+    .pin-orig{background:none;border:none}
+    .pin-orig .pin-dot{
+      width:18px;height:18px;border-radius:50% 50% 50% 0;
+      background:linear-gradient(135deg,#f0a050,#e8913a);
+      border:2.5px solid #ffffff;
+      transform:rotate(-45deg);
+      box-shadow:0 2px 8px rgba(0,0,0,.45), 0 0 0 1px rgba(232,145,58,.3);
+      transition:transform .2s ease, box-shadow .2s ease;
+      position:relative;
+    }
+    .pin-orig .pin-dot::after{
+      content:'';position:absolute;top:4px;left:4px;width:7px;height:7px;
+      border-radius:50%;background:#0f1117;
+    }
+    .pin-orig:hover .pin-dot{
+      transform:rotate(-45deg) scale(1.35);
+      box-shadow:0 4px 16px rgba(232,145,58,.65), 0 0 0 3px rgba(232,145,58,.35);
+      z-index:1000;
+    }
+    /* Pulso suave para llamar la atención */
+    .pin-orig .pin-dot::before{
+      content:'';position:absolute;inset:-6px;border-radius:inherit;
+      border:2px solid rgba(232,145,58,.45);
+      animation:pinPulse 2.2s ease-out infinite;
+    }
+    @keyframes pinPulse{
+      0%{transform:scale(.7);opacity:1}
+      100%{transform:scale(1.6);opacity:0}
+    }
+    @media (prefers-reduced-motion:reduce){.pin-orig .pin-dot::before{animation:none}}
     /* ===== EXPIRACIÓN ===== */
     .expired-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);z-index:6000;display:none;align-items:center;justify-content:center;padding:20px}
     .expired-overlay.visible{display:flex}
@@ -536,19 +566,27 @@
     }
     var encuadrado = false;
 
-    /* ===== PUNTOS ORIGINALES (toggle) ===== */
+    /* ===== PUNTOS ORIGINALES (toggle) — pin vistoso ===== */
     function pintarPuntos() {
       if (!capaOriginales || !mapInstance) return;
       capaOriginales.clearLayers();
       if (!document.getElementById('chkOriginales').checked) return;
       puntosOriginalesGlobal.forEach(function(o) {
-        L.circleMarker([o.lat, o.lng], {
-          radius: 4, color: '#e8913a', weight: 1.5, fillColor: '#e8913a', fillOpacity: 0.35, opacity: 0.8
-        }).bindPopup('<b>' + esc(o.cliente || 'Cliente') + '</b><br><span style="color:#8891a8;font-size:11px">Punto original planificado</span>')
+        var icon = L.divIcon({
+          className: 'pin-orig',
+          html: '<div class="pin-dot" title="' + esc(o.cliente || 'Cliente') + '"></div>',
+          iconSize: [18, 18],
+          iconAnchor: [9, 18]  /* ancla en la punta del pin */
+        });
+        L.marker([o.lat, o.lng], { icon: icon })
+          .bindPopup('<div style="font-family:\'DM Sans\',sans-serif;min-width:150px">' +
+            '<div style="font-size:9px;font-weight:700;color:#e8913a;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Punto planificado</div>' +
+            '<div style="font-family:\'Space Grotesk\',sans-serif;font-size:14px;font-weight:700;color:#eaedf6">' + esc(o.cliente || 'Cliente') + '</div>' +
+            '<div style="font-size:11px;color:#8891a8;margin-top:3px">📍 ' + o.lat.toFixed(5) + ', ' + o.lng.toFixed(5) + '</div>' +
+          '</div>')
           .addTo(capaOriginales);
       });
     }
-
     /* ===== CHIPS ===== */
     function pintarChips(fechas) {
       var bar = document.getElementById('jornadasBar');
