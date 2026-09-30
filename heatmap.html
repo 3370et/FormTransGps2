@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 100'%3E%3Crect width='120' height='100' rx='22' fill='%2313161f'/%3E%3Cpath d='M44 20 L84 20 Q88 20 88 24 L88 56 Q88 60 84 60 L44 60 L34 56 L44 53 L23 49 L44 46 L32 42 L44 39 L20 35 L44 32 L28 28 L44 25 L21 21 Z' fill='%23e8913a'/%3E%3Ctext x='66' y='44' text-anchor='middle' font-family='Arial Black, Arial, sans-serif' font-weight='900' font-size='20' fill='%230f1117'%3EET%3C/text%3E%3Cpath d='M92 24 L106 24 L114 38 L114 60 L92 60 Z' fill='%23e8913a'/%3E%3Cpath d='M97 30 L104 30 L109 38 L97 38 Z' fill='%230f1117'/%3E%3Ccircle cx='48' cy='64' r='9' fill='%23ffffff'/%3E%3Ccircle cx='48' cy='64' r='4' fill='%230f1117'/%3E%3Ccircle cx='104' cy='64' r='9' fill='%23ffffff'/%3E%3Ccircle cx='104' cy='64' r='4' fill='%230f1117'/%3E%3C/svg%3E">
+  <title>Mapa de calor de entregas</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
+  <style>
+    :root {
+      --bg:#08090d;--bg2:#0e1018;--card:#14171f;--card2:#191d28;
+      --border:#22273a;--fg:#e4e8f1;--fg2:#8891a8;--fg3:#565e74;
+      --accent:#e8913a;--success:#34d399;--danger:#f87171;
+      --info:#60a5fa;--warning:#fbbf24;--purple:#a78bfa;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--fg);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+    ::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+    /* ===== LOGIN ===== */
+    .login-screen{position:fixed;inset:0;background:var(--bg);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;z-index:5000}
+    .login-screen.oculto{display:none}
+    .login-box{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:40px 32px;max-width:380px;width:100%;text-align:center}
+    .login-icon{width:64px;height:64px;border-radius:50%;background:rgba(232,145,58,.08);border:2px solid rgba(232,145,58,.2);display:flex;align-items:center;justify-content:center;margin:0 auto 20px}
+    .login-icon i{font-size:26px;color:var(--accent)}
+    .login-box h2{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;margin-bottom:8px}
+    .login-box p{font-size:13px;color:var(--fg2);margin-bottom:24px;line-height:1.5}
+    .login-input{width:100%;background:var(--bg);border:1.5px solid var(--border);color:var(--fg);border-radius:10px;padding:13px 16px;font-family:'DM Sans',sans-serif;font-size:15px;outline:none;transition:all .25s;margin-bottom:16px;text-align:center;letter-spacing:3px}
+    .login-input::placeholder{letter-spacing:.3px;color:var(--fg3)}
+    .login-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(232,145,58,.12)}
+    .login-btn{width:100%;padding:13px;border-radius:10px;border:none;background:var(--accent);color:#0f1117;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all .25s}
+    .login-btn:hover{background:#f0a050;box-shadow:0 4px 20px rgba(232,145,58,.3)}
+    .login-btn:disabled{opacity:.65;cursor:wait}
+    .login-error{margin-top:14px;padding:10px;border-radius:8px;font-size:13px;background:rgba(248,113,113,.06);border:1px solid rgba(248,113,113,.15);color:var(--danger);display:none}
+    .login-error.visible{display:block}
+
+    /* ===== HEADER ===== */
+    .app-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:10px 14px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;z-index:1200}
+    .app-header h1{font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;white-space:nowrap}
+    .app-header h1 i{color:var(--accent);font-size:15px}
+    .header-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+    .h-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:7px;border:1px solid var(--border);background:var(--card);color:var(--fg2);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap}
+    .h-btn:hover{border-color:var(--fg3);color:var(--fg)}
+    .h-btn.actualizando{pointer-events:none;opacity:.6}
+    .h-btn.actualizando i{animation:spin 1s linear infinite}
+    .h-btn.sel{border-color:var(--accent);color:var(--accent);background:rgba(232,145,58,.08)}
+    .h-btn.salir{border-color:rgba(248,113,113,.2);color:var(--danger)}
+    .h-btn.salir:hover{background:rgba(248,113,113,.08);border-color:var(--danger)}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* ===== FILTROS ===== */
+    .filtros-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 14px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;z-index:1100}
+    .jornadas-bar{display:flex;gap:6px;overflow-x:auto;padding:1px 1px 4px;flex:1;min-width:180px}
+    .jornadas-bar::-webkit-scrollbar{height:3px}
+    .jornadas-bar::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+    .chip-jor{flex-shrink:0;display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:7px;border:1px solid var(--border);background:var(--card);color:var(--fg2);font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap}
+    .chip-jor:hover{border-color:var(--fg3);color:var(--fg)}
+    .chip-jor.sel{border-color:var(--accent);color:var(--accent);background:rgba(232,145,58,.08)}
+    .chip-jor .jor-hoy{font-size:7.5px;font-weight:800;text-transform:uppercase;background:var(--success);color:#0f1117;border-radius:99px;padding:1px 5px}
+    .nota-rango{font-size:10px;color:var(--fg3);white-space:nowrap}
+
+    /* ===== MAPA ===== */
+    .mapa-wrap{flex:1;position:relative;min-height:0}
+    #mapa{position:absolute;inset:0;background:#d4dadc}
+    .leaflet-container{font-family:'DM Sans',sans-serif}
+
+    /* ===== PANEL DE CONTROL (flotante) ===== */
+    .panel{position:absolute;top:12px;right:12px;z-index:1000;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;width:225px;box-shadow:0 8px 32px rgba(0,0,0,.5);max-height:calc(100% - 24px);overflow-y:auto}
+    .panel::-webkit-scrollbar{width:3px}
+    .panel-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--fg3);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+    .panel-title i{color:var(--accent);font-size:10px}
+    .ctrl-group{margin-bottom:12px}
+    .ctrl-label{font-size:10.5px;color:var(--fg2);font-weight:600;margin-bottom:5px;display:flex;justify-content:space-between}
+    .ctrl-label b{color:var(--accent);font-family:'Space Grotesk',monospace}
+    input[type=range]{width:100%;height:4px;-webkit-appearance:none;appearance:none;background:var(--border);border-radius:2px;outline:none;cursor:pointer}
+    input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:14px;height:14px;border-radius:50%;background:var(--accent);cursor:pointer;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+    /* Chips de filtro tipo */
+    .tipo-chips{display:flex;gap:5px;flex-wrap:wrap}
+    .tipo-chip{flex:1;min-width:58px;padding:5px 6px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--fg3);font-family:'DM Sans',sans-serif;font-size:10px;font-weight:700;cursor:pointer;transition:all .2s;text-align:center}
+    .tipo-chip:hover{border-color:var(--fg3);color:var(--fg)}
+    .tipo-chip.sel-todas{border-color:var(--accent);color:var(--accent);background:rgba(232,145,58,.08)}
+    .tipo-chip.sel-ok{border-color:var(--success);color:var(--success);background:rgba(52,211,153,.08)}
+    .tipo-chip.sel-atr{border-color:var(--danger);color:var(--danger);background:rgba(248,113,113,.08)}
+    /* Toggle */
+    .toggle-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+    .toggle-label{font-size:11px;color:var(--fg2);font-weight:600}
+    .switch{position:relative;width:34px;height:18px;flex-shrink:0}
+    .switch input{opacity:0;width:0;height:0}
+    .slider-sw{position:absolute;cursor:pointer;inset:0;background:var(--border);border-radius:99px;transition:.25s}
+    .slider-sw:before{content:'';position:absolute;height:12px;width:12px;left:3px;top:3px;background:var(--fg2);border-radius:50%;transition:.25s}
+    .switch input:checked + .slider-sw{background:var(--accent)}
+    .switch input:checked + .slider-sw:before{transform:translateX(16px);background:#fff}
+    /* Stats del panel */
+    .panel-stats{border-top:1px solid var(--border);padding-top:10px;margin-top:4px}
+    .pstat{display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px}
+    .pstat .pl{color:var(--fg3)}
+    .pstat .pv{font-family:'Space Grotesk',monospace;font-weight:700}
+    /* Leyenda degradado */
+    .leyenda-heat{height:8px;border-radius:4px;background:linear-gradient(90deg,#0000ff44,#00ffff88,#00ff00aa,#ffff00cc,#ff0000ee);margin-top:8px;position:relative}
+    .leyenda-heat::before,.leyenda-heat::after{position:absolute;top:12px;font-size:8px;color:var(--fg3)}
+    .leyenda-heat::before{content:'menos';left:0}
+    .leyenda-heat::after{content:'más';right:0}
+    .leyenda-txt{font-size:9px;color:var(--fg3);text-align:center;margin-top:20px}
+
+    /* ===== EXPIRACIÓN ===== */
+    .expired-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);z-index:6000;display:none;align-items:center;justify-content:center;padding:20px}
+    .expired-overlay.visible{display:flex}
+    .expired-box{background:var(--card);border:1px solid rgba(248,113,113,.2);border-radius:18px;padding:40px 32px;max-width:400px;width:100%;text-align:center}
+    .expired-icon{width:70px;height:70px;border-radius:50%;background:rgba(248,113,113,.06);border:2px solid rgba(248,113,113,.15);display:flex;align-items:center;justify-content:center;margin:0 auto 20px}
+    .expired-icon i{font-size:28px;color:var(--danger)}
+    .expired-box h2{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:800;color:var(--danger);margin-bottom:10px}
+    .expired-box p{font-size:14px;color:var(--fg2);line-height:1.6;margin-bottom:24px}
+    .expired-btn{padding:12px 28px;border-radius:10px;border:none;background:var(--accent);color:#0f1117;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .25s}
+    .expired-btn:hover{background:#f0a050}
+
+    /* ===== LOADING ===== */
+    .loading-toast{position:fixed;top:64px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 18px;font-size:12px;font-weight:600;color:var(--fg2);z-index:4000;display:none;align-items:center;gap:8px;box-shadow:0 6px 24px rgba(0,0,0,.5)}
+    .loading-toast.visible{display:flex}
+    .loading-toast i{animation:spin 1s linear infinite;color:var(--accent)}
+
+    @media(max-width:640px){
+      .app-header{padding:8px 10px}
+      .app-header h1{font-size:14px}
+      .filtros-row{padding:6px 10px}
+      .panel{width:190px;padding:10px 12px;top:8px;right:8px}
+      .tipo-chip{min-width:50px;font-size:9px}
+    }
+  </style>
+</head>
+<body>
+
+  <!-- LOGIN -->
+  <div class="login-screen" id="loginScreen">
+    <div class="login-box">
+      <div class="login-icon"><i class="fa-solid fa-fire"></i></div>
+      <h2>Mapa de calor de entregas</h2>
+      <p>Ingresa tu clave para consultar la densidad de entregas.</p>
+      <input type="password" class="login-input" id="loginPass" placeholder="Clave de acceso" autocomplete="off">
+      <button class="login-btn" onclick="verificarAcceso()"><i class="fa-solid fa-right-to-bracket"></i> Ingresar</button>
+      <div class="login-error" id="loginError"><i class="fa-solid fa-xmark"></i> Clave incorrecta</div>
+    </div>
+  </div>
+
+  <!-- EXPIRACIÓN -->
+  <div class="expired-overlay" id="expiredOverlay">
+    <div class="expired-box">
+      <div class="expired-icon"><i class="fa-solid fa-hourglass-end"></i></div>
+      <h2>Sesión expirada</h2>
+      <p>Tu sesión ha expirado por inactividad.<br>Ingresa nuevamente tu clave para continuar.</p>
+      <button class="expired-btn" onclick="volverALogin()"><i class="fa-solid fa-rotate-right"></i> Volver a ingresar</button>
+    </div>
+  </div>
+
+  <!-- APP -->
+  <div id="app" style="display:none;flex-direction:column;height:100vh">
+    <div class="app-header">
+      <h1><i class="fa-solid fa-fire"></i> Mapa de calor de entregas</h1>
+      <div class="header-actions">
+        <button class="h-btn" id="btnActualizar" onclick="cargarDatos()"><i class="fa-solid fa-arrows-rotate"></i> Actualizar</button>
+        <button class="h-btn sel" id="btnRangoDia" onclick="cambiarRango('dia')"><i class="fa-regular fa-calendar"></i> Jornada</button>
+        <button class="h-btn" id="btnRango7" onclick="cambiarRango(7)"><i class="fa-solid fa-arrow-trend-up"></i> 7d</button>
+        <button class="h-btn" id="btnRango30" onclick="cambiarRango(30)"><i class="fa-solid fa-chart-line"></i> 30d</button>
+        <button class="h-btn salir" onclick="cerrarSesion()"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
+      </div>
+    </div>
+
+    <div class="filtros-row">
+      <div class="jornadas-bar" id="jornadasBar"></div>
+      <span class="nota-rango" id="notaRango"></span>
+    </div>
+
+    <div class="mapa-wrap">
+      <div id="mapa"></div>
+
+      <!-- Panel de control flotante -->
+      <div class="panel">
+        <div class="panel-title"><i class="fa-solid fa-sliders"></i> Controles</div>
+
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span>Tipo de entrega</span></div>
+          <div class="tipo-chips">
+            <button class="tipo-chip sel-todas" id="chipTodas" onclick="setTipo('todas')">Todas</button>
+            <button class="tipo-chip" id="chipOk" onclick="setTipo('ok')"><i class="fa-solid fa-check" style="font-size:8px"></i> A tiempo</button>
+            <button class="tipo-chip" id="chipAtr" onclick="setTipo('atr')"><i class="fa-solid fa-triangle-exclamation" style="font-size:8px"></i> Atrasadas</button>
+          </div>
+        </div>
+
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span><i class="fa-solid fa-circle-half-stroke" style="font-size:9px"></i> Radio</span><b id="valRadio">25</b></div>
+          <input type="range" id="slRadio" min="8" max="50" value="25" oninput="setRadio(this.value)">
+        </div>
+
+        <div class="ctrl-group">
+          <div class="ctrl-label"><span><i class="fa-solid fa-water" style="font-size:9px"></i> Desenfoque</span><b id="valBlur">15</b></div>
+          <input type="range" id="slBlur" min="5" max="30" value="15" oninput="setBlur(this.value)">
+        </div>
+
+        <div class="toggle-row">
+          <span class="toggle-label">Puntos planificados</span>
+          <label class="switch"><input type="checkbox" id="chkOriginales" onchange="pintarPuntos()"><span class="slider-sw"></span></label>
+        </div>
+
+        <div class="panel-stats">
+          <div class="pstat"><span class="pl">Puntos en mapa</span><span class="pv" style="color:var(--accent)" id="psPuntos">0</span></div>
+          <div class="pstat"><span class="pl">A tiempo</span><span class="pv" style="color:var(--success)" id="psOk">0</span></div>
+          <div class="pstat"><span class="pl">Atrasadas</span><span class="pv" style="color:var(--danger)" id="psAtr">0</span></div>
+          <div class="leyenda-heat"></div>
+          <div class="leyenda-txt">densidad de entregas</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="loading-toast" id="loadingToast"><i class="fa-solid fa-circle-notch"></i><span>Cargando datos...</span></div>
+
+  <script>
+    /* ===== CONFIG ===== */
+    var FIREBASE_BASE = 'https://datos-formulario-f3cde-default-rtdb.firebaseio.com';
+    var FIREBASE_URL = FIREBASE_BASE + '/codigosUsados';
+    var FIREBASE_URL_SUPER = FIREBASE_BASE + '/superUsuarios';
+    var SESSION_DURACION_MS = 60 * 60 * 1000;
+    var SESSION_CLAVE = 'heatmap_sesion';
+    var LS_DEVICE_KEY = 'heatmap_dispositivo_id';
+
+    /* ===== ESTADO ===== */
+    var rangoActual = 'dia';
+    var jornadaSeleccionada = null;
+    var puntosActuales = [];   /* {lat,lng,atrasada:bool,cliente,sector} */
+    var tipoFiltro = 'todas';
+    var radioActual = 25;
+    var blurActual = 15;
+    var timerSesion = null;
+    var verificandoAcceso = false;
+    var usuarioActual = null;
+    var claveSesionActual = null;
+    var mapInstance = null;
+    var heatLayer = null;
+    var capaOriginales = null;
+
+    /* ===== FIREBASE AUTH ===== */
+    var FIREBASE_APP_CONFIG = {
+      apiKey: "AIzaSyCrnroA2yd2coEVyn6Jm-q8sM6rvOb6Y3k",
+      authDomain: "datos-formulario-f3cde.firebaseapp.com",
+      databaseURL: "https://datos-formulario-f3cde-default-rtdb.firebaseio.com",
+      projectId: "datos-formulario-f3cde",
+      storageBucket: "datos-formulario-f3cde.firebasestorage.app",
+      messagingSenderId: "1060204671476",
+      appId: "1:1060204671476:web:a476539fa122fd04fa89a1"
+    };
+    var fbAuthToken = null;
+    function conAuth(url) {
+      if (fbAuthToken) return url + (url.indexOf('?') === -1 ? '?' : '&') + 'auth=' + fbAuthToken;
+      return url;
+    }
+    function cargarScriptAsync(src) {
+      return new Promise(function(resolver, rechazar) {
+        var s = document.createElement('script');
+        s.src = src; s.onload = resolver;
+        s.onerror = function() { rechazar(new Error('No se pudo cargar ' + src)); };
+        document.head.appendChild(s);
+      });
+    }
+    async function iniciarFirebaseAuth() {
+      try {
+        var base = 'https://www.gstatic.com/firebasejs/10.12.0/';
+        await cargarScriptAsync(base + 'firebase-app-compat.js');
+        await cargarScriptAsync(base + 'firebase-auth-compat.js');
+        if (!firebase.apps.length) firebase.initializeApp(FIREBASE_APP_CONFIG);
+        firebase.auth().onIdTokenChanged(function(user) {
+          if (user) { user.getIdToken().then(function(t) { fbAuthToken = t; }).catch(function(){}); }
+          else { fbAuthToken = null; }
+        });
+        await firebase.auth().signInAnonymously();
+        var u = firebase.auth().currentUser;
+        if (u) fbAuthToken = await u.getIdToken();
+        return true;
+      } catch(e) { console.warn('Auth no disponible:', e && e.message); return false; }
+    }
+
+    /* ===== HELPERS ===== */
+    function esc(v) { return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+    function numLimpio(v) { if (v == null || v === '') return null; var n = Number(v); return isFinite(n) ? n : null; }
+    function esCarpetaDia(k) { return /^\d{4}-\d{2}-\d{2}$/.test(k); }
+    function claveDiaLocal() { var d = new Date(); function p(n){return String(n).padStart(2,'0');} return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
+    function diaBonito(iso) { if (!esCarpetaDia(iso)) return iso; var p = iso.split('-'); return p[2]+'/'+p[1]; }
+    function diaSemana(iso) { var d = new Date(iso + 'T12:00:00'); var ds = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']; return isNaN(d.getTime()) ? '' : ds[d.getDay()]; }
+    function minutosHora(h) {
+      if (!h || typeof h !== 'string') return null;
+      var l = h.trim().replace(/[hH]/g, ':');
+      var m = /^(\d{1,2}):(\d{2})/.exec(l);
+      if (!m) return null;
+      return (+m[1]) * 60 + (+m[2]);
+    }
+
+    /* ===== DISPOSITIVO ===== */
+    function obtenerIdDispositivo() {
+      try {
+        var id = localStorage.getItem(LS_DEVICE_KEY);
+        if (!id) { id = 'hm-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2,10); localStorage.setItem(LS_DEVICE_KEY, id); }
+        return id;
+      } catch(e) { return 'hm-temp-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2,10); }
+    }
+
+    /* ===== SESIÓN ===== */
+    function guardarSesion(clave, nombre) { try { localStorage.setItem(SESSION_CLAVE, JSON.stringify({ c: clave, n: nombre, t: Date.now(), d: obtenerIdDispositivo() })); } catch(e) {} }
+    function leerSesion() {
+      try {
+        var s = JSON.parse(localStorage.getItem(SESSION_CLAVE));
+        if (s && typeof s.c === 'string' && s.c && typeof s.n === 'string' && isFinite(s.t)) {
+          if (Date.now() - s.t < SESSION_DURACION_MS) return s;
+          localStorage.removeItem(SESSION_CLAVE);
+        }
+      } catch(e) {}
+      return null;
+    }
+    function renovarSesion(){ if (claveSesionActual) guardarSesion(claveSesionActual, usuarioActual); }
+    function borrarSesion(){ claveSesionActual = null; try { localStorage.removeItem(SESSION_CLAVE); } catch(e) {} }
+    function iniciarTimerSesion() {
+      detenerTimerSesion();
+      timerSesion = setInterval(function() {
+        var s = leerSesion();
+        if (!s) { expirarSesion(); return; }
+        if (SESSION_DURACION_MS - (Date.now() - s.t) <= 0) { expirarSesion(); return; }
+      }, 15000);
+    }
+    function detenerTimerSesion(){ if (timerSesion) { clearInterval(timerSesion); timerSesion = null; } }
+    function expirarSesion(){ detenerTimerSesion(); borrarSesion(); usuarioActual = null; document.getElementById('app').style.display = 'none'; document.getElementById('expiredOverlay').classList.add('visible'); }
+    ['click','keydown','touchstart'].forEach(function(ev){ document.addEventListener(ev, function(){ if (claveSesionActual && document.getElementById('app').style.display !== 'none') renovarSesion(); }, { passive: true }); });
+    document.addEventListener('visibilitychange', function(){ if (!document.hidden && claveSesionActual) { var s = leerSesion(); if (!s) expirarSesion(); else renovarSesion(); } });
+
+    /* ===== LOGIN ===== */
+    document.getElementById('loginPass').addEventListener('keydown', function(e) { if (e.key === 'Enter') verificarAcceso(); });
+    async function verificarAcceso() {
+      if (verificandoAcceso) return;
+      var input = document.getElementById('loginPass');
+      var btn = document.querySelector('.login-btn');
+      var err = document.getElementById('loginError');
+      var pass = input.value.trim();
+      err.classList.remove('visible');
+      if (!pass) { input.focus(); return; }
+      verificandoAcceso = true; btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Verificando...';
+      try {
+        var nombre = await validarClaveEnFirebase(pass);
+        if (nombre === null) { err.innerHTML = '<i class="fa-solid fa-xmark"></i> Clave incorrecta'; err.classList.add('visible'); input.value = ''; input.focus(); }
+        else { entrar(nombre, pass); guardarSesion(pass, nombre); }
+      } catch(e) { err.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Error de conexión'; err.classList.add('visible'); }
+      finally { verificandoAcceso = false; btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Ingresar'; }
+    }
+    async function validarClaveEnFirebase(clave) {
+      var r = await fetch(conAuth(FIREBASE_URL_SUPER + '/' + encodeURIComponent(clave) + '.json'));
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      var data = await r.json();
+      if (data === null) return null;
+      return (data && typeof data === 'object' && data.nombre) ? data.nombre : clave;
+    }
+    function entrar(nombre, clave) {
+      usuarioActual = nombre; claveSesionActual = clave || null;
+      document.getElementById('loginPass').value = '';
+      document.getElementById('loginScreen').classList.add('oculto');
+      document.getElementById('app').style.display = 'flex';
+      iniciarTimerSesion();
+      initMapa();
+      cargarDatos();
+    }
+    async function restaurarSesion() {
+      var s = leerSesion();
+      if (!s) return;
+      if (s.d && s.d !== obtenerIdDispositivo()) { borrarSesion(); return; }
+      var input = document.getElementById('loginPass'); var btn = document.querySelector('.login-btn');
+      verificandoAcceso = true; input.disabled = true; btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Restaurando...';
+      try {
+        var nombre = await validarClaveEnFirebase(s.c);
+        if (nombre !== null) { entrar(nombre, s.c); guardarSesion(s.c, nombre); }
+        else { borrarSesion(); var err = document.getElementById('loginError'); err.innerHTML = '<i class="fa-solid fa-xmark"></i> La clave ya no es válida'; err.classList.add('visible'); }
+      } catch(e) { entrar(s.n, s.c); guardarSesion(s.c, s.n); }
+      finally { verificandoAcceso = false; input.disabled = false; btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Ingresar'; }
+    }
+    function cerrarSesion(){ detenerTimerSesion(); borrarSesion(); usuarioActual = null; document.getElementById('app').style.display = 'none'; document.getElementById('loginScreen').classList.remove('oculto'); document.getElementById('loginPass').focus(); }
+    function volverALogin(){ document.getElementById('expiredOverlay').classList.remove('visible'); document.getElementById('loginScreen').classList.remove('oculto'); document.getElementById('loginPass').focus(); }
+
+    /* ===== RANGOS ===== */
+    function cambiarRango(r) {
+      rangoActual = r;
+      document.getElementById('btnRangoDia').classList.toggle('sel', r === 'dia');
+      document.getElementById('btnRango7').classList.toggle('sel', r === 7);
+      document.getElementById('btnRango30').classList.toggle('sel', r === 30);
+      cargarDatos();
+    }
+    async function leerClaves(url) {
+      try {
+        var r = await fetch(conAuth(url + '.json?shallow=true'));
+        if (r.ok) { var j = await r.json(); if (j === null) return []; if (typeof j === 'object') return Object.keys(j); }
+      } catch(e) {}
+      return [];
+    }
+
+    /* ===== MAPA ===== */
+    function initMapa() {
+      if (mapInstance) return;
+      mapInstance = L.map('mapa', { zoomControl: true });
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors',
+        maxNativeZoom: 19, maxZoom: 19
+      }).addTo(mapInstance);
+      mapInstance.setView([-0.1807, -78.4678], 11); /* Quito */
+      heatLayer = L.heatLayer([], {
+        radius: radioActual, blur: blurActual, maxZoom: 17,
+        gradient: { 0.2: '#0000ff', 0.4: '#00ffff', 0.6: '#00ff00', 0.8: '#ffff00', 1.0: '#ff0000' }
+      }).addTo(mapInstance);
+      capaOriginales = L.layerGroup().addTo(mapInstance);
+      setTimeout(function(){ mapInstance.invalidateSize(); }, 100);
+    }
+
+    /* ===== CARGA DE DATOS ===== */
+    async function cargarDatos() {
+      var btn = document.getElementById('btnActualizar');
+      btn.classList.add('actualizando');
+      document.getElementById('loadingToast').classList.add('visible');
+      try {
+        var diasDisponibles = (await leerClaves(FIREBASE_URL)).filter(esCarpetaDia).sort().reverse();
+        pintarChips(diasDisponibles);
+        if (!jornadaSeleccionada || diasDisponibles.indexOf(jornadaSeleccionada) === -1) {
+          jornadaSeleccionada = diasDisponibles.indexOf(claveDiaLocal()) !== -1 ? claveDiaLocal() : (diasDisponibles[0] || null);
+        }
+        var diasALeer = [];
+        if (rangoActual === 'dia') { diasALeer = jornadaSeleccionada ? [jornadaSeleccionada] : []; }
+        else { diasALeer = diasDisponibles.slice(0, rangoActual); }
+        document.getElementById('notaRango').textContent = rangoActual === 'dia'
+          ? (jornadaSeleccionada ? 'Jornada ' + diaBonito(jornadaSeleccionada) : 'Sin jornadas')
+          : diasALeer.length + ' días';
+
+        var cargas = diasALeer.map(function(dia) {
+          return fetch(conAuth(FIREBASE_URL + '/' + dia + '.json')).then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; })
+            .then(function(data){ return { dia: dia, data: data }; });
+        });
+        var resultados = await Promise.all(cargas);
+
+        /* Extraer puntos de entregas con GPS (ruta actual + archivadas) */
+        var puntos = [];
+        var originales = [];
+        resultados.forEach(function(res) {
+          if (!res.data || typeof res.data !== 'object') return;
+          Object.keys(res.data).forEach(function(codigo) {
+            var entry = res.data[codigo];
+            if (!entry || typeof entry !== 'object') return;
+            function pushItems(items) {
+              (Array.isArray(items) ? items : []).forEach(function(item) {
+                if (!item || !item.gps) return;
+                var la = numLimpio(item.gps.lat), ln = numLimpio(item.gps.lng);
+                if (la == null || ln == null || (la === 0 && ln === 0)) return;
+                /* ¿Atrasada? captura posterior a la hora fin */
+                var atrasada = false;
+                var finMin = minutosHora(item.fin);
+                if (item.gps.fechaCaptura && finMin != null) {
+                  var c = new Date(item.gps.fechaCaptura);
+                  if (!isNaN(c.getTime())) atrasada = (c.getHours()*60 + c.getMinutes()) > finMin;
+                }
+                puntos.push({ lat: la, lng: ln, atrasada: atrasada, cliente: item.item || '', sector: item.sector || '', codigo: codigo });
+                /* Punto original planificado */
+                if (item.gpsOriginal) {
+                  var ola = numLimpio(item.gpsOriginal.lat), oln = numLimpio(item.gpsOriginal.lng);
+                  if (ola != null && oln != null && !(ola === 0 && oln === 0)) {
+                    originales.push({ lat: ola, lng: oln, cliente: item.item || '' });
+                  }
+                }
+              });
+            }
+            pushItems(entry.datosFormulario);
+            (Array.isArray(entry.rutas) ? entry.rutas : []).forEach(function(h) {
+              if (h && Array.isArray(h.datosFormulario)) pushItems(h.datosFormulario);
+            });
+          });
+        });
+
+        puntosActuales = puntos;
+        puntosOriginalesGlobal = originales;
+        pintarHeat();
+        renovarSesion();
+      } catch(e) {
+        console.error('Error:', e);
+      } finally {
+        btn.classList.remove('actualizando');
+        document.getElementById('loadingToast').classList.remove('visible');
+      }
+    }
+    var puntosOriginalesGlobal = [];
+
+    /* ===== RENDER HEAT ===== */
+    function setTipo(t) {
+      tipoFiltro = t;
+      document.getElementById('chipTodas').className = 'tipo-chip' + (t === 'todas' ? ' sel-todas' : '');
+      document.getElementById('chipOk').className = 'tipo-chip' + (t === 'ok' ? ' sel-ok' : '');
+      document.getElementById('chipAtr').className = 'tipo-chip' + (t === 'atr' ? ' sel-atr' : '');
+      pintarHeat();
+    }
+    function setRadio(v) {
+      radioActual = +v;
+      document.getElementById('valRadio').textContent = v;
+      if (heatLayer) heatLayer.setOptions({ radius: radioActual });
+    }
+    function setBlur(v) {
+      blurActual = +v;
+      document.getElementById('valBlur').textContent = v;
+      if (heatLayer) heatLayer.setOptions({ blur: blurActual });
+    }
+
+    function pintarHeat() {
+      if (!heatLayer) return;
+      var filtrados = puntosActuales.filter(function(p) {
+        if (tipoFiltro === 'ok') return !p.atrasada;
+        if (tipoFiltro === 'atr') return p.atrasada;
+        return true;
+      });
+      /* LatLngs para el heat: intensidad 1 normal, 1.5 atrasadas (pesa más) */
+      var ll = filtrados.map(function(p) { return [p.lat, p.lng, p.atrasada ? 1.5 : 1]; });
+      heatLayer.setLatLngs(ll);
+
+      /* Stats del panel */
+      document.getElementById('psPuntos').textContent = filtrados.length;
+      document.getElementById('psOk').textContent = puntosActuales.filter(function(p){ return !p.atrasada; }).length;
+      document.getElementById('psAtr').textContent = puntosActuales.filter(function(p){ return p.atrasada; }).length;
+
+      /* Encuadre automático la primera vez que hay puntos */
+      if (ll.length > 0 && !encuadrado && mapInstance) {
+        encuadrado = true;
+        var bounds = L.latLngBounds(filtrados.map(function(p){ return [p.lat, p.lng]; }));
+        mapInstance.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+      }
+    }
+    var encuadrado = false;
+
+    /* ===== PUNTOS ORIGINALES (toggle) ===== */
+    function pintarPuntos() {
+      if (!capaOriginales || !mapInstance) return;
+      capaOriginales.clearLayers();
+      if (!document.getElementById('chkOriginales').checked) return;
+      puntosOriginalesGlobal.forEach(function(o) {
+        L.circleMarker([o.lat, o.lng], {
+          radius: 4, color: '#e8913a', weight: 1.5, fillColor: '#e8913a', fillOpacity: 0.35, opacity: 0.8
+        }).bindPopup('<b>' + esc(o.cliente || 'Cliente') + '</b><br><span style="color:#8891a8;font-size:11px">Punto original planificado</span>')
+          .addTo(capaOriginales);
+      });
+    }
+
+    /* ===== CHIPS ===== */
+    function pintarChips(fechas) {
+      var bar = document.getElementById('jornadasBar');
+      if (!fechas.length) { bar.innerHTML = ''; return; }
+      var hoyK = claveDiaLocal();
+      var h = '';
+      fechas.slice(0, 12).forEach(function(f) {
+        h += '<button class="chip-jor' + (f === jornadaSeleccionada ? ' sel' : '') + '" data-jor="' + esc(f) + '"><i class="fa-regular fa-calendar"></i> ' + esc(diaSemana(f) + ' ' + diaBonito(f)) + (f === hoyK ? ' <span class="jor-hoy">Hoy</span>' : '') + '</button>';
+      });
+      bar.innerHTML = h;
+    }
+    document.getElementById('jornadasBar').addEventListener('click', function(e) {
+      var b = e.target && e.target.closest ? e.target.closest('.chip-jor') : null;
+      if (!b) return;
+      jornadaSeleccionada = b.getAttribute('data-jor');
+      encuadrado = false;
+      if (rangoActual !== 'dia') cambiarRango('dia');
+      else cargarDatos();
+    });
+
+    /* ===== INIT ===== */
+    iniciarFirebaseAuth().then(function() { restaurarSesion(); });
+  </script>
+</body>
+</html>
