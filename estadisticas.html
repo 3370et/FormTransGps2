@@ -92,13 +92,12 @@
     .bf-ok{background:var(--success)} .bf-warn{background:var(--warning)} .bf-bad{background:var(--danger)} .bf-info{background:var(--info)} .bf-purple{background:var(--purple)} .bf-accent{background:var(--accent)}
     .barra-meta{flex:0 0 80px;font-size:10.5px;color:var(--fg3);white-space:nowrap}
 
-    /* ★ Barras segmentadas simplificadas (3 segmentos) */
+    /* Barras segmentadas */
     .barra-seg{display:flex;height:100%;border-radius:5px;overflow:hidden}
     .seg{height:100%;transition:width .6s ease;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-size:10px;font-weight:800;color:#0f1117;overflow:hidden}
-    .seg-at-ok{background:var(--success)}       /* a tiempo */
-    .seg-atr{background:var(--danger)}            /* atrasadas */
-    .seg-pend{background:#2a2f40;color:#7b829a}  /* sin registrar */
-    /* Leyenda */
+    .seg-at-ok{background:var(--success)}
+    .seg-atr{background:var(--danger)}
+    .seg-pend{background:#2a2f40;color:#7b829a}
     .seg-legenda{display:flex;gap:14px;flex-wrap:wrap;font-size:10px;color:var(--fg2);margin-bottom:10px}
     .seg-legenda span{display:inline-flex;align-items:center;gap:5px}
     .slg{width:10px;height:10px;border-radius:3px;display:inline-block;flex-shrink:0}
@@ -119,7 +118,7 @@
     .lg-dot{width:9px;height:9px;border-radius:2px;display:inline-block}
     .lg-a{background:var(--accent)} .lg-b{background:var(--success)}
 
-    /* Top desviaciones */
+    /* Top rankings (desviaciones + permanencia) */
     .top-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px}
     .top-row:last-child{border-bottom:none}
     .top-num{width:20px;height:20px;border-radius:5px;background:var(--bg);color:var(--fg3);font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:10px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
@@ -127,7 +126,7 @@
     .top-dist{font-family:'Space Grotesk',monospace;font-size:11px;font-weight:700;flex-shrink:0}
     .td-ok{color:var(--success)} .td-warn{color:var(--warning)} .td-bad{color:var(--danger)}
 
-    /* Permanencia */
+    /* Permanencia distribución */
     .perm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px}
     .perm-box{text-align:center;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 6px}
     .perm-box .pb-val{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:800;color:var(--purple)}
@@ -231,7 +230,7 @@
       </div>
     </div>
 
-    <!-- ★ Cumplimiento por código de ruta (barras segmentadas simples) -->
+    <!-- Cumplimiento por código de ruta -->
     <div class="seccion">
       <div class="sec-title"><i class="fa-solid fa-route"></i> Cumplimiento por código de ruta <span class="st-sub" id="secRutasSub"></span></div>
       <div class="seg-legenda">
@@ -258,10 +257,17 @@
       </div>
     </div>
 
-    <!-- Permanencia -->
-    <div class="seccion">
-      <div class="sec-title"><i class="fa-solid fa-stopwatch"></i> Distribución de permanencia <span class="st-sub" id="permSub"></span></div>
-      <div class="card"><div class="perm-grid" id="permGrid"></div></div>
+    <div class="grid2">
+      <!-- ★ TOP PERM — Top 10 clientes por permanencia -->
+      <div class="seccion">
+        <div class="sec-title"><i class="fa-solid fa-user-clock"></i> Clientes con mayor permanencia <span class="st-sub" id="permTopSub"></span></div>
+        <div class="card" id="cardPermTop"><div class="sin-datos"><i class="fa-solid fa-user-clock"></i><p>Sin permanencias registradas en el rango.</p></div></div>
+      </div>
+      <!-- Permanencia distribución -->
+      <div class="seccion">
+        <div class="sec-title"><i class="fa-solid fa-stopwatch"></i> Distribución de permanencia <span class="st-sub" id="permSub"></span></div>
+        <div class="card"><div class="perm-grid" id="permGrid"></div></div>
+      </div>
     </div>
   </div>
 
@@ -277,9 +283,9 @@
     var LS_DEVICE_KEY = 'estadisticas_dispositivo_id';
 
     /* ===== ESTADO ===== */
-    var rangoActual = 'dia';          /* 'dia' | 7 | 30 */
+    var rangoActual = 'dia';
     var jornadaSeleccionada = null;
-    var datosActuales = [];           /* filas normalizadas */
+    var datosActuales = [];
     var timerSesion = null;
     var verificandoAcceso = false;
     var usuarioActual = null;
@@ -377,8 +383,7 @@
       timerSesion = setInterval(function() {
         var s = leerSesion();
         if (!s) { expirarSesion(); return; }
-        var restante = SESSION_DURACION_MS - (Date.now() - s.t);
-        if (restante <= 0) { expirarSesion(); return; }
+        if (SESSION_DURACION_MS - (Date.now() - s.t) <= 0) { expirarSesion(); return; }
       }, 10000);
     }
     function detenerTimerSesion(){ if (timerSesion) { clearInterval(timerSesion); timerSesion = null; } }
@@ -467,11 +472,8 @@
           jornadaSeleccionada = diasDisponibles.indexOf(claveDiaLocal()) !== -1 ? claveDiaLocal() : (diasDisponibles[0] || null);
         }
         var diasALeer = [];
-        if (rangoActual === 'dia') {
-          diasALeer = jornadaSeleccionada ? [jornadaSeleccionada] : [];
-        } else {
-          diasALeer = diasDisponibles.slice(0, rangoActual);
-        }
+        if (rangoActual === 'dia') { diasALeer = jornadaSeleccionada ? [jornadaSeleccionada] : []; }
+        else { diasALeer = diasDisponibles.slice(0, rangoActual); }
         document.getElementById('notaRango').textContent = rangoActual === 'dia'
           ? (jornadaSeleccionada ? 'Jornada ' + diaBonito(jornadaSeleccionada) : 'Sin jornadas')
           : 'Últimos ' + diasALeer.length + ' días con datos';
@@ -522,7 +524,7 @@
       if (capMs != null && finMin != null) {
         var cap = new Date(capMs);
         var capMin = cap.getHours() * 60 + cap.getMinutes();
-        atrasoMin = capMin - finMin; /* >0 = atrasado */
+        atrasoMin = capMin - finMin;
       }
       var distNum = null;
       if (gps) {
@@ -552,6 +554,7 @@
       renderTendencia();
       renderDesviaciones();
       renderPermanencia();
+      renderPermanenciaTop();   /* ★ TOP PERM */
     }
 
     function renderKPIs() {
@@ -562,7 +565,6 @@
       var sinGps = f.length - conGps.length;
       document.getElementById('kEntregas').textContent = f.length;
       document.getElementById('kEntregasSub').textContent = conGps.length + ' con GPS · ' + sinGps + ' pendientes';
-      /* ★ % sobre el 100% planificado: sin capturar = incumple */
       document.getElementById('kATiempo').textContent = f.length ? Math.round(aTiempo.length / f.length * 100) + '%' : '—';
       document.getElementById('kATiempoSub').textContent = aTiempo.length + ' de ' + f.length + ' planificadas';
       document.getElementById('kAtrasadas').textContent = atrasadas.length;
@@ -581,7 +583,6 @@
     }
 
     function renderSectores() {
-      /* ★ Todas las planificadas: sin capturar = no cumplidas */
       var f = datosActuales;
       var card = document.getElementById('cardSectores');
       if (!f.length) { card.innerHTML = '<div class="sin-datos"><i class="fa-solid fa-map-pin"></i><p>Sin entregas en el rango.</p></div>'; document.getElementById('secSectoresSub').textContent = ''; return; }
@@ -607,9 +608,7 @@
       card.innerHTML = html;
     }
 
-    /* ★ Cumplimiento por código de ruta — barra con textos:
-       verde "A tiempo X%" + rojo "Con atraso" + gris "Sin registro".
-       Los textos aparecen solo si el segmento es suficientemente ancho. */
+    /* Cumplimiento por código de ruta — barra segmentada con textos */
     function renderRutas() {
       var f = datosActuales;
       var card = document.getElementById('cardRutas');
@@ -624,8 +623,7 @@
       });
       var rutas = Object.keys(grupos).map(function(c) {
         var g = grupos[c];
-        return { cod: c, g: g, total: g.total,
-                 pct: g.total ? Math.round(g.at / g.total * 100) : 0 };
+        return { cod: c, g: g, total: g.total, pct: g.total ? Math.round(g.at / g.total * 100) : 0 };
       });
       rutas.sort(function(a, b) { return b.total - a.total; });
       document.getElementById('secRutasSub').textContent = rutas.length + ' rutas';
@@ -635,7 +633,6 @@
         var wAt = r.total ? (g.at / r.total * 100) : 0;
         var wAtr = r.total ? (g.atr / r.total * 100) : 0;
         var wPend = r.total ? (g.pend / r.total * 100) : 0;
-        /* Textos dentro: "A tiempo 60%" / "Con atraso" / "Sin registro" — solo si caben */
         var txtAt = wAt >= 22 ? 'A tiempo ' + r.pct + '%' : (wAt >= 12 ? r.pct + '%' : '');
         var txtAtr = wAtr >= 20 ? 'Con atraso' : (wAtr >= 10 ? 'Atraso' : '');
         var txtPend = wPend >= 22 ? 'Sin registro' : (wPend >= 12 ? 'Sin reg.' : '');
@@ -653,6 +650,7 @@
       });
       card.innerHTML = html;
     }
+
     function renderHoras() {
       var f = datosActuales.filter(function(x){ return x.entregado && x.capMs != null; });
       var cont = document.getElementById('histHoras');
@@ -763,6 +761,39 @@
           '<span class="top-name" title="' + esc(c.nombre) + '">' + esc(c.nombre) + '</span>' +
           '<span class="top-dist ' + cls + '">' + dist + '</span>' +
           '<span style="font-size:10px;color:var(--fg3);flex-shrink:0">prom ' + promTxt + '</span>' +
+        '</div>';
+      });
+      card.innerHTML = html;
+    }
+
+    /* ★ TOP PERM — Top 10 clientes con mayor permanencia promedio */
+    function renderPermanenciaTop() {
+      var f = datosActuales.filter(function(x){ return x.permMin != null; });
+      var card = document.getElementById('cardPermTop');
+      var sub = document.getElementById('permTopSub');
+      if (!f.length) { card.innerHTML = '<div class="sin-datos"><i class="fa-solid fa-user-clock"></i><p>Sin permanencias registradas en el rango.</p></div>'; sub.textContent = ''; return; }
+      var porCliente = {};
+      f.forEach(function(x) {
+        var k = x.cliente || ('Ruta ' + x.codigo);
+        if (!porCliente[k]) porCliente[k] = { nombre: k, suma: 0, n: 0, max: 0, sector: x.sector || '' };
+        porCliente[k].n++;
+        porCliente[k].suma += x.permMin;
+        if (x.permMin > porCliente[k].max) porCliente[k].max = x.permMin;
+      });
+      var lista = Object.keys(porCliente).map(function(k){ return porCliente[k]; });
+      lista.sort(function(a, b) { return (b.suma / b.n) - (a.suma / a.n); });
+      var top = lista.slice(0, 10);
+      sub.textContent = top.length + ' de ' + lista.length + ' clientes';
+      var html = '';
+      top.forEach(function(c, i) {
+        var prom = Math.round(c.suma / c.n);
+        var cls = prom <= 10 ? 'td-ok' : (prom <= 30 ? 'td-warn' : 'td-bad');
+        html += '<div class="top-row">' +
+          '<span class="top-num">' + (i + 1) + '</span>' +
+          '<span class="top-name" title="' + esc(c.nombre) + '">' + esc(c.nombre) + '</span>' +
+          (c.sector ? '<span style="font-size:10px;color:var(--fg3);flex-shrink:0;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(c.sector) + '</span>' : '') +
+          '<span class="top-dist ' + cls + '">' + formatearMinutos(prom) + '</span>' +
+          '<span style="font-size:10px;color:var(--fg3);flex-shrink:0">×' + c.n + (c.max !== prom ? ' · máx ' + formatearMinutos(c.max) : '') + '</span>' +
         '</div>';
       });
       card.innerHTML = html;
