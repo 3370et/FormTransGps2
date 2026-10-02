@@ -1209,8 +1209,35 @@
         if (e.target.closest && e.target.closest('.btn-perm')) return;
         cerrarPopoverPerm();
       }, true);
-      window.addEventListener('scroll', cerrarPopoverPerm, true);
-      window.addEventListener('resize', cerrarPopoverPerm);
+
+      /* ★ FIX MÓVIL — el teclado virtual dispara resize y cerraba el
+         popover antes de poder escribir. Ahora: si el input está
+         enfocado, el resize NO cierra el popover. */
+      var customInput = customRow.querySelector('.perm-custom-input');
+      function inputActivo() {
+        return document.activeElement === customInput;
+      }
+      window.addEventListener('scroll', function() {
+        /* también ignorar scroll si está escribiendo (el teclado
+           puede provocar micro-scrolls en la página) */
+        if (inputActivo()) return;
+        cerrarPopoverPerm();
+      }, true);
+      window.addEventListener('resize', function() {
+        if (inputActivo()) return;
+        cerrarPopoverPerm();
+      });
+
+      /* Reposicionar el popover cuando aparece el teclado, en vez de
+         cerrarlo: si queda tapado, se mueve hacia arriba */
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', function() {
+          if (!pop.classList.contains('visible') || inputActivo()) return;
+          if (permBotonActivo && typeof posicionarPopoverPerm === 'function') {
+            posicionarPopoverPerm(permBotonActivo);
+          }
+        });
+      }
     })();
 
     document.getElementById('tbodyLineas').addEventListener('change', function(e) {
