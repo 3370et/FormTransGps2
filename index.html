@@ -162,6 +162,14 @@
     .perm-chip.sel { border-color: var(--success); background: rgba(52,211,153,0.12); color: var(--success); }
     .perm-quitar { align-self: flex-start; display: none; align-items: center; gap: 5px; font-family: 'DM Sans', sans-serif; font-size: 10.5px; font-weight: 600; color: var(--danger); background: rgba(248,113,113,0.07); border: 1px solid rgba(248,113,113,0.25); padding: 4px 10px; border-radius: 6px; cursor: pointer; }
     .perm-quitar:hover { background: rgba(248,113,113,0.15); }
+    /* ★ Campo personalizado de permanencia (>120 min) */
+    .perm-custom-row { display: flex; gap: 5px; align-items: center; }
+    .perm-custom-label { font-size: 10px; font-weight: 600; color: var(--fg-muted); white-space: nowrap; }
+    .perm-custom-input { width: 70px; background: var(--bg); border: 1.5px solid var(--border); color: var(--fg); border-radius: 6px; padding: 5px 8px; font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700; text-align: center; outline: none; }
+    .perm-custom-input:focus { border-color: var(--purple); }
+    .perm-custom-input::placeholder { color: var(--fg-muted); font-weight: 400; }
+    .perm-custom-btn { padding: 5px 10px; border-radius: 6px; border: 1.5px solid rgba(167,139,250,0.3); background: rgba(167,139,250,0.08); color: var(--purple); font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+    .perm-custom-btn:hover { background: rgba(167,139,250,0.16); border-color: var(--purple); }
     .input-com { flex: 1; min-width: 130px; background: var(--bg); border: 1.5px solid var(--border); color: var(--fg); border-radius: 7px; padding: 5px 10px; font-family: 'DM Sans', sans-serif; font-size: 11.5px; font-weight: 500; outline: none; transition: border-color 0.25s ease, box-shadow 0.25s ease; }
     .input-com:focus { border-color: var(--info); box-shadow: 0 0 0 3px rgba(96,165,250,0.12); }
     .input-com::placeholder { color: var(--fg-muted); font-weight: 400; }
@@ -180,6 +188,7 @@
       .btn-perm { font-size: 10px; padding: 4px 8px; }
       .input-com { flex-basis: 100%; min-width: 100%; }
       .perm-grid { grid-template-columns: repeat(5, 1fr); }
+      .perm-custom-label { font-size: 9px; }
     }
   </style>
 </head>
@@ -632,16 +641,66 @@
       actualizarActividadEnDispositivo();
       guardarEstadoActualEnFirebase();
     }
+
+    /* ============================================================
+       ★ PROTECCION CAPTURAS — MERGE ANTI-BORRADO
+       Las capturas guardadas en Firebase NO se borran durante la
+       jornada. Solo pueden sobrescribirse con una recaptura exitosa.
+       Antes de cada PATCH: si Firebase tiene una captura GPS que la
+       pantalla no tiene, se CONSERVA (y se restaura en pantalla).
+       ============================================================ */
     function guardarEstadoActualEnFirebase() {
       if (!codigoTransporteActual || disenoIntacto !== true) return;
       var datos;
       try { datos = recopilarDatosFormulario(); } catch(e) { console.error('Error recopilando datos:', e); return; }
       var cuerpo = JSON.stringify({ estado: 'en_proceso', dia: diaSesionActual || claveDiaLocal(), rutaId: rutaIdActualSesion || null, fechasRuta: fechasRutaSesion || [], fechaInicio: fechaInicioSesion || new Date().toISOString(), ultimaActividad: new Date().toISOString(), dispositivoId: obtenerIdDispositivo(), datosFormulario: datos });
+      guardarConProteccionCapturas(cuerpo);
+    }
+
+    async function guardarConProteccionCapturas(cuerpo) {
       try {
+        /* 1. Leer entregas actuales en Firebase */
+        var rPrev = await fetch(conAuth(urlCodigoDia(codigoTransporteActual) + '/datosFormulario.json'));
+        var prevItems = [];
+        if (rPrev.ok) {
+          var j = await rPrev.json();
+          if (Array.isArray(j)) prevItems = j;
+        }
+
+        /* 2. Parsear el cuerpo a enviar */
+        var nuevo = JSON.parse(cuerpo);
+
+        /* 3. Merge: Firebase gana para capturas que la pantalla no tiene */
+        var localesPorNombre = {};
+        nuevo.datosFormulario.forEach(function(it) {
+          if (it.item) localesPorNombre[it.item.toLowerCase()] = it;
+        });
+
+        var modificados = false;
+        prevItems.forEach(function(prevItem) {
+          if (!prevItem || !prevItem.item) return;
+          var prevTieneGps = !!(prevItem.gps && prevItem.gps.origen === 'dispositivo' && num(prevItem.gps.lat) != null);
+          if (!prevTieneGps) return;
+          var local = localesPorNombre[prevItem.item.toLowerCase()];
+          if (!local) return;
+          var localTieneGps = !!(local.gps && local.gps.origen === 'dispositivo' && num(local.gps.lat) != null);
+          if (!localTieneGps) {
+            local.gps = prevItem.gps;
+            modificados = true;
+          }
+          if (prevItem.permanencia && !local.permanencia) { local.permanencia = prevItem.permanencia; modificados = true; }
+        });
+
+        if (modificados) {
+          try { restaurarCapturasEnPantalla(nuevo.datosFormulario); } catch(e) {}
+        }
+
+        /* 4. Enviar (con o sin correcciones del merge) */
+        var cuerpoFinal = JSON.stringify(nuevo);
         fetch(conAuth(urlCodigoDia(codigoTransporteActual) + '.json'), {
           method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-          body: cuerpo,
-          keepalive: cuerpo.length < 60000
+          body: cuerpoFinal,
+          keepalive: cuerpoFinal.length < 60000
         }).then(function(r){
           if (!r.ok) {
             console.error('Firebase respondió HTTP', r.status);
@@ -666,7 +725,36 @@
           guardadoPendiente = true;
           status('⚠ Sin conexión — entregas pendientes de sincronizar', 'warn');
         });
-      } catch(e) { console.error('Error enviando a Firebase:', e); guardadoPendiente = true; }
+      } catch(e) {
+        /* Si falla el merge, guardar directo (mejor que no guardar) */
+        console.error('Merge no disponible, guardando directo:', e);
+        fetch(conAuth(urlCodigoDia(codigoTransporteActual) + '.json'), {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: cuerpo,
+          keepalive: cuerpo.length < 60000
+        }).then(function(r){
+          if (!r.ok) { guardadoPendiente = true; status('⚠ Sin conexión — entregas pendientes', 'warn'); }
+          else { guardadoPendiente = false; status('', 'ok'); }
+        }).catch(function(){ guardadoPendiente = true; });
+      }
+    }
+
+    function restaurarCapturasEnPantalla(datos) {
+      var filas = document.querySelectorAll('#tbodyLineas tr');
+      filas.forEach(function(fila) {
+        var nombreEl = fila.querySelector('.item-name-text');
+        if (!nombreEl) return;
+        var nombre = nombreEl.textContent.trim().toLowerCase();
+        var reg = null;
+        for (var i = 0; i < datos.length; i++) {
+          if (datos[i].item && datos[i].item.toLowerCase() === nombre) { reg = datos[i]; break; }
+        }
+        if (!reg || !reg.gps) return;
+        var btn = fila.querySelector('.btn-gps');
+        if (!btn || (btn.dataset.origen === 'dispositivo' && btn.dataset.lat)) return;
+        aplicarGPSCapturada(fila, reg.gps);
+        if (reg.permanencia) aplicarPermanencia(fila, reg.permanencia);
+      });
     }
 
     function recopilarDatosFormulario() {
@@ -734,10 +822,7 @@
     }
     function limpiarHora(s) { if (!s) return ''; var l = String(s).replace(/[hH]/g,':'); if (/^\d{1,2}:$/.test(l)) l += '00'; return l; }
 
-    /* ========== ELIMINAR GPS — RETIRADO permanentemente ========== */
-    function eliminarGPS(botonEliminar) {
-      return;
-    }
+    function eliminarGPS(botonEliminar) { return; }
 
     function detectarPlataforma() { var u = navigator.userAgent || ''; if (/iPhone|iPad|iPod/.test(u)) return 'ios'; if (/Android/.test(u)) return 'android'; return 'otro'; }
     function obtenerPasosActivarGPS() {
@@ -978,6 +1063,9 @@
         ch.classList.toggle('sel', num(ch.getAttribute('data-min')) === sel);
       });
       pop.querySelector('.perm-quitar').style.display = (sel !== null) ? 'inline-flex' : 'none';
+      /* Limpiar input personalizado al abrir */
+      var inp = pop.querySelector('.perm-custom-input');
+      if (inp) inp.value = '';
       posicionarPopoverPerm(boton);
     }
     function cerrarPopoverPerm() {
@@ -1012,6 +1100,20 @@
       actualizarActividadEnDispositivo();
       guardarEstadoActualEnFirebase();
     }
+    /* ★ CAMPO PERSONALIZADO — minutos > 120 */
+    function aplicarPermanenciaPersonalizada() {
+      var pop = document.getElementById('permPopover');
+      var inp = pop.querySelector('.perm-custom-input');
+      if (!inp) return;
+      var v = parseInt(inp.value.trim(), 10);
+      if (isNaN(v) || v < 1 || v > 480) {
+        inp.style.borderColor = 'var(--danger)';
+        inp.focus();
+        setTimeout(function(){ inp.style.borderColor = ''; }, 1200);
+        return;
+      }
+      seleccionarPermanencia(v);
+    }
     function quitarPermanenciaSel() {
       if (disenoIntacto !== true || !permBotonActivo) return;
       var btn = permBotonActivo;
@@ -1038,11 +1140,21 @@
         html += '<button type="button" class="perm-chip" data-min="' + m + '" onclick="seleccionarPermanencia(' + m + ')">' + m + '<small>m</small></button>';
       }
       grid.innerHTML = html;
+      /* ★ CAMPO PERSONALIZADO para > 120 min */
+      var customRow = document.createElement('div');
+      customRow.className = 'perm-custom-row';
+      customRow.innerHTML = '<span class="perm-custom-label">Más de 120m:</span>' +
+        '<input type="number" class="perm-custom-input" min="1" max="480" placeholder="180" inputmode="numeric">' +
+        '<button type="button" class="perm-custom-btn" onclick="aplicarPermanenciaPersonalizada()"><i class="fa-solid fa-check"></i> OK</button>';
       var quitar = document.createElement('button');
       quitar.type = 'button'; quitar.className = 'perm-quitar';
       quitar.innerHTML = '<i class="fa-solid fa-trash-can"></i> Quitar selección';
       quitar.onclick = quitarPermanenciaSel;
-      pop.appendChild(titulo); pop.appendChild(grid); pop.appendChild(quitar);
+      pop.appendChild(titulo); pop.appendChild(grid); pop.appendChild(customRow); pop.appendChild(quitar);
+      /* Enter en el input confirma */
+      customRow.querySelector('.perm-custom-input').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); aplicarPermanenciaPersonalizada(); }
+      });
       document.body.appendChild(pop);
       document.addEventListener('click', function(e) {
         if (!pop.classList.contains('visible')) return;
@@ -1169,13 +1281,7 @@
       } catch(e) { return { usado: true, razon: 'error_red' }; }
     }
 
-    /* ============================================================
-       ★ FIX FANTASMA 1 — ARCHIVAR EN EL DÍA DE LA RUTA ORIGINAL
-       Antes: usaba urlCodigoDia() que apunta a diaSesionActual (HOY
-       para una sesión nueva), causando que datos de AYER terminaran
-       en la carpeta de HOY. Ahora: usa previo.dia (el día real de
-       la ruta que se está archivando).
-       ============================================================ */
+    /* ★ FIX FANTASMA 1 — Archivar en el día de la ruta original */
     async function archivarRutaAnterior(codigo, previo) {
       if (!previo || !Array.isArray(previo.datosFormulario) || !previo.datosFormulario.length) return;
       try {
@@ -1295,13 +1401,7 @@
         limpiarSesionDispositivo(); input.value = ''; input.focus(); return;
       }
 
-      /* ============================================================
-         ★ FIX FANTASMA 2 — BLINDAJE ANTI JORNADA ANTERIOR
-         Si el registro en Firebase pertenece a una jornada ANTERIOR
-         (previo.dia ≠ hoy), NO restaurar como continuación.
-         Se trata como ruta nueva para HOY y la sesión huérfana de
-         ayer se archiva en SU carpeta (histórico conservado).
-         ============================================================ */
+      /* ★ FIX FANTASMA 2 — blindaje anti jornada anterior */
       if (resultado.puedeContinuar === true && resultado.previo && resultado.previo.dia && resultado.previo.dia !== claveDiaLocal()) {
         resultado.puedeContinuar = false;
         resultado.nuevaRuta = true;
