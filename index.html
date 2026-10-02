@@ -162,7 +162,6 @@
     .perm-chip.sel { border-color: var(--success); background: rgba(52,211,153,0.12); color: var(--success); }
     .perm-quitar { align-self: flex-start; display: none; align-items: center; gap: 5px; font-family: 'DM Sans', sans-serif; font-size: 10.5px; font-weight: 600; color: var(--danger); background: rgba(248,113,113,0.07); border: 1px solid rgba(248,113,113,0.25); padding: 4px 10px; border-radius: 6px; cursor: pointer; }
     .perm-quitar:hover { background: rgba(248,113,113,0.15); }
-    /* ★ Campo personalizado de permanencia (>120 min) */
     .perm-custom-row { display: flex; gap: 5px; align-items: center; }
     .perm-custom-label { font-size: 10px; font-weight: 600; color: var(--fg-muted); white-space: nowrap; }
     .perm-custom-input { width: 70px; background: var(--bg); border: 1.5px solid var(--border); color: var(--fg); border-radius: 6px; padding: 5px 8px; font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700; text-align: center; outline: none; }
@@ -565,6 +564,50 @@
       detenerTimerInactividad();
     }
 
+    /* ============================================================
+       ★ BUFFER OFFLINE — persistir estado en localStorage
+       Si se pierde la conexión, las capturas siguen acumulándose
+       en pantalla Y en localStorage. Al reconectar (o reabrir la
+       página), todo se sincroniza con Firebase.
+       ============================================================ */
+    var LS_BUFFER_KEY = 'transporte_buffer_offline';
+
+    function guardarBufferOffline() {
+      if (!codigoTransporteActual || disenoIntacto !== true) return;
+      try {
+        var datos = recopilarDatosFormulario();
+        if (!datos.length) return;
+        localStorage.setItem(LS_BUFFER_KEY, JSON.stringify({
+          codigo: codigoTransporteActual,
+          dia: diaSesionActual || claveDiaLocal(),
+          rutaId: rutaIdActualSesion || null,
+          fechasRuta: fechasRutaSesion || [],
+          fechaInicio: fechaInicioSesion || new Date().toISOString(),
+          dispositivoId: obtenerIdDispositivo(),
+          datos: datos,
+          guardadoEn: new Date().toISOString()
+        }));
+      } catch(e) { /* storage lleno o bloqueado — el DOM sigue siendo el buffer */ }
+    }
+
+    function leerBufferOffline() {
+      try {
+        var raw = localStorage.getItem(LS_BUFFER_KEY);
+        if (!raw) return null;
+        var b = JSON.parse(raw);
+        if (!b || !b.codigo || !Array.isArray(b.datos) || !b.datos.length) return null;
+        if (Date.now() - new Date(b.guardadoEn).getTime() > 8 * 60 * 60 * 1000) {
+          localStorage.removeItem(LS_BUFFER_KEY);
+          return null;
+        }
+        return b;
+      } catch(e) { return null; }
+    }
+
+    function limpiarBufferOffline() {
+      try { localStorage.removeItem(LS_BUFFER_KEY); } catch(e) {}
+    }
+
     function iniciarTimerInactividad() {
       detenerTimerInactividad();
       timerInactividad = setInterval(verificarInactividad, 15000);
@@ -643,11 +686,11 @@
     }
 
     /* ============================================================
-       ★ PROTECCION CAPTURAS — MERGE ANTI-BORRADO
+       ★ PROTECCION CAPTURAS — MERGE ANTI-BORRADO + BUFFER OFFLINE
        Las capturas guardadas en Firebase NO se borran durante la
-       jornada. Solo pueden sobrescribirse con una recaptura exitosa.
-       Antes de cada PATCH: si Firebase tiene una captura GPS que la
-       pantalla no tiene, se CONSERVA (y se restaura en pantalla).
+       jornada. Antes de cada PATCH se escribe un snapshot en
+       localStorage (buffer offline) y luego se hace merge con lo
+       que Firebase ya tiene (Firebase gana para capturas perdidas).
        ============================================================ */
     function guardarEstadoActualEnFirebase() {
       if (!codigoTransporteActual || disenoIntacto !== true) return;
@@ -659,6 +702,8 @@
 
     async function guardarConProteccionCapturas(cuerpo) {
       try {
+        /* ★ BUFFER — snapshot local antes de intentar Firebase */
+        guardarBufferOffline();
         /* 1. Leer entregas actuales en Firebase */
         var rPrev = await fetch(conAuth(urlCodigoDia(codigoTransporteActual) + '/datosFormulario.json'));
         var prevItems = [];
@@ -1063,7 +1108,6 @@
         ch.classList.toggle('sel', num(ch.getAttribute('data-min')) === sel);
       });
       pop.querySelector('.perm-quitar').style.display = (sel !== null) ? 'inline-flex' : 'none';
-      /* Limpiar input personalizado al abrir */
       var inp = pop.querySelector('.perm-custom-input');
       if (inp) inp.value = '';
       posicionarPopoverPerm(boton);
@@ -1100,7 +1144,6 @@
       actualizarActividadEnDispositivo();
       guardarEstadoActualEnFirebase();
     }
-    /* ★ CAMPO PERSONALIZADO — minutos > 120 */
     function aplicarPermanenciaPersonalizada() {
       var pop = document.getElementById('permPopover');
       var inp = pop.querySelector('.perm-custom-input');
@@ -1140,7 +1183,6 @@
         html += '<button type="button" class="perm-chip" data-min="' + m + '" onclick="seleccionarPermanencia(' + m + ')">' + m + '<small>m</small></button>';
       }
       grid.innerHTML = html;
-      /* ★ CAMPO PERSONALIZADO para > 120 min */
       var customRow = document.createElement('div');
       customRow.className = 'perm-custom-row';
       customRow.innerHTML = '<span class="perm-custom-label">Más de 120m:</span>' +
@@ -1151,7 +1193,6 @@
       quitar.innerHTML = '<i class="fa-solid fa-trash-can"></i> Quitar selección';
       quitar.onclick = quitarPermanenciaSel;
       pop.appendChild(titulo); pop.appendChild(grid); pop.appendChild(customRow); pop.appendChild(quitar);
-      /* Enter en el input confirma */
       customRow.querySelector('.perm-custom-input').addEventListener('keydown', function(e) {
         if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); aplicarPermanenciaPersonalizada(); }
       });
@@ -1239,10 +1280,28 @@
           setTimeout(function() { filtrarPorCodigo(true); }, 800);
         }
       } catch(e) {
-        status('Error: ' + e.message, 'err');
+        /* ★ BUFFER OFFLINE — si hay datos guardados localmente sin
+           sincronizar, restaurarlos para que el repartidor pueda seguir */
+        status('Sin conexión — modo offline', 'warn');
         document.getElementById('mainContent').classList.remove('hidden');
         document.getElementById('expiredScreen').classList.add('hidden');
-        limpiarTabla();
+        var buffer = leerBufferOffline();
+        if (buffer) {
+          codigoTransporteActual = buffer.codigo;
+          diaSesionActual = buffer.dia || claveDiaLocal();
+          rutaIdActualSesion = buffer.rutaId || null;
+          fechasRutaSesion = buffer.fechasRuta || [];
+          fechaInicioSesion = buffer.fechaInicio || null;
+          document.getElementById('codigoTransporteInput').value = buffer.codigo;
+          var itemsBuffer = buffer.datos.map(function(d) {
+            return { name: d.item || '', codigo: buffer.codigo, sector: d.sector || '', ini: d.inicio || '', fin: d.fin || '', codclnt: d.codclnt || '', fecha: d.fechaDespacho || '', gpsRegistrado: null };
+          });
+          poblarTabla(itemsBuffer, buffer.datos);
+          iniciarTimerInactividad();
+          msg('Modo offline — ' + buffer.datos.length + ' entregas recuperadas del dispositivo. Se sincronizarán al reconectar.', 'info');
+        } else {
+          limpiarTabla();
+        }
       }
     }
 
@@ -1281,7 +1340,6 @@
       } catch(e) { return { usado: true, razon: 'error_red' }; }
     }
 
-    /* ★ FIX FANTASMA 1 — Archivar en el día de la ruta original */
     async function archivarRutaAnterior(codigo, previo) {
       if (!previo || !Array.isArray(previo.datosFormulario) || !previo.datosFormulario.length) return;
       try {
@@ -1340,11 +1398,12 @@
           var codigoGuardado = codigoTransporteActual;
           codigoTransporteActual = '';
           guardadoPendiente = false;
+          limpiarBufferOffline();
           msg('Fin de ruta. Código ' + codigoGuardado + ' guardado con éxito.', 'ok');
           mostrarToast('Fin de ruta guardado');
           limpiarSesionDispositivo();
           setTimeout(resetearFormulario, 1500);
-        } else { msg('Error de red al guardar.','err'); btn.disabled=false; btn.classList.remove('guardando'); }
+        } else { msg('Error de red al guardar. No cierres esta página: tus entregas están guardadas en el dispositivo y se sincronizarán al reconectar.', 'err'); btn.disabled=false; btn.classList.remove('guardando'); }
       } catch(e) { msg('Error inesperado.','err'); btn.disabled=false; btn.classList.remove('guardando'); }
     }
 
@@ -1401,7 +1460,6 @@
         limpiarSesionDispositivo(); input.value = ''; input.focus(); return;
       }
 
-      /* ★ FIX FANTASMA 2 — blindaje anti jornada anterior */
       if (resultado.puedeContinuar === true && resultado.previo && resultado.previo.dia && resultado.previo.dia !== claveDiaLocal()) {
         resultado.puedeContinuar = false;
         resultado.nuevaRuta = true;
