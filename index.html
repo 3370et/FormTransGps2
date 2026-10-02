@@ -566,9 +566,6 @@
 
     /* ============================================================
        ★ BUFFER OFFLINE — persistir estado en localStorage
-       Si se pierde la conexión, las capturas siguen acumulándose
-       en pantalla Y en localStorage. Al reconectar (o reabrir la
-       página), todo se sincroniza con Firebase.
        ============================================================ */
     var LS_BUFFER_KEY = 'transporte_buffer_offline';
 
@@ -587,7 +584,7 @@
           datos: datos,
           guardadoEn: new Date().toISOString()
         }));
-      } catch(e) { /* storage lleno o bloqueado — el DOM sigue siendo el buffer */ }
+      } catch(e) {}
     }
 
     function leerBufferOffline() {
@@ -686,11 +683,7 @@
     }
 
     /* ============================================================
-       ★ PROTECCION CAPTURAS — MERGE ANTI-BORRADO + BUFFER OFFLINE
-       Las capturas guardadas en Firebase NO se borran durante la
-       jornada. Antes de cada PATCH se escribe un snapshot en
-       localStorage (buffer offline) y luego se hace merge con lo
-       que Firebase ya tiene (Firebase gana para capturas perdidas).
+       ★ PROTECCION CAPTURAS + BUFFER OFFLINE + FIX DUPLICADOS
        ============================================================ */
     function guardarEstadoActualEnFirebase() {
       if (!codigoTransporteActual || disenoIntacto !== true) return;
@@ -700,25 +693,27 @@
       guardarConProteccionCapturas(cuerpo);
     }
 
+    /* ★ Clave de identificación de cada despacho:
+       idxItem si existe; fallback nombre+fecha para registros viejos */
+    function claveDato(d) {
+      return (d.idxItem !== undefined) ? 'idx:' + d.idxItem : 'nf:' + (d.item || '').toLowerCase() + '|' + (d.fechaDespacho || '');
+    }
+
     async function guardarConProteccionCapturas(cuerpo) {
       try {
-        /* ★ BUFFER — snapshot local antes de intentar Firebase */
         guardarBufferOffline();
-        /* 1. Leer entregas actuales en Firebase */
         var rPrev = await fetch(conAuth(urlCodigoDia(codigoTransporteActual) + '/datosFormulario.json'));
         var prevItems = [];
         if (rPrev.ok) {
           var j = await rPrev.json();
           if (Array.isArray(j)) prevItems = j;
         }
-
-        /* 2. Parsear el cuerpo a enviar */
         var nuevo = JSON.parse(cuerpo);
 
-        /* 3. Merge: Firebase gana para capturas que la pantalla no tiene */
-        var localesPorNombre = {};
+        /* ★ FIX DUPLICADOS — clave compuesta idxItem / nombre+fecha */
+        var localesPorClave = {};
         nuevo.datosFormulario.forEach(function(it) {
-          if (it.item) localesPorNombre[it.item.toLowerCase()] = it;
+          localesPorClave[claveDato(it)] = it;
         });
 
         var modificados = false;
@@ -726,7 +721,7 @@
           if (!prevItem || !prevItem.item) return;
           var prevTieneGps = !!(prevItem.gps && prevItem.gps.origen === 'dispositivo' && num(prevItem.gps.lat) != null);
           if (!prevTieneGps) return;
-          var local = localesPorNombre[prevItem.item.toLowerCase()];
+          var local = localesPorClave[claveDato(prevItem)];
           if (!local) return;
           var localTieneGps = !!(local.gps && local.gps.origen === 'dispositivo' && num(local.gps.lat) != null);
           if (!localTieneGps) {
@@ -740,7 +735,6 @@
           try { restaurarCapturasEnPantalla(nuevo.datosFormulario); } catch(e) {}
         }
 
-        /* 4. Enviar (con o sin correcciones del merge) */
         var cuerpoFinal = JSON.stringify(nuevo);
         fetch(conAuth(urlCodigoDia(codigoTransporteActual) + '.json'), {
           method: 'PATCH', headers: { 'Content-Type': 'application/json' },
@@ -771,7 +765,6 @@
           status('⚠ Sin conexión — entregas pendientes de sincronizar', 'warn');
         });
       } catch(e) {
-        /* Si falla el merge, guardar directo (mejor que no guardar) */
         console.error('Merge no disponible, guardando directo:', e);
         fetch(conAuth(urlCodigoDia(codigoTransporteActual) + '.json'), {
           method: 'PATCH', headers: { 'Content-Type': 'application/json' },
@@ -786,13 +779,21 @@
 
     function restaurarCapturasEnPantalla(datos) {
       var filas = document.querySelectorAll('#tbodyLineas tr');
-      filas.forEach(function(fila) {
+      filas.forEach(function(fila, idxFila) {
         var nombreEl = fila.querySelector('.item-name-text');
         if (!nombreEl) return;
         var nombre = nombreEl.textContent.trim().toLowerCase();
         var reg = null;
+        /* ★ FIX DUPLICADOS — 1ª clave: idxItem = posición en la ruta */
         for (var i = 0; i < datos.length; i++) {
-          if (datos[i].item && datos[i].item.toLowerCase() === nombre) { reg = datos[i]; break; }
+          if (datos[i].idxItem === idxFila) { reg = datos[i]; break; }
+        }
+        /* Fallback: nombre+fecha solo para registros viejos sin idxItem */
+        if (!reg) {
+          var fechaFila = fila.dataset.fechaDespacho || '';
+          for (var j = 0; j < datos.length; j++) {
+            if (datos[j].idxItem === undefined && datos[j].item && datos[j].item.toLowerCase() === nombre && (datos[j].fechaDespacho || '') === fechaFila) { reg = datos[j]; break; }
+          }
         }
         if (!reg || !reg.gps) return;
         var btn = fila.querySelector('.btn-gps');
@@ -802,11 +803,16 @@
       });
     }
 
+    /* ============================================================
+       ★ FIX DUP — recopilar con idxItem (posición en la ruta)
+       ============================================================ */
     function recopilarDatosFormulario() {
       var filas = document.querySelectorAll('#tbodyLineas tr');
       var entregas = [];
       var tieneCalcDist = (typeof distanciaMetros === 'function' && typeof num === 'function' && typeof formatearDistancia === 'function');
+      var idxItem = -1;
       filas.forEach(function(fila) {
+        idxItem++;
         var nombre = fila.querySelector('.item-name-text') ? fila.querySelector('.item-name-text').textContent.trim() : '';
         var sectorEl = fila.querySelector('.info-sector');
         var sector = sectorEl ? (sectorEl.dataset.sector || '') : '';
@@ -814,7 +820,7 @@
         var inicio = horEl ? (horEl.dataset.inicio || '') : '';
         var fin = horEl ? (horEl.dataset.fin || '') : '';
         var btnGPS = fila.querySelector('.btn-gps');
-        var reg = { item: nombre, codclnt: fila.dataset.codclnt || '', sector: sector, inicio: inicio, fin: fin, fechaDespacho: fila.dataset.fechaDespacho || '' };
+        var reg = { idxItem: idxItem, item: nombre, codclnt: fila.dataset.codclnt || '', sector: sector, inicio: inicio, fin: fin, fechaDespacho: fila.dataset.fechaDespacho || '' };
         if (btnGPS && btnGPS.dataset.origLat && btnGPS.dataset.origLng) {
           reg.gpsOriginal = {
             lat: num(btnGPS.dataset.origLat), lng: num(btnGPS.dataset.origLng),
@@ -1280,8 +1286,6 @@
           setTimeout(function() { filtrarPorCodigo(true); }, 800);
         }
       } catch(e) {
-        /* ★ BUFFER OFFLINE — si hay datos guardados localmente sin
-           sincronizar, restaurarlos para que el repartidor pueda seguir */
         status('Sin conexión — modo offline', 'warn');
         document.getElementById('mainContent').classList.remove('hidden');
         document.getElementById('expiredScreen').classList.add('hidden');
@@ -1567,7 +1571,10 @@
         var finValue = limpiarHora(item.fin);
         var datoPrevio = null;
         if (datosPrevios && Array.isArray(datosPrevios)) {
-          datoPrevio = datosPrevios.find(function(d) { return d.item && d.item.toLowerCase() === item.name.toLowerCase(); });
+          /* ★ FIX DUPLICADOS — 1ª clave: idxItem (posición en la ruta);
+             fallback: nombre+fecha SOLO entre registros viejos sin idxItem */
+          datoPrevio = datosPrevios.find(function(d) { return d.idxItem === idx; })
+                  || datosPrevios.find(function(d) { return d.idxItem === undefined && d.item && d.item.toLowerCase() === item.name.toLowerCase() && (d.fechaDespacho || '') === (item.fecha || ''); });
         }
         var sectorR = sectorValue, iniR = iniValue, finR = finValue;
         if (datoPrevio) {
