@@ -313,6 +313,15 @@
   </div>
 
   <script>
+    /* ★ PATCH T1 — GUARD DE DISPOSITIVO VIGENTE:
+       ninguna escritura se hace a ciegas. Antes de cada guardado se
+       verifica en la base que dispositivoId sea null (ruta reabierta
+       por el supervisor o sin reclamar: el que escribe reclama) o el
+       id de ESTE dispositivo. Si otro dispositivo es el vigente, la
+       sesion se aborta sin escribir nada. Si la ruta ya fue cerrada,
+       solo se sincronizan las entregas pendientes sin tocar estado
+       ni fechaFin del cierre vigente. */
+
     var FIREBASE_DB_URL_CONFIG = "https://datos-formulario-f3cde-default-rtdb.firebaseio.com/formConfig.json";
     var FIREBASE_DB_URL_BASE_USADOS = "https://datos-formulario-f3cde-default-rtdb.firebaseio.com/codigosUsados";
     var FIREBASE_DB_URL_ROOT = "https://datos-formulario-f3cde-default-rtdb.firebaseio.com";
@@ -353,8 +362,7 @@
     function cargarScriptAsync(src) {
       return new Promise(function(resolver, rechazar) {
         var s = document.createElement('script');
-        s.src = src;
-        s.onload = resolver;
+        s.src = src; s.onload = resolver;
         s.onerror = function() { rechazar(new Error('No se pudo cargar ' + src)); };
         document.head.appendChild(s);
       });
@@ -693,6 +701,92 @@
       guardarConProteccionCapturas(cuerpo);
     }
 
+    /* ============================================================
+       ★ PATCH T1 — GUARD DE DISPOSITIVO VIGENTE
+       Ninguna escritura se hace a ciegas: antes de cada guardado se
+       verifica que dispositivoId en la base sea null (ruta reabierta
+       o sin reclamar: el que escribe reclama) o el id de ESTE
+       dispositivo. Si otro dispositivo es el vigente, la sesion se
+       aborta sin escribir nada (protege al transportista que retomo
+       la ruta y los cierres/aperturas hechos desde el monitor).
+       ============================================================ */
+    function normalizarDatosFormulario(j) {
+      if (Array.isArray(j)) return j;
+      if (j && typeof j === 'object') {
+        var out = [];
+        Object.keys(j).filter(function(k){ return /^\d+$/.test(k); })
+          .sort(function(a,b){ return (+a) - (+b); })
+          .forEach(function(k){ if (j[k] && typeof j[k] === 'object') out.push(j[k]); });
+        return out;
+      }
+      return [];
+    }
+    function vigenciaDesdePrevio(data) {
+      if (data === null || data === undefined) return 'ok';           /* sin sesion: primera escritura */
+      if (data.estado === 'completado') return 'cerrada';             /* cerrada por la app o el supervisor (S1) */
+      var devId = data.dispositivoId || null;
+      if (devId === null) return 'ok';                                /* reabierta (S3): el que escriba reclama */
+      return (devId === obtenerIdDispositivo()) ? 'ok' : 'bloqueado'; /* otro dispositivo es el vigente */
+    }
+    async function verificarVigenciaDispositivo(codigo) {
+      try {
+        var r = await fetch(conAuth(urlCodigoDia(codigo) + '.json'));
+        if (!r.ok) return { vigencia: 'error' };
+        var data = await r.json();
+        return { vigencia: vigenciaDesdePrevio(data), previo: data };
+      } catch (e) { return { vigencia: 'error' }; }
+    }
+    function abortarSesionPorVigencia(tipo) {
+      var codigoPrevio = codigoTransporteActual;
+      if (!codigoPrevio) return;
+      guardadoPendiente = false;
+      limpiarBufferOffline();
+      limpiarSesionDispositivo();
+      resetearFormulario();
+      status('', 'ok');
+      if (tipo === 'bloqueado') {
+        msg('El código "' + codigoPrevio + '" fue tomado por otro dispositivo. Esta sesión se cerró para proteger los datos.', 'err');
+      } else {
+        msg('La ruta del código "' + codigoPrevio + '" ya fue finalizada (desde el panel o en otro dispositivo). Esta sesión se cerró.', 'warn');
+      }
+    }
+    /* Sincroniza SOLO los datos faltantes (GPS, permanencia, comentario)
+       de este dispositivo dentro de la ruta ya cerrada, sin tocar
+       estado, fechaFin ni el resto de los items. Quirurgico: no pisa
+       datos de otros dispositivos ni el cierre hecho por el supervisor. */
+    async function sincronizarSoloEntregas(codigo, entregas) {
+      try {
+        var rPrev = await fetch(conAuth(urlCodigoDia(codigo) + '/datosFormulario.json'));
+        if (!rPrev.ok) return false;
+        var j = await rPrev.json();
+        var prevItems = normalizarDatosFormulario(j);
+        if (!prevItems.length) return true; /* sin items previos que actualizar */
+        var localesPorClave = {};
+        entregas.forEach(function(it) { localesPorClave[claveDato(it)] = it; });
+        var enviados = 0, fallos = 0;
+        for (var i = 0; i < prevItems.length; i++) {
+          var p = prevItems[i];
+          if (!p || !p.item) continue;
+          var local = localesPorClave[claveDato(p)];
+          if (!local) continue;
+          var prevTieneGps = !!(p.gps && p.gps.origen === 'dispositivo' && num(p.gps.lat) !== null);
+          var localTieneGps = !!(local.gps && local.gps.origen === 'dispositivo' && num(local.gps.lat) !== null);
+          var reg = null;
+          if (!prevTieneGps && localTieneGps) { reg = JSON.parse(JSON.stringify(p)); reg.gps = local.gps; }
+          if (!p.permanencia && local.permanencia) { if (!reg) reg = JSON.parse(JSON.stringify(p)); reg.permanencia = local.permanencia; }
+          if (!p.comentario && local.comentario) { if (!reg) reg = JSON.parse(JSON.stringify(p)); reg.comentario = local.comentario; }
+          if (!reg) continue;
+          var clave = (p.idxItem !== undefined) ? p.idxItem : i;
+          var r = await fetch(conAuth(urlCodigoDia(codigo) + '/datosFormulario/' + clave + '.json'), {
+            method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(reg)
+          });
+          if (r.ok) enviados++; else fallos++;
+        }
+        return fallos === 0;
+      } catch (e) { return false; }
+    }
+
     /* ★ Clave de identificación de cada despacho:
        idxItem si existe; fallback nombre+fecha para registros viejos */
     function claveDato(d) {
@@ -702,12 +796,29 @@
     async function guardarConProteccionCapturas(cuerpo) {
       try {
         guardarBufferOffline();
-        var rPrev = await fetch(conAuth(urlCodigoDia(codigoTransporteActual) + '/datosFormulario.json'));
-        var prevItems = [];
-        if (rPrev.ok) {
-          var j = await rPrev.json();
-          if (Array.isArray(j)) prevItems = j;
+        /* ★ PATCH T1 — GET del nodo completo del codigo: alimenta el merge
+           de capturas Y el guard de dispositivo vigente */
+        var rPrev = await fetch(conAuth(urlCodigoDia(codigoTransporteActual) + '.json'));
+        if (!rPrev.ok) throw new Error('sin respuesta del servidor');
+        var prevData = await rPrev.json();
+
+        var vigencia = vigenciaDesdePrevio(prevData);
+        if (vigencia === 'bloqueado') {
+          abortarSesionPorVigencia('bloqueado');
+          return;
         }
+        if (vigencia === 'cerrada') {
+          /* La ruta ya fue finalizada: subir solo las capturas que
+             falten, sin tocar estado ni fechaFin del cierre vigente */
+          try {
+            var n0 = JSON.parse(cuerpo);
+            await sincronizarSoloEntregas(codigoTransporteActual, n0.datosFormulario || []);
+          } catch (eSync) {}
+          abortarSesionPorVigencia('cerrada');
+          return;
+        }
+
+        var prevItems = (prevData && prevData.datosFormulario) ? normalizarDatosFormulario(prevData.datosFormulario) : [];
         var nuevo = JSON.parse(cuerpo);
 
         /* ★ FIX DUPLICADOS — clave compuesta idxItem / nombre+fecha */
@@ -719,11 +830,11 @@
         var modificados = false;
         prevItems.forEach(function(prevItem) {
           if (!prevItem || !prevItem.item) return;
-          var prevTieneGps = !!(prevItem.gps && prevItem.gps.origen === 'dispositivo' && num(prevItem.gps.lat) != null);
+          var prevTieneGps = !!(prevItem.gps && prevItem.gps.origen === 'dispositivo' && num(prevItem.gps.lat) !== null);
           if (!prevTieneGps) return;
           var local = localesPorClave[claveDato(prevItem)];
           if (!local) return;
-          var localTieneGps = !!(local.gps && local.gps.origen === 'dispositivo' && num(local.gps.lat) != null);
+          var localTieneGps = !!(local.gps && local.gps.origen === 'dispositivo' && num(local.gps.lat) !== null);
           if (!localTieneGps) {
             local.gps = prevItem.gps;
             modificados = true;
@@ -765,15 +876,13 @@
           status('⚠ Sin conexión — entregas pendientes de sincronizar', 'warn');
         });
       } catch(e) {
-        console.error('Merge no disponible, guardando directo:', e);
-        fetch(conAuth(urlCodigoDia(codigoTransporteActual) + '.json'), {
-          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-          body: cuerpo,
-          keepalive: cuerpo.length < 60000
-        }).then(function(r){
-          if (!r.ok) { guardadoPendiente = true; status('⚠ Sin conexión — entregas pendientes', 'warn'); }
-          else { guardadoPendiente = false; status('', 'ok'); }
-        }).catch(function(){ guardadoPendiente = true; });
+        /* ★ PATCH T1 — sin respuesta del servidor NO se escribe a ciegas:
+           podria pisar a otro dispositivo vigente o revivir una ruta
+           cerrada. Queda pendiente (buffer local + reintento cada 30s
+           y al recuperar conexion). */
+        console.error('Guard omitido (sin datos de vigencia):', e);
+        guardadoPendiente = true;
+        status('⚠ Sin conexión — entregas pendientes de sincronizar', 'warn');
       }
     }
 
@@ -1397,10 +1506,24 @@
       } catch(e) { console.error('No se pudo archivar la ruta anterior:', e); }
     }
 
+    /* ★ PATCH T1 — FIN DE RUTA con verificacion de vigencia:
+       no pisa cierres hechos desde el monitor ni por otro dispositivo */
     async function guardarFormularioCompleto() {
-      if (disenoIntacto !== true) return false;
+      if (disenoIntacto !== true) return { ok: false, razon: 'diseno' };
       var filas = document.querySelectorAll('#tbodyLineas tr');
-      if (filas.length === 0 || !codigoTransporteActual) return false;
+      if (filas.length === 0 || !codigoTransporteActual) return { ok: false, razon: 'vacio' };
+
+      /* ★ PATCH T1 — verificar vigencia antes de cerrar la ruta */
+      var v = await verificarVigenciaDispositivo(codigoTransporteActual);
+      if (v.vigencia === 'bloqueado') return { ok: false, razon: 'bloqueado' };
+      if (v.vigencia === 'error') return { ok: false, razon: 'red' };
+      if (v.vigencia === 'cerrada') {
+        /* Ya fue finalizada (supervisor u otro dispositivo):
+           subir solo entregas sin tocar estado ni fechaFin */
+        var sinc = await sincronizarSoloEntregas(codigoTransporteActual, recopilarDatosFormulario());
+        return { ok: true, yaCerrada: true, sincronizo: sinc };
+      }
+
       var entregas = recopilarDatosFormulario();
       var historial = [];
       try {
@@ -1412,8 +1535,8 @@
           method: 'PUT', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ estado: 'completado', dia: diaSesionActual || claveDiaLocal(), rutaId: rutaIdActualSesion || null, fechasRuta: fechasRutaSesion || [], rutas: historial, fechaInicio: fechaInicioSesion || null, fechaFin: new Date().toISOString(), dispositivoId: obtenerIdDispositivo(), datosFormulario: entregas })
         });
-        if (!r.ok) throw new Error('HTTP'); return true;
-      } catch(e) { return false; }
+        if (!r.ok) throw new Error('HTTP'); return { ok: true };
+      } catch(e) { return { ok: false, razon: 'red' }; }
     }
     async function ejecutarGuardado() {
       if (disenoIntacto !== true) { msg('Formulario no disponible.','err'); return; }
@@ -1424,17 +1547,35 @@
       btn.disabled = true; btn.classList.add('guardando');
       msg('Guardando fin de ruta en el servidor...','info');
       try {
-        var ok = await guardarFormularioCompleto();
-        if (ok) {
-          var codigoGuardado = codigoTransporteActual;
+        var res = await guardarFormularioCompleto();
+        if (res.ok) {
+          if (res.yaCerrada) {
+            if (res.sincronizo === false) {
+              /* ruta ya cerrada pero sin red para subir entregas:
+                 dejar pendiente y no cerrar la sesion local */
+              guardadoPendiente = true;
+              msg('La ruta ya fue finalizada, pero no se pudieron sincronizar tus entregas (sin conexión). Se enviarán al reconectar.', 'warn');
+              btn.disabled = false; btn.classList.remove('guardando');
+              return;
+            }
+            msg('La ruta ya había sido finalizada anteriormente. Tus entregas fueron sincronizadas.', 'warn');
+            mostrarToast('Entregas sincronizadas');
+          } else {
+            msg('Fin de ruta. Código ' + codigoTransporteActual + ' guardado con éxito.', 'ok');
+            mostrarToast('Fin de ruta guardado');
+          }
           codigoTransporteActual = '';
           guardadoPendiente = false;
           limpiarBufferOffline();
-          msg('Fin de ruta. Código ' + codigoGuardado + ' guardado con éxito.', 'ok');
-          mostrarToast('Fin de ruta guardado');
           limpiarSesionDispositivo();
           setTimeout(resetearFormulario, 1500);
-        } else { msg('Error de red al guardar. No cierres esta página: tus entregas están guardadas en el dispositivo y se sincronizarán al reconectar.', 'err'); btn.disabled=false; btn.classList.remove('guardando'); }
+        } else if (res.razon === 'bloqueado') {
+          msg('El código está en uso en otro dispositivo. No se puede cerrar la ruta desde aquí.', 'err');
+          abortarSesionPorVigencia('bloqueado');
+        } else {
+          msg('Error de red al guardar. No cierres esta página: tus entregas están guardadas en el dispositivo y se sincronizarán al reconectar.', 'err');
+          btn.disabled=false; btn.classList.remove('guardando');
+        }
       } catch(e) { msg('Error inesperado.','err'); btn.disabled=false; btn.classList.remove('guardando'); }
     }
 
@@ -1508,7 +1649,9 @@
       if (resultado.puedeContinuar === true) {
         var miDispositivo = obtenerIdDispositivo();
         if (resultado.dispositivoId && resultado.dispositivoId !== miDispositivo) {
-          msg('Sin datos para asignar', 'err');
+          /* ★ PATCH T1 — mensaje claro: el codigo esta tomado por otro
+             dispositivo; el supervisor puede reabrirlo desde el monitor */
+          msg('El código "' + codigo + '" está en uso en otro dispositivo. Si la ruta debe continuar aquí, pide al supervisor que la reabra desde el panel de monitoreo.', 'err');
           limpiarSesionDispositivo();
           input.value = '';
           input.focus();
