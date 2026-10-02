@@ -33,9 +33,7 @@
     @media (prefers-reduced-motion: reduce) { .et-truck .speed-lines line { animation: none; } }
     .page-header h1 { font-family: 'Space Grotesk', sans-serif; font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; }
     .page-header h1 span { color: var(--accent); }
-    /* Barra de estado compacta (solo icono cuando no hay texto) */
     .status { display: flex; align-items: center; gap: 10px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; margin-bottom: 24px; font-size: 13px; font-weight: 500; color: var(--fg-muted); animation: fadeUp 0.4s ease; }
-    /* ★ PATCH S1-D — contador de sincronización visible */
     .status.ok { padding: 8px 12px; width: auto; max-width: 100%; }
     .status.ok span:empty { display: none; }
     .status i { font-size: 14px; } .status.ok i { color: var(--success); } .status.warn i { color: var(--warning); } .status.err i { color: var(--danger); } .status.load i { color: var(--info); animation: spin 1s linear infinite; }
@@ -65,7 +63,6 @@
     .inactividad-bar .inact-time { font-family: 'Space Grotesk', monospace; font-weight: 700; }
     .table-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 24px; animation: fadeUp 0.45s ease 0.1s both; }
     .table-scroll { overflow-x: auto; }
-    /* ★ PATCH H1 — tabla de 3 columnas (sector/horario pasan bajo el GPS) */
     table { width: 100%; border-collapse: collapse; min-width: 560px; }
     thead { background: var(--bg-surface); }
     th { padding: 12px 12px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-muted); border-bottom: 1px solid var(--border); white-space: nowrap; }
@@ -73,7 +70,6 @@
     td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 14px; vertical-align: middle; }
     tbody tr { transition: background 0.2s ease; } tbody tr:nth-child(even) { background: var(--row-alt); } tbody tr:hover { background: var(--card-hover); } tbody tr:last-child td { border-bottom: none; }
     .row-num { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 13px; color: var(--fg-muted); background: var(--bg); border-radius: 6px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; }
-    /* Nombre: máx. 2 líneas — 250px escritorio */
     td.celda-nombre { max-width: 250px; }
     td.celda-nombre .item-name-text { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.35; word-wrap: break-word; font-weight: 500; color: var(--fg); }
     .info-sector { color: #ffffff; font-size: 12.5px; font-weight: 600; letter-spacing: 0.03em; white-space: nowrap; }
@@ -93,11 +89,9 @@
     .gps-mini .mini-tag { font-weight: 700; font-size: 9px; padding: 1px 4px; border-radius: 3px; }
     .gps-mini-orig .mini-tag { background: var(--accent-glow); color: var(--accent); }
     .gps-mini-nueva .mini-tag { background: rgba(52,211,153,0.15); color: var(--success); }
-    /* ★ PATCH I1 — mini original: solo icono llamativo + tag "original" */
     .gps-mini-orig i { font-size: 13px; animation: origPulse 2.2s ease-in-out infinite; text-shadow: 0 0 8px rgba(232,145,58,0.55); }
     @keyframes origPulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.25); opacity: 0.75; } }
     @media (prefers-reduced-motion: reduce) { .gps-mini-orig i { animation: none; } }
-    /* ★ PATCH M1 — icono de entrega un poco más visible */
     .gps-mini-nueva i { font-size: 13px; text-shadow: 0 0 8px rgba(52,211,153,0.55); }
     .gps-error-detail { font-size: 10px; color: var(--danger); line-height: 1.5; padding: 5px 7px; background: rgba(248,113,113,0.04); border-radius: 5px; border: 1px solid rgba(248,113,113,0.12); display: none; animation: fadeUp 0.3s ease; }
     .gps-error-detail.visible { display: block; }
@@ -151,11 +145,9 @@
     @keyframes fDot { 0% { transform: translateY(100vh) scale(0); opacity: 0; } 10% { opacity: 0.12; } 90% { opacity: 0.12; } 100% { transform: translateY(-10vh) scale(1); opacity: 0; } }
     .toast-guardado { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--card); border: 1.5px solid var(--success); border-radius: 12px; padding: 14px 24px; display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: var(--success); box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 20px rgba(52,211,153,0.1); z-index: 999; opacity: 0; pointer-events: none; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
     .toast-guardado.visible { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; } .toast-guardado i { font-size: 18px; }
-    /* ★ PATCH E2 — Botón mapa completo (abre mapa.html en pestaña nueva) */
     .btn-mapa { background: rgba(96,165,250,0.1); color: var(--info); border: 1.5px solid rgba(96,165,250,0.25); }
     .btn-mapa:hover { background: rgba(96,165,250,0.18); border-color: var(--info); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(96,165,250,0.15); }
     .btn-mapa.disabled { pointer-events: none; opacity: 0.5; }
-    /* ★ PATCH G2 — Permanencia por selección rápida (5m a 2h) */
     .btn-perm { display: inline-flex; align-items: center; gap: 5px; font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 11px; padding: 5px 10px; border-radius: 7px; border: 1.5px solid rgba(167,139,250,0.25); background: rgba(167,139,250,0.08); color: var(--purple); cursor: pointer; transition: all 0.25s ease; white-space: nowrap; width: fit-content; font-variant-numeric: tabular-nums; }
     .btn-perm:hover { background: rgba(167,139,250,0.16); border-color: var(--purple); transform: translateY(-1px); }
     .btn-perm:active { transform: scale(0.95); }
@@ -170,7 +162,6 @@
     .perm-chip.sel { border-color: var(--success); background: rgba(52,211,153,0.12); color: var(--success); }
     .perm-quitar { align-self: flex-start; display: none; align-items: center; gap: 5px; font-family: 'DM Sans', sans-serif; font-size: 10.5px; font-weight: 600; color: var(--danger); background: rgba(248,113,113,0.07); border: 1px solid rgba(248,113,113,0.25); padding: 4px 10px; border-radius: 6px; cursor: pointer; }
     .perm-quitar:hover { background: rgba(248,113,113,0.15); }
-    /* ★ PATCH H1 — Comentario inline + fila de metadatos bajo el GPS */
     .input-com { flex: 1; min-width: 130px; background: var(--bg); border: 1.5px solid var(--border); color: var(--fg); border-radius: 7px; padding: 5px 10px; font-family: 'DM Sans', sans-serif; font-size: 11.5px; font-weight: 500; outline: none; transition: border-color 0.25s ease, box-shadow 0.25s ease; }
     .input-com:focus { border-color: var(--info); box-shadow: 0 0 0 3px rgba(96,165,250,0.12); }
     .input-com::placeholder { color: var(--fg-muted); font-weight: 400; }
@@ -179,7 +170,6 @@
     @media (max-width: 640px) {
       body { padding: 16px 10px 40px; } .code-row { flex-direction: column; } .btn { width: 100%; justify-content: center; } .acciones { flex-direction: column; }
       th, td { padding: 8px 8px; font-size: 12px; }
-      /* ★ PATCH I1 — nombre del cliente 30% más corto en móvil (180px → 126px) */
       td.celda-nombre { max-width: 126px; }
       .expired-card { padding: 36px 20px; } .expired-card h2 { font-size: 22px; }
       .toast-guardado { left: 16px; right: 16px; transform: translateX(0) translateY(20px); } .toast-guardado.visible { transform: translateX(0) translateY(0); }
@@ -187,7 +177,6 @@
       .gps-modal { padding: 22px 18px; } .gps-modal h3 { font-size: 16px; }
       .info-sector, .info-horario { font-size: 11px; }
       .et-truck { width: 34px; }
-      /* ★ PATCH G2/H1 — ajustes móviles */
       .btn-perm { font-size: 10px; padding: 4px 8px; }
       .input-com { flex-basis: 100%; min-width: 100%; }
       .perm-grid { grid-template-columns: repeat(5, 1fr); }
@@ -282,7 +271,6 @@
     <div class="table-wrap" id="tableWrap">
       <div class="table-scroll">
         <table id="tablaItems">
-          <!-- ★ PATCH H1 — 3 columnas: sector y horario ahora van dentro de la celda Entrega -->
           <thead><tr>
             <th style="width:44px">#</th>
             <th style="width:250px"><i class="fa-solid fa-box"></i> Nombre</th>
@@ -294,9 +282,7 @@
       <div class="empty-state" id="emptyState"><i class="fa-solid fa-inbox"></i><p>Escribe un código de transporte<br>para ver los datos asignados.</p></div>
     </div>
     <div class="acciones">
-      <!-- ★ PATCH J1/R2 — botón FIN DE RUTA: inicia deshabilitado, se habilita solo tras carga exitosa -->
       <button class="btn btn-guardar" id="btnGuardar" onclick="ejecutarGuardado()" disabled><i class="fa-solid fa-floppy-disk"></i> FIN DE RUTA</button>
-      <!-- ★ PATCH E2/R2 — enlace a mapa completo: inicia deshabilitado, se habilita solo tras carga exitosa -->
       <a class="btn btn-mapa disabled" id="btnMapa" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-map-location-dot"></i> Ver mapa completo</a>
     </div>
     <div id="mensaje"></div>
@@ -331,18 +317,14 @@
     var timerInactividad = null;
     var guardadoPendiente = false;
 
-    /* 240 min desde la ÚLTIMA ACTIVIDAD (guardado/captura) → liberar código en Firebase */
     var TIEMPO_LIBERAR_CODIGO_MS = 240 * 60 * 1000;
-    /* 120 min desde la última captura GPS → resetear sesión local */
     var INACTIVIDAD_RESET_MS = 360 * 60 * 1000;
-    /* 240 min desde la última captura GPS → bloquear sesión local */
     var INACTIVIDAD_BLOQUEO_MS = 240 * 60 * 1000;
     var LS_KEY = 'transporte_sesion';
     var LS_DEVICE_KEY = 'transporte_dispositivo_id';
 
     var codigosValidosMap = {};
 
-    /* ★ PATCH D1 — FIREBASE ANONYMOUS AUTH (capa opcional de seguridad) */
     var FIREBASE_APP_CONFIG = {
       apiKey: "AIzaSyCrnroA2yd2coEVyn6Jm-q8sM6rvOb6Y3k",
       authDomain: "datos-formulario-f3cde.firebaseapp.com",
@@ -382,7 +364,6 @@
               else { fbAuthToken = null; }
             });
             return firebase.auth().signInAnonymously().then(function() {
-              /* ★ SEGURIDAD — token listo ANTES del primer fetch */
               var u = firebase.auth().currentUser;
               if (u) return u.getIdToken().then(function(t) { fbAuthToken = t; return true; });
               return true;
@@ -404,16 +385,12 @@
       } catch(e) {}
     }, 45 * 60 * 1000);
 
-    /* ★ PATCH A2 — Escapado HTML para neutralizar inyección XSS */
     function esc(s) {
       return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, function(c) {
         return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
       });
     }
 
-    /* ============================================================
-       ★ PATCH O1 — JORNADAS POR DÍA EN FIREBASE
-       ============================================================ */
     function claveDiaLocal(offsetDias) {
       var d = new Date();
       if (offsetDias) d.setDate(d.getDate() + offsetDias);
@@ -426,9 +403,6 @@
       return FIREBASE_DB_URL_BASE_USADOS + '/' + dia + '/' + encodeURIComponent(codigo);
     }
 
-    /* ============================================================
-       ★ PATCH K1 — RUTAS IDENTIFICADAS POR FECHA DE DESPACHO
-       ============================================================ */
     function normalizarFechaDespacho(s) {
       if (s === null || s === undefined) return '';
       var t = String(s).trim().replace(/\s+/g, ' ');
@@ -460,9 +434,6 @@
     var rutaIdActualSesion = null;
     var fechasRutaSesion = [];
 
-    /* ============================================================
-       SEGURO DE DISEÑO — si el logo/camión se altera, la app queda inutilizable
-       ============================================================ */
     var disenoIntacto = null;
     function normAtt(s) { return (s || '').replace(/\s+/g,''); }
     function verificarDiseno() {
@@ -470,17 +441,14 @@
         var svg = document.querySelector('.et-truck');
         if (!svg) return false;
         if ((svg.getAttribute('viewBox') || '') !== '-8 0 116 56') return false;
-
         var paths = svg.querySelectorAll('path');
         if (paths.length !== 3) return false;
-
         var body = svg.querySelector('.camion-body');
         if (!body || body.getAttribute('fill') !== '#e8913a') return false;
         var anim = body.querySelector('animate');
         if (!anim) return false;
         var vals = normAtt(anim.getAttribute('values')).split(';');
         if (vals.length !== 3 || vals[0] !== vals[2]) return false;
-
         var d = vals[0];
         if (d.indexOf('M224L744') === -1) return false;
         var dientes = ['L1240','L133','L1026','L-219','L612','L-15Z'];
@@ -489,13 +457,10 @@
         if (valles.length !== 6) return false;
         var d2 = vals[1];
         if (d2.indexOf('L-619') === -1 || d2.indexOf('L-25Z') === -1) return false;
-
         if (normAtt(paths[1].getAttribute('d')) !== 'M7812L9412L10227L10244L7844Z' || paths[1].getAttribute('fill') !== '#e8913a') return false;
         if (normAtt(paths[2].getAttribute('d')) !== 'M8318L9018L9527L8327Z' || paths[2].getAttribute('fill') !== '#0f1117') return false;
-
         var txt = svg.querySelector('text');
         if (!txt || txt.textContent !== 'ET' || txt.getAttribute('fill') !== '#0f1117' || txt.getAttribute('font-size') !== '20') return false;
-
         var circles = svg.querySelectorAll('circle');
         if (circles.length !== 4) return false;
         var r8 = 0, r35 = 0;
@@ -506,7 +471,6 @@
           else return false;
         }
         if (r8 !== 2 || r35 !== 2) return false;
-
         var g = svg.querySelector('g.speed-lines');
         if (!g || g.getAttribute('stroke') !== '#ffffff') return false;
         var lines = g.querySelectorAll('line');
@@ -518,15 +482,12 @@
           if (parseInt(ln.getAttribute('x1'),10) !== coords[l][0] || parseInt(ln.getAttribute('y1'),10) !== coords[l][1] ||
               parseInt(ln.getAttribute('x2'),10) !== coords[l][2] || parseInt(ln.getAttribute('y2'),10) !== coords[l][3]) return false;
         }
-
         var badge = document.querySelector('.page-header .badge');
         if (!badge || normAtt(badge.textContent) !== 'ETGestióndeentregas') return false;
-
         var ico = document.querySelector('link[rel="icon"]');
         if (!ico) return false;
         var ih = ico.getAttribute('href') || '';
         if (ih.indexOf('%23e8913a') === -1 || ih.indexOf('%230f1117') === -1 || ih.indexOf('ET') === -1) return false;
-
         return true;
       } catch (e) { return false; }
     }
@@ -544,9 +505,6 @@
     setInterval(function() { if (disenoIntacto === true && !verificarDiseno()) activarBloqueoDiseno(); }, 5000);
     window.addEventListener('focus', function() { if (disenoIntacto === true && !verificarDiseno()) activarBloqueoDiseno(); });
 
-    /* ============================================================
-       IDENTIFICADOR ÚNICO DE DISPOSITIVO (bloqueo multi-dispositivo)
-       ============================================================ */
     function obtenerIdDispositivo() {
       try {
         var id = localStorage.getItem(LS_DEVICE_KEY);
@@ -560,9 +518,6 @@
       }
     }
 
-    /* ============================================================
-       LOCALSTORAGE — Sesión con timestamp de última CAPTURA GPS
-       ============================================================ */
     function guardarSesionEnDispositivo(codigo) {
       try {
         var previa = null;
@@ -601,9 +556,6 @@
       detenerTimerInactividad();
     }
 
-    /* ============================================================
-       TIMER DE INACTIVIDAD — verifica cada 15 segundos
-       ============================================================ */
     function iniciarTimerInactividad() {
       detenerTimerInactividad();
       timerInactividad = setInterval(verificarInactividad, 15000);
@@ -620,15 +572,12 @@
       var inactividad = sesion.inactividadMs;
       var barra = document.getElementById('inactividadBar');
       var tiempoEl = document.getElementById('inactTime');
-
       if (inactividad >= INACTIVIDAD_BLOQUEO_MS) { forzarResetPorInactividad('bloqueo'); return; }
       if (inactividad >= INACTIVIDAD_RESET_MS) { forzarResetPorInactividad('reset'); return; }
-
       var restanteReset = INACTIVIDAD_RESET_MS - inactividad;
       var minR = Math.floor(restanteReset / 60000);
       var segR = Math.floor((restanteReset % 60000) / 1000);
       tiempoEl.textContent = String(minR).padStart(2,'0') + ':' + String(segR).padStart(2,'0');
-
       barra.classList.remove('hidden', 'ok', 'warn', 'danger');
       if (restanteReset < 10 * 60 * 1000) {
         barra.classList.add('danger');
@@ -645,27 +594,19 @@
       }
     }
 
-    /* ★ PATCH S1-B — Guardar en Firebase ANTES del reset por inactividad,
-       para que la futura restauración recupere TODAS las capturas */
     function forzarResetPorInactividad(tipo) {
       detenerTimerInactividad();
       var codigoPrevio = codigoTransporteActual;
-      /* ★ PATCH S1-B — guardar el estado ANTES de limpiar la tabla */
       if (codigoTransporteActual && disenoIntacto === true) guardarEstadoActualEnFirebase();
       try { localStorage.removeItem(LS_KEY); } catch(e) {}
       resetearFormulario();
       if (tipo === 'bloqueo') {
         msg('Sesión expirada por inactividad (4 horas sin capturas). El código "' + codigoPrevio + '" se ha bloqueado.', 'err');
       } else {
-        msg('Sesión cerrada por inactividad (120 min sin capturas). Vuelve a ingresar el código "' + codigoPrevio + '".', 'warn');
+        msg('Sesión cerrada por inactividad (6 horas sin capturas). Vuelve a ingresar el código "' + codigoPrevio + '".', 'warn');
       }
     }
 
-    /* ============================================================
-       GUARDADO AUTOMÁTICO AL CERRAR PÁGINA + AUTO-SYNC AL RECONECTAR
-       + ★ PATCH S1-A — Guardar al bloquear Y desbloquear pantalla
-       + ★ PATCH S1-C — Reintento de seguridad cada 60s
-       ============================================================ */
     window.addEventListener('beforeunload', function() {
       if (codigoTransporteActual && disenoIntacto === true) guardarEstadoActualEnFirebase();
     });
@@ -676,22 +617,11 @@
       if (guardadoPendiente && navigator.onLine && codigoTransporteActual && disenoIntacto === true) guardarEstadoActualEnFirebase();
     }, 30000);
 
-    /* ★ PATCH S1-A — Guardar SIEMPRE al cambiar visibilidad:
-       - Al pasar a hidden (bloquear pantalla, cambiar app): guardar YA
-         antes de que el SO congele el proceso y mate el fetch.
-       - Al volver a visible (desbloquear): reintentar el guardado.
-         Esto recupera cualquier PATCH que murió mientras estuvo
-         en background — la tabla en pantalla tiene TODAS las capturas,
-         así que el PATCH de recuperación envía el estado completo. */
     document.addEventListener('visibilitychange', function() {
       if (!codigoTransporteActual || disenoIntacto !== true) return;
       guardarEstadoActualEnFirebase();
     });
 
-    /* ★ PATCH S1-C — Sincronización de seguridad cada 60s:
-         no depende de guardadoPendiente. Si el repartidor está
-         activo, el estado completo se reenvía periódicamente.
-         Un PATCH de ~10KB cada minuto es despreciable. */
     setInterval(function() {
       if (codigoTransporteActual && disenoIntacto === true && navigator.onLine && document.visibilityState === 'visible') {
         guardarEstadoActualEnFirebase();
@@ -719,7 +649,6 @@
             status('⚠ Sin conexión — entregas pendientes de sincronizar', 'warn');
           } else {
             guardadoPendiente = false;
-            /* ★ PATCH S1-D — contador visible de sincronización */
             var filas = document.querySelectorAll('#tbodyLineas tr');
             var entregadas = 0;
             filas.forEach(function(f) {
@@ -740,9 +669,6 @@
       } catch(e) { console.error('Error enviando a Firebase:', e); guardadoPendiente = true; }
     }
 
-    /* ============================================================
-       ★ PATCH P1 — ESCRITOR LIGERO: solo datos crudos.
-       ============================================================ */
     function recopilarDatosFormulario() {
       var filas = document.querySelectorAll('#tbodyLineas tr');
       var entregas = [];
@@ -756,7 +682,6 @@
         var fin = horEl ? (horEl.dataset.fin || '') : '';
         var btnGPS = fila.querySelector('.btn-gps');
         var reg = { item: nombre, codclnt: fila.dataset.codclnt || '', sector: sector, inicio: inicio, fin: fin, fechaDespacho: fila.dataset.fechaDespacho || '' };
-
         if (btnGPS && btnGPS.dataset.origLat && btnGPS.dataset.origLng) {
           reg.gpsOriginal = {
             lat: num(btnGPS.dataset.origLat), lng: num(btnGPS.dataset.origLng),
@@ -794,7 +719,6 @@
       return entregas;
     }
 
-    /* ========== UI ========== */
     function msg(text, type) { var el = document.getElementById('mensaje'); el.textContent = text; el.className = type || ''; }
     function status(text, type) {
       var el = document.getElementById('estadoServidor');
@@ -810,15 +734,11 @@
     }
     function limpiarHora(s) { if (!s) return ''; var l = String(s).replace(/[hH]/g,':'); if (/^\d{1,2}:$/.test(l)) l += '00'; return l; }
 
-    /* ========== ELIMINAR GPS ========== */
-    /* ========== ELIMINAR GPS — ★ RETIRADO: los repartidores reportaban
-       borrados accidentales de capturas durante la ruta. La función queda
-       inerte (defensa en profundidad) aunque el botón ya no existe. */
+    /* ========== ELIMINAR GPS — RETIRADO permanentemente ========== */
     function eliminarGPS(botonEliminar) {
-      return; /* ★ deshabilitado permanentemente */
+      return;
     }
 
-    /* ========== GPS ========== */
     function detectarPlataforma() { var u = navigator.userAgent || ''; if (/iPhone|iPad|iPod/.test(u)) return 'ios'; if (/Android/.test(u)) return 'android'; return 'otro'; }
     function obtenerPasosActivarGPS() {
       var p = detectarPlataforma();
@@ -903,7 +823,7 @@
           if (esGPSApagado(error)) { boton.innerHTML = '<i class="fa-solid fa-location-crosshairs"></i> GPS apagado'; abrirModalGPS(boton); return; }
           boton.classList.add('error-gps'); var t='',d='';
           switch(error.code) {
-            case error.PERMISSION_DENIED: t='<i class="fa-solid fa-ban"></i> Permiso denegado'; d='<div class="gps-error-title perm-denied"><i class="fa-solid fa-ban"></i> Permiso denegado</div>El navegador bloqueó el acceso.<ul><li>Toca el <strong>candado</strong> junto a la dirección</li><li>Search <strong>Ubicación</strong> → <strong>Permitir</strong></li><li>Recarga y reintenta</li></ul>'; break;
+            case error.PERMISSION_DENIED: t='<i class="fa-solid fa-ban"></i> Permiso denegado'; d='<div class="gps-error-title perm-denied"><i class="fa-solid fa-ban"></i> Permiso denegado</div>El navegador bloqueó el acceso.<ul><li>Toca el <strong>candado</strong> junto a la dirección</li><li>Busca <strong>Ubicación</strong> → <strong>Permitir</strong></li><li>Recarga y reintenta</li></ul>'; break;
             case error.POSITION_UNAVAILABLE: t='<i class="fa-solid fa-satellite-dish"></i> Sin señal'; d='<div class="gps-error-title no-signal"><i class="fa-solid fa-satellite-dish"></i> Sin señal GPS</div>Verifica GPS y reintenta.'; break;
             case error.TIMEOUT: t='<i class="fa-solid fa-clock"></i> Tiempo agotado'; d='<div class="gps-error-title timeout"><i class="fa-solid fa-clock"></i> Tiempo agotado</div>Verifica GPS y reintenta.'; break;
             default: t='<i class="fa-solid fa-xmark"></i> Error'; d='<div class="gps-error-title perm-denied"><i class="fa-solid fa-xmark"></i> Error</div>';
@@ -926,7 +846,6 @@
       );
     }
 
-    /* ========== UTILIDADES GPS ========== */
     function num(v) {
       if (v === null || v === undefined || v === '') return null;
       var n = (typeof v === 'number') ? v : parseFloat(String(v).trim().replace(',', '.'));
@@ -975,7 +894,6 @@
       if (!miniEl) return;
       var latN = num(lat), lngN = num(lng);
       if (latN === null || lngN === null) { miniEl.classList.remove('on'); miniEl.innerHTML=''; miniEl.removeAttribute('href'); miniEl.removeAttribute('title'); return; }
-      /* ★ PATCH M1 — sin coordenadas visibles: icono + precisión + fecha + tag */
       var partes = [];
       if (num(accuracy) !== null && num(accuracy) > 0) partes.push('~' + Math.round(num(accuracy)) + 'm');
       if (conFecha !== false && fechaISO) partes.push(formatearFechaCorta(fechaISO));
@@ -986,7 +904,6 @@
       miniEl.title = 'Ver en Google Maps' + ((conFecha !== false && fechaISO) ? ' — ' + formatearFechaHora(fechaISO) : '') + ' · ' + latN.toFixed(5) + ', ' + lngN.toFixed(5);
       miniEl.classList.add('on');
     }
-    /* ★ PATCH I1 — mini original compacto: solo icono + tag (sigue siendo enlace a Google Maps) */
     function pintarMiniIcono(miniEl, lat, lng, fechaISO, etiqueta) {
       if (!miniEl) return;
       var latN = num(lat), lngN = num(lng);
@@ -1000,7 +917,7 @@
       if (!item || typeof item !== 'object') return null;
       var lat = num(item.Latitud);
       var lng = num(item.Longitud);
-      if (lat === 0 && lng === 0) return null; /* ★ PATCH F1 — 0,0 = sin coordenadas */
+      if (lat === 0 && lng === 0) return null;
       if (lat !== null && lng !== null && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
         var fecha = item.FechaCaptura || null;
         return { lat: lat, lng: lng, accuracy: null, origen: 'firebase', fechaCaptura: fecha };
@@ -1012,21 +929,21 @@
       if (!gpsData) return;
       var lat = num(gpsData.lat), lng = num(gpsData.lng);
       if (lat === null || lng === null) return;
-      if (lat === 0 && lng === 0) return; /* ★ PATCH F1 */
+      if (lat === 0 && lng === 0) return;
       var btn = fila.querySelector('.btn-gps');
       if (!btn) return;
       var fechaISO = gpsData.fechaCaptura || new Date().toISOString();
       btn.dataset.origLat = lat;
       btn.dataset.origLng = lng;
       btn.dataset.origFecha = fechaISO;
-      pintarMiniIcono(fila.querySelector('.gps-mini-orig'), lat, lng, fechaISO, 'original'); /* ★ PATCH I1 */
+      pintarMiniIcono(fila.querySelector('.gps-mini-orig'), lat, lng, fechaISO, 'original');
     }
 
     function aplicarGPSCapturada(fila, gpsData) {
       if (!gpsData) return;
       var lat = num(gpsData.lat), lng = num(gpsData.lng);
       if (lat === null || lng === null) return;
-      if (lat === 0 && lng === 0) return; /* ★ PATCH F1 */
+      if (lat === 0 && lng === 0) return;
       var btn = fila.querySelector('.btn-gps');
       if (!btn) return;
       var fechaISO = gpsData.fechaCaptura || new Date().toISOString();
@@ -1043,11 +960,6 @@
       if (typeof mostrarDistanciaCaptura === 'function') mostrarDistanciaCaptura(fila, btn);
     }
 
-    /* ============================================================
-       ★ PATCH G2/S1b — PERMANENCIA POR SELECCIÓN RÁPIDA (5m – 2h)
-       ★ PATCH S1b — rango ampliado: ahora inicia en 5 minutos
-       + Comentarios por cliente (★ PATCH H1 — campo inline)
-       ============================================================ */
     function formatearMinutos(m) {
       m = Math.round(num(m) || 0);
       if (m < 60) return m + ' min';
@@ -1112,7 +1024,6 @@
       guardarEstadoActualEnFirebase();
     }
 
-    /* Popover singleton: se crea una sola vez y se ancla al botón activo */
     (function crearPopoverPerm() {
       var pop = document.createElement('div');
       pop.id = 'permPopover';
@@ -1123,7 +1034,6 @@
       var grid = document.createElement('div');
       grid.className = 'perm-grid';
       var html = '';
-      /* ★ PATCH S1b — desde 5 minutos: 5,10,15,20,25,30...120 (24 chips) */
       for (var m = 5; m <= 120; m += 5) {
         html += '<button type="button" class="perm-chip" data-min="' + m + '" onclick="seleccionarPermanencia(' + m + ')">' + m + '<small>m</small></button>';
       }
@@ -1144,13 +1054,11 @@
       window.addEventListener('resize', cerrarPopoverPerm);
     })();
 
-    /* ★ PATCH H1 — Guardar comentario al salir del campo (listener delegado) */
     document.getElementById('tbodyLineas').addEventListener('change', function(e) {
       if (!e.target || !e.target.classList || !e.target.classList.contains('input-com')) return;
       guardarEstadoActualEnFirebase();
     });
 
-    /* --- Restauración desde Firebase --- */
     function aplicarPermanencia(fila, permData) {
       if (!permData) return;
       var mins = num(permData.minutos);
@@ -1169,7 +1077,6 @@
       if (inp) inp.value = String(texto).substring(0, 500);
     }
 
-    /* ========== CONFIG REMOTA ========== */
     async function cargarConfiguracionRemota() {
       var c = new AbortController(); var t = setTimeout(function(){c.abort();}, 8000);
       try { var r = await fetch(conAuth(FIREBASE_DB_URL_CONFIG), {signal:c.signal}); if (!r.ok) throw new Error('HTTP '+r.status); return await r.json(); }
@@ -1177,37 +1084,31 @@
     }
     function verificarExpiracion(c) { if (!c||!c.expiration) return false; return new Date()>new Date(c.expiration); }
 
-    /* ============================================================
-       ★ PATCH R1 — RECARGA DE CONFIGURACIÓN EN CADA "CARGAR DATOS"
-       ============================================================ */
     async function recargarConfiguracion() {
       var config = null;
       try { config = await cargarConfiguracionRemota(); } catch(e) { config = null; }
       if (!config) return { ok: false, expirado: false, config: null };
       if (verificarExpiracion(config)) return { ok: true, expirado: true, config: config };
-
       var raw = config.items && Array.isArray(config.items) ? config.items : [];
       allItemsConfig = raw.map(function(i) {
         if (typeof i === 'string') return {name:i,codigo:'',sector:'',ini:'',fin:'',codclnt:'',fecha:'',gpsRegistrado:null};
         if (i && typeof i === 'object') return {name:i.name||'',codigo:i.codigo||'',sector:i.sector||'',ini:i.ini||'',fin:i.fin||'',codclnt:String(i.CODCLNT || i.codclnt || ''),fecha:String(i.fecha || i.Fecha || ''),gpsRegistrado:extraerGPSDeItem(i)};
         return {name:'',codigo:'',sector:'',ini:'',fin:'',codclnt:'',fecha:'',gpsRegistrado:null};
       }).filter(function(i){return i.name !== '';});
-
       try {
         var rCV = await fetch(conAuth(FIREBASE_DB_URL_ROOT + '/codigosValidos.json'));
         if (rCV.ok) codigosValidosMap = (await rCV.json()) || {};
-      } catch(e) { /* se conserva el mapa anterior */ }
+      } catch(e) {}
       return { ok: true, expirado: false, config: config };
     }
 
     async function inicializarApp() {
       if (!verificarDiseno()) { activarBloqueoDiseno(); return; }
       disenoIntacto = true;
-
       status('Conectando con el servidor...','load');
       await iniciarFirebaseAuth();
       try {
-        var recarga = await recargarConfiguracion(); /* ★ PATCH R1 — carga inicial compartida */
+        var recarga = await recargarConfiguracion();
         if (!recarga.ok) throw new Error('Sin conexión con el servidor');
         if (recarga.expirado) {
           status('Formulario expirado.','err');
@@ -1219,9 +1120,7 @@
         status('', 'ok');
         document.getElementById('mainContent').classList.remove('hidden');
         document.getElementById('expiredScreen').classList.add('hidden');
-        /* ★ PATCH R2 — botones ya inician deshabilitados desde el HTML */
         limpiarTabla();
-
         var recordado = obtenerSesionRecordada();
         if (recordado) {
           document.getElementById('codigoTransporteInput').value = recordado.codigo;
@@ -1235,7 +1134,6 @@
       }
     }
 
-    /* ========== VERIFICAR CÓDIGO ========== */
     async function verificarSiCodigoFueUsado(codigo) {
       try {
         var diaHoy = claveDiaLocal();
@@ -1243,7 +1141,6 @@
         if (!r.ok) return { usado: true, razon: 'error_red' };
         var data = await r.json();
         if (data === null) return { usado: false };
-
         var completadas = {};
         var tieneFechas = false;
         if (Array.isArray(data.rutas)) {
@@ -1257,7 +1154,6 @@
         if (data.estado === 'completado' && Array.isArray(data.fechasRuta)) {
           data.fechasRuta.forEach(function(f) { completadas[f] = true; });
         }
-
         if (data.estado === 'completado') {
           return { usado: false, nuevaRuta: true, completadas: completadas, tieneFechas: tieneFechas, previo: data };
         }
@@ -1274,13 +1170,19 @@
     }
 
     /* ============================================================
-       ★ PATCH P1 — ARCHIVAR LA RUTA ANTERIOR
+       ★ FIX FANTASMA 1 — ARCHIVAR EN EL DÍA DE LA RUTA ORIGINAL
+       Antes: usaba urlCodigoDia() que apunta a diaSesionActual (HOY
+       para una sesión nueva), causando que datos de AYER terminaran
+       en la carpeta de HOY. Ahora: usa previo.dia (el día real de
+       la ruta que se está archivando).
        ============================================================ */
     async function archivarRutaAnterior(codigo, previo) {
       if (!previo || !Array.isArray(previo.datosFormulario) || !previo.datosFormulario.length) return;
       try {
+        var diaArchivo = previo.dia || diaSesionActual || claveDiaLocal();
+        var urlArchivo = FIREBASE_DB_URL_BASE_USADOS + '/' + diaArchivo + '/' + encodeURIComponent(codigo);
         var rutas = [];
-        var rr = await fetch(conAuth(urlCodigoDia(codigo) + '/rutas.json'));
+        var rr = await fetch(conAuth(urlArchivo + '/rutas.json'));
         if (rr.ok) { var j = await rr.json(); if (Array.isArray(j)) rutas = j; }
         if (previo.rutaId) rutas = rutas.filter(function(h){ return h.rutaId !== previo.rutaId; });
         rutas.push({
@@ -1293,15 +1195,13 @@
           incompleta: previo.estado !== 'completado'
         });
         if (rutas.length > 5) rutas = rutas.slice(-5);
-        await fetch(conAuth(urlCodigoDia(codigo) + '/rutas.json'), {
+        await fetch(conAuth(urlArchivo + '/rutas.json'), {
           method: 'PUT', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(rutas)
         });
       } catch(e) { console.error('No se pudo archivar la ruta anterior:', e); }
     }
 
-    /* ========== GUARDAR ========== */
-    /* ★ PATCH P1 — la ruta actual vive SOLO en datosFormulario; */
     async function guardarFormularioCompleto() {
       if (disenoIntacto !== true) return false;
       var filas = document.querySelectorAll('#tbodyLineas tr');
@@ -1342,7 +1242,6 @@
       } catch(e) { msg('Error inesperado.','err'); btn.disabled=false; btn.classList.remove('guardando'); }
     }
 
-    /* ========== FILTRADO ========== */
     var filtrandoEnCurso = false;
     async function filtrarPorCodigo(autoRestaurada) {
       if (filtrandoEnCurso) return;
@@ -1358,7 +1257,6 @@
       var codigo = input.value.trim();
       if (!codigo) { msg('Escribe un código de transporte.','warn'); input.focus(); return; }
 
-      /* ★ PATCH R1 — recargar configuración para ver despachos nuevos sin F5 */
       if (autoRestaurada !== true) {
         msg('Actualizando datos del servidor...','info');
         var recarga = await recargarConfiguracion();
@@ -1395,6 +1293,21 @@
       if (resultado.usado && resultado.razon === 'desconocido') {
         msg('Sin datos para asignar', 'err');
         limpiarSesionDispositivo(); input.value = ''; input.focus(); return;
+      }
+
+      /* ============================================================
+         ★ FIX FANTASMA 2 — BLINDAJE ANTI JORNADA ANTERIOR
+         Si el registro en Firebase pertenece a una jornada ANTERIOR
+         (previo.dia ≠ hoy), NO restaurar como continuación.
+         Se trata como ruta nueva para HOY y la sesión huérfana de
+         ayer se archiva en SU carpeta (histórico conservado).
+         ============================================================ */
+      if (resultado.puedeContinuar === true && resultado.previo && resultado.previo.dia && resultado.previo.dia !== claveDiaLocal()) {
+        resultado.puedeContinuar = false;
+        resultado.nuevaRuta = true;
+        if (Array.isArray(resultado.previo.datosFormulario) && resultado.previo.datosFormulario.length) {
+          await archivarRutaAnterior(codigo, resultado.previo);
+        }
       }
 
       var completadas = resultado.completadas || {};
@@ -1447,7 +1360,6 @@
       fechasRutaSesion = fechasDeItems(itemsSesion);
       rutaIdActualSesion = calcularRutaId(itemsSesion);
 
-      /* ★ PATCH P1 — antes de sobrescribir, se archiva la ruta anterior del día */
       if (!esContinuacion && resultado.previo && Array.isArray(resultado.previo.datosFormulario) && resultado.previo.datosFormulario.length) {
         await archivarRutaAnterior(codigo, resultado.previo);
       }
@@ -1464,11 +1376,9 @@
 
       guardarSesionEnDispositivo(codigo);
       input.disabled = true; btnCargar.disabled = true;
-      /* ★ PATCH R2 — FIN DE RUTA y Ver mapa visibles solo con datos cargados */
       document.getElementById('btnGuardar').disabled = true;
       fechaInicioSesion = esContinuacion ? (resultado.fechaInicio || new Date().toISOString()) : new Date().toISOString();
       poblarTabla(itemsSesion, datosPrevios);
-      /* ★ PATCH R2 — habilitar solo tras carga exitosa y tabla poblada */
       document.getElementById('btnGuardar').disabled = false;
       if (!esContinuacion) guardarEstadoActualEnFirebase();
       iniciarTimerInactividad();
@@ -1507,10 +1417,8 @@
           if (datoPrevio.inicio) iniR = datoPrevio.inicio;
           if (datoPrevio.fin) finR = datoPrevio.fin;
         }
-
         var horarioTxt = (iniR || finR) ? ((iniR || '--:--') + ' – ' + (finR || '--:--')) : '—';
 
-        /* ★ PATCH H1 — fila compacta */
         fila.innerHTML =
           '<td><span class="row-num">' + contador + '</span></td>' +
           '<td class="celda-nombre"><span class="item-name-text">' + esc(item.name) + '</span></td>' +
@@ -1552,7 +1460,6 @@
       document.querySelector('.code-section').classList.remove('hidden');
       input.value = ''; input.disabled = false;
       document.getElementById('btnCargar').disabled = false;
-      /* ★ PATCH R2 — botones vuelven a estado deshabilitado (sin datos cargados) */
       document.getElementById('btnGuardar').disabled = true;
       document.getElementById('btnGuardar').classList.remove('guardando');
       var bm = document.getElementById('btnMapa');
