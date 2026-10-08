@@ -313,14 +313,27 @@
   </div>
 
   <script>
-    /* ★ PATCH T1 — GUARD DE DISPOSITIVO VIGENTE:
-       ninguna escritura se hace a ciegas. Antes de cada guardado se
-       verifica en la base que dispositivoId sea null (ruta reabierta
-       por el supervisor o sin reclamar: el que escribe reclama) o el
-       id de ESTE dispositivo. Si otro dispositivo es el vigente, la
-       sesion se aborta sin escribir nada. Si la ruta ya fue cerrada,
-       solo se sincronizan las entregas pendientes sin tocar estado
-       ni fechaFin del cierre vigente. */
+    /* ★ PATCHES INTEGRADOS:
+       T1 — GUARD DE DISPOSITIVO VIGENTE: ninguna escritura se hace a
+            ciegas. Antes de cada guardado se verifica en la base que
+            dispositivoId sea null (ruta reabierta por el supervisor o
+            sin reclamar: el que escribe reclama) o el id de ESTE
+            dispositivo. Si otro dispositivo es el vigente, la sesion
+            se aborta sin escribir nada. Si la ruta ya fue cerrada,
+            solo se sincronizan las entregas pendientes sin tocar
+            estado ni fechaFin del cierre vigente.
+       T2 — TIMEOUTS: ningun fetch critico puede quedar esperando
+            indefinidamente (falla visible en 8-15 s con el boton
+            operativo), reintento con token fresco ante 401/403, y
+            valvula de escape de 45 s en la carga del codigo.
+       T3 — codigos numericos: formConfig puede traer codigo como
+            numero (ej. 102 sin comillas); todo se normaliza a String
+            en el mapeo y en el filtro (evita TypeError en
+            toLowerCase, causa del cuelgue generalizado del incidente).
+       T4 — SYNC DE REASIGNACIONES (monitor S6/S7): en cada guardado,
+            la ruta absorbe las entregas nuevas reasignadas hacia ella
+            (filas al final + aviso) y suelta las reasignadas a otra
+            ruta (nunca si tienen GPS local). Converge en ≤60 s. */
 
     var FIREBASE_DB_URL_CONFIG = "https://datos-formulario-f3cde-default-rtdb.firebaseio.com/formConfig.json";
     var FIREBASE_DB_URL_BASE_USADOS = "https://datos-formulario-f3cde-default-rtdb.firebaseio.com/codigosUsados";
@@ -400,6 +413,43 @@
         }
       } catch(e) {}
     }, 45 * 60 * 1000);
+
+    /* ============================================================
+       ★ PATCH T2 — FETCH SEGURO: timeout + reintento con token fresco.
+       Ningun fetch critico puede quedar esperando indefinidamente
+       (el fetch de codigosValidos sin timeout era el causante del
+       cuelgue eterno en "Actualizando datos del servidor...").
+       ============================================================ */
+    async function refrescarTokenFb() {
+      try {
+        if (window.firebase && firebase.apps && firebase.apps.length) {
+          var u = firebase.auth().currentUser;
+          if (u) fbAuthToken = await u.getIdToken(true);
+        }
+      } catch (e) {}
+    }
+    function intentarFetch(url, opts, timeoutMs) {
+      return new Promise(function(resolver, rechazar) {
+        var c = new AbortController();
+        var t = setTimeout(function() { c.abort(); }, timeoutMs || 12000);
+        fetch(conAuth(url), Object.assign({}, opts, { signal: c.signal }))
+          .then(function(r) { clearTimeout(t); resolver(r); })
+          .catch(function(e) {
+            clearTimeout(t);
+            if (e && e.name === 'AbortError') rechazar(new Error('tiempo_agotado'));
+            else rechazar(e);
+          });
+      });
+    }
+    async function fetchSeguro(url, opts, timeoutMs) {
+      opts = opts || {};
+      var r = await intentarFetch(url, opts, timeoutMs);
+      if (r.status === 401 || r.status === 403) {
+        await refrescarTokenFb();
+        r = await intentarFetch(url, opts, timeoutMs);
+      }
+      return r;
+    }
 
     function esc(s) {
       return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, function(c) {
@@ -730,7 +780,7 @@
     }
     async function verificarVigenciaDispositivo(codigo) {
       try {
-        var r = await fetch(conAuth(urlCodigoDia(codigo) + '.json'));
+        var r = await fetchSeguro(urlCodigoDia(codigo) + '.json', null, 10000);
         if (!r.ok) return { vigencia: 'error' };
         var data = await r.json();
         return { vigencia: vigenciaDesdePrevio(data), previo: data };
@@ -756,7 +806,7 @@
        datos de otros dispositivos ni el cierre hecho por el supervisor. */
     async function sincronizarSoloEntregas(codigo, entregas) {
       try {
-        var rPrev = await fetch(conAuth(urlCodigoDia(codigo) + '/datosFormulario.json'));
+        var rPrev = await fetchSeguro(urlCodigoDia(codigo) + '/datosFormulario.json', null, 10000);
         if (!rPrev.ok) return false;
         var j = await rPrev.json();
         var prevItems = normalizarDatosFormulario(j);
@@ -777,10 +827,10 @@
           if (!p.comentario && local.comentario) { if (!reg) reg = JSON.parse(JSON.stringify(p)); reg.comentario = local.comentario; }
           if (!reg) continue;
           var clave = (p.idxItem !== undefined) ? p.idxItem : i;
-          var r = await fetch(conAuth(urlCodigoDia(codigo) + '/datosFormulario/' + clave + '.json'), {
+          var r = await fetchSeguro(urlCodigoDia(codigo) + '/datosFormulario/' + clave + '.json', {
             method: 'PATCH', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(reg)
-          });
+          }, 10000);
           if (r.ok) enviados++; else fallos++;
         }
         return fallos === 0;
@@ -793,12 +843,59 @@
       return (d.idxItem !== undefined) ? 'idx:' + d.idxItem : 'nf:' + (d.item || '').toLowerCase() + '|' + (d.fechaDespacho || '');
     }
 
+    /* ============================================================
+       ★ PATCH T4 — claves de negocio y fila nueva para reasignaciones
+       (mismo criterio que el monitor S6/S7: nombre + fechaDespacho +
+       codclnt, estable sin importar posiciones)
+       ============================================================ */
+    function claveNegocioItem(it) {
+      return String((it && it.item) || '').toLowerCase() + '|' + String((it && it.fechaDespacho) || '') + '|' + String((it && it.codclnt) || '');
+    }
+    function claveNegocioFila(fila) {
+      var nEl = fila.querySelector('.item-name-text');
+      return String(nEl ? nEl.textContent.trim().toLowerCase() : '') + '|' + String(fila.dataset.fechaDespacho || '') + '|' + String(fila.dataset.codclnt || '');
+    }
+    function insertarFilaLocal(pi) {
+      var tbody = document.getElementById('tbodyLineas');
+      var fila = document.createElement('tr');
+      fila.dataset.codclnt = pi.codclnt || '';
+      fila.dataset.fechaDespacho = pi.fechaDespacho || '';
+      var sectorR = esc((pi.sector || '').toUpperCase());
+      var iniR = limpiarHora(pi.inicio);
+      var finR = limpiarHora(pi.fin);
+      var horarioTxt = (iniR || finR) ? ((iniR || '--:--') + ' – ' + (finR || '--:--')) : '—';
+      fila.innerHTML =
+        '<td><span class="row-num">' + (tbody.children.length + 1) + '</span></td>' +
+        '<td class="celda-nombre"><span class="item-name-text">' + esc(pi.item || '') + '</span></td>' +
+        '<td><div class="gps-cell">' +
+          '<div class="gps-btn-row">' +
+            '<button type="button" class="btn-gps" onclick="capturarGPS(this)"><i class="fa-solid fa-satellite-dish"></i> Entrega Pendiente</button>' +
+            '<button type="button" class="btn-perm" onclick="togglePermanencia(this)" title="Registrar tiempo de permanencia"><i class="fa-solid fa-stopwatch"></i> Permanencia</button>' +
+            '<input type="text" class="input-com" maxlength="500" placeholder="Comentario..." autocomplete="off">' +
+          '</div>' +
+          '<div class="gps-sub-row">' +
+            '<a class="gps-mini gps-mini-orig" target="_blank" rel="noopener noreferrer"></a>' +
+            '<a class="gps-mini gps-mini-nueva" target="_blank" rel="noopener noreferrer"></a>' +
+            '<span class="info-sector" data-sector="' + sectorR + '">' + (sectorR || '—') + '</span>' +
+            '<span class="sep-dot">·</span>' +
+            '<span class="info-horario" data-inicio="' + esc(iniR || '') + '" data-fin="' + esc(finR || '') + '">' + esc(horarioTxt) + '</span>' +
+          '</div>' +
+          '<div class="gps-error-detail"></div>' +
+          '<div class="gps-distancia"></div>' +
+        '</div></td>';
+      tbody.appendChild(fila);
+      if (pi.gpsOriginal) { try { aplicarGPSOriginal(fila, pi.gpsOriginal); } catch (e) {} }
+      if (pi.gps) { try { aplicarGPSCapturada(fila, pi.gps); } catch (e) {} }
+      if (pi.comentario) { try { aplicarComentario(fila, pi.comentario); } catch (e) {} }
+      document.getElementById('itemCount').textContent = tbody.children.length;
+    }
+
     async function guardarConProteccionCapturas(cuerpo) {
       try {
         guardarBufferOffline();
         /* ★ PATCH T1 — GET del nodo completo del codigo: alimenta el merge
-           de capturas Y el guard de dispositivo vigente */
-        var rPrev = await fetch(conAuth(urlCodigoDia(codigoTransporteActual) + '.json'));
+           de capturas Y el guard de dispositivo vigente (T2: 10 s max) */
+        var rPrev = await fetchSeguro(urlCodigoDia(codigoTransporteActual) + '.json', null, 10000);
         if (!rPrev.ok) throw new Error('sin respuesta del servidor');
         var prevData = await rPrev.json();
 
@@ -846,12 +943,53 @@
           try { restaurarCapturasEnPantalla(nuevo.datosFormulario); } catch(e) {}
         }
 
+        /* ★ PATCH T4 — SYNC DE REASIGNACIONES (monitor S6/S7):
+           - filas reasignadas a otra ruta (prevData.reasignadasSalida)
+             se quitan de la pantalla (nunca si tienen GPS local)
+           - entregas nuevas en la base (reasignadas hacia esta ruta)
+             se agregan como filas al final
+           - tras el sync se re-recopila para que el PATCH refleje
+             exactamente lo que hay en pantalla */
+        var cambioSync = false;
+        try {
+          var salidas = (prevData && Array.isArray(prevData.reasignadasSalida)) ? prevData.reasignadasSalida : [];
+          if (salidas.length) {
+            var aQuitar = [];
+            document.querySelectorAll('#tbodyLineas tr').forEach(function(fila) {
+              var bG = fila.querySelector('.btn-gps');
+              if (bG && bG.dataset.origen === 'dispositivo' && bG.dataset.lat) return; /* con GPS: no tocar */
+              if (salidas.indexOf(claveNegocioFila(fila)) !== -1) aQuitar.push(fila);
+            });
+            if (aQuitar.length) {
+              aQuitar.forEach(function(fila) { fila.remove(); });
+              document.getElementById('itemCount').textContent = document.querySelectorAll('#tbodyLineas tr').length;
+              cambioSync = true;
+              msg(aQuitar.length + ' entrega' + (aQuitar.length !== 1 ? 's' : '') + ' de tu lista fue reasignada a otro transporte.', 'warn');
+            }
+          }
+          var localesNg = {};
+          document.querySelectorAll('#tbodyLineas tr').forEach(function(fila) { localesNg[claveNegocioFila(fila)] = true; });
+          var agregadas = [];
+          prevItems.forEach(function(pi) {
+            if (!pi || !pi.item || !pi.reasignadoDe) return;          /* solo reasignadas entrantes */
+            if (localesNg[claveNegocioItem(pi)]) return;               /* ya en pantalla */
+            insertarFilaLocal(pi);
+            agregadas.push(pi);
+          });
+          if (agregadas.length) {
+            cambioSync = true;
+            msg(agregadas.length + ' entrega' + (agregadas.length !== 1 ? 's' : '') + ' reasignada' + (agregadas.length !== 1 ? 's' : '') + ' a tu ruta (desde la ruta ' + agregadas[0].reasignadoDe + '). Revisa tu lista.', 'info');
+          }
+        } catch (eSync) { console.error('sync reasignaciones:', eSync); }
+        if (cambioSync) nuevo.datosFormulario = recopilarDatosFormulario();
+
         var cuerpoFinal = JSON.stringify(nuevo);
-        fetch(conAuth(urlCodigoDia(codigoTransporteActual) + '.json'), {
+        /* ★ PATCH T2 — el PATCH final tambien con timeout (15 s) */
+        fetchSeguro(urlCodigoDia(codigoTransporteActual) + '.json', {
           method: 'PATCH', headers: { 'Content-Type': 'application/json' },
           body: cuerpoFinal,
           keepalive: cuerpoFinal.length < 60000
-        }).then(function(r){
+        }, 15000).then(function(r){
           if (!r.ok) {
             console.error('Firebase respondió HTTP', r.status);
             guardadoPendiente = true;
@@ -879,7 +1017,7 @@
         /* ★ PATCH T1 — sin respuesta del servidor NO se escribe a ciegas:
            podria pisar a otro dispositivo vigente o revivir una ruta
            cerrada. Queda pendiente (buffer local + reintento cada 30s
-           y al recuperar conexion). */
+           y al recuperar conexion). T2: falla visible a los 10 s. */
         console.error('Guard omitido (sin datos de vigencia):', e);
         guardadoPendiente = true;
         status('⚠ Sin conexión — entregas pendientes de sincronizar', 'warn');
@@ -1372,10 +1510,11 @@
       if (inp) inp.value = String(texto).substring(0, 500);
     }
 
+    /* ★ PATCH T2 — timeout de 8 s tambien en la configuracion */
     async function cargarConfiguracionRemota() {
-      var c = new AbortController(); var t = setTimeout(function(){c.abort();}, 8000);
-      try { var r = await fetch(conAuth(FIREBASE_DB_URL_CONFIG), {signal:c.signal}); if (!r.ok) throw new Error('HTTP '+r.status); return await r.json(); }
-      catch(e) { if (e.name==='AbortError') throw new Error('Tiempo agotado'); throw e; } finally { clearTimeout(t); }
+      var r = await fetchSeguro(FIREBASE_DB_URL_CONFIG, null, 8000);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return await r.json();
     }
     function verificarExpiracion(c) { if (!c||!c.expiration) return false; return new Date()>new Date(c.expiration); }
 
@@ -1385,13 +1524,18 @@
       if (!config) return { ok: false, expirado: false, config: null };
       if (verificarExpiracion(config)) return { ok: true, expirado: true, config: config };
       var raw = config.items && Array.isArray(config.items) ? config.items : [];
+      /* ★ PATCH T3 — todo a String: formConfig puede traer codigo como
+         NUMERO (ej. 102 sin comillas) y rompia item.codigo.toLowerCase */
       allItemsConfig = raw.map(function(i) {
         if (typeof i === 'string') return {name:i,codigo:'',sector:'',ini:'',fin:'',codclnt:'',fecha:'',gpsRegistrado:null};
-        if (i && typeof i === 'object') return {name:i.name||'',codigo:i.codigo||'',sector:i.sector||'',ini:i.ini||'',fin:i.fin||'',codclnt:String(i.CODCLNT || i.codclnt || ''),fecha:String(i.fecha || i.Fecha || ''),gpsRegistrado:extraerGPSDeItem(i)};
+        if (i && typeof i === 'object') return {name:String(i.name||''),codigo:String(i.codigo||''),sector:String(i.sector||''),ini:String(i.ini||''),fin:String(i.fin||''),codclnt:String(i.CODCLNT || i.codclnt || ''),fecha:String(i.fecha || i.Fecha || ''),gpsRegistrado:extraerGPSDeItem(i)};
         return {name:'',codigo:'',sector:'',ini:'',fin:'',codclnt:'',fecha:'',gpsRegistrado:null};
       }).filter(function(i){return i.name !== '';});
+      /* ★ PATCH T2 — este fetch era el causante del cuelgue eterno en
+         "Actualizando datos del servidor...": sin timeout dejaba la
+         carga congelada para siempre. Ahora falla visible en 8 s. */
       try {
-        var rCV = await fetch(conAuth(FIREBASE_DB_URL_ROOT + '/codigosValidos.json'));
+        var rCV = await fetchSeguro(FIREBASE_DB_URL_ROOT + '/codigosValidos.json', null, 8000);
         if (rCV.ok) codigosValidosMap = (await rCV.json()) || {};
       } catch(e) {}
       return { ok: true, expirado: false, config: config };
@@ -1448,7 +1592,8 @@
     async function verificarSiCodigoFueUsado(codigo) {
       try {
         var diaHoy = claveDiaLocal();
-        var r = await fetch(conAuth(FIREBASE_DB_URL_BASE_USADOS + '/' + diaHoy + '/' + encodeURIComponent(codigo) + '.json'));
+        /* ★ PATCH T2 — con timeout: falla visible en 10 s */
+        var r = await fetchSeguro(FIREBASE_DB_URL_BASE_USADOS + '/' + diaHoy + '/' + encodeURIComponent(codigo) + '.json', null, 10000);
         if (!r.ok) return { usado: true, razon: 'error_red' };
         var data = await r.json();
         if (data === null) return { usado: false };
@@ -1474,7 +1619,10 @@
           if (transcurrido > TIEMPO_LIBERAR_CODIGO_MS) {
             return { usado: false, liberado: true, completadas: completadas, tieneFechas: tieneFechas, previo: data };
           }
-          return { usado: false, puedeContinuar: true, datosPrevios: data.datosFormulario || null, dispositivoId: data.dispositivoId || null, fechaInicio: data.fechaInicio || null, fechasRuta: Array.isArray(data.fechasRuta) ? data.fechasRuta : null, completadas: completadas, tieneFechas: tieneFechas, previo: data };
+          /* ★ PATCH T4 — datosPrevios normalizados: tras las
+             reasignaciones los datosFormulario quedan con huecos
+             (claves borradas) y deben llegar como array limpio */
+          return { usado: false, puedeContinuar: true, datosPrevios: normalizarDatosFormulario(data.datosFormulario) || null, dispositivoId: data.dispositivoId || null, fechaInicio: data.fechaInicio || null, fechasRuta: Array.isArray(data.fechasRuta) ? data.fechasRuta : null, completadas: completadas, tieneFechas: tieneFechas, previo: data };
         }
         return { usado: true, razon: 'desconocido' };
       } catch(e) { return { usado: true, razon: 'error_red' }; }
@@ -1486,7 +1634,8 @@
         var diaArchivo = previo.dia || diaSesionActual || claveDiaLocal();
         var urlArchivo = FIREBASE_DB_URL_BASE_USADOS + '/' + diaArchivo + '/' + encodeURIComponent(codigo);
         var rutas = [];
-        var rr = await fetch(conAuth(urlArchivo + '/rutas.json'));
+        /* ★ PATCH T2 — ambos fetches con timeout */
+        var rr = await fetchSeguro(urlArchivo + '/rutas.json', null, 10000);
         if (rr.ok) { var j = await rr.json(); if (Array.isArray(j)) rutas = j; }
         if (previo.rutaId) rutas = rutas.filter(function(h){ return h.rutaId !== previo.rutaId; });
         rutas.push({
@@ -1499,10 +1648,10 @@
           incompleta: previo.estado !== 'completado'
         });
         if (rutas.length > 5) rutas = rutas.slice(-5);
-        await fetch(conAuth(urlArchivo + '/rutas.json'), {
+        await fetchSeguro(urlArchivo + '/rutas.json', {
           method: 'PUT', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(rutas)
-        });
+        }, 10000);
       } catch(e) { console.error('No se pudo archivar la ruta anterior:', e); }
     }
 
@@ -1527,14 +1676,16 @@
       var entregas = recopilarDatosFormulario();
       var historial = [];
       try {
-        var rPrev = await fetch(conAuth(urlCodigoDia(codigoTransporteActual) + '/rutas.json'));
+        /* ★ PATCH T2 — con timeout */
+        var rPrev = await fetchSeguro(urlCodigoDia(codigoTransporteActual) + '/rutas.json', null, 10000);
         if (rPrev.ok) { var j = await rPrev.json(); if (Array.isArray(j)) historial = j; }
       } catch(e) {}
       try {
-        var r = await fetch(conAuth(urlCodigoDia(codigoTransporteActual) + '.json'), {
+        /* ★ PATCH T2 — con timeout */
+        var r = await fetchSeguro(urlCodigoDia(codigoTransporteActual) + '.json', {
           method: 'PUT', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ estado: 'completado', dia: diaSesionActual || claveDiaLocal(), rutaId: rutaIdActualSesion || null, fechasRuta: fechasRutaSesion || [], rutas: historial, fechaInicio: fechaInicioSesion || null, fechaFin: new Date().toISOString(), dispositivoId: obtenerIdDispositivo(), datosFormulario: entregas })
-        });
+        }, 15000);
         if (!r.ok) throw new Error('HTTP'); return { ok: true };
       } catch(e) { return { ok: false, razon: 'red' }; }
     }
@@ -1579,12 +1730,25 @@
       } catch(e) { msg('Error inesperado.','err'); btn.disabled=false; btn.classList.remove('guardando'); }
     }
 
+    /* ★ PATCH T2 — válvula de escape: la carga del código nunca puede
+       quedar colgada para siempre ni dejar el botón trabado */
     var filtrandoEnCurso = false;
     async function filtrarPorCodigo(autoRestaurada) {
       if (filtrandoEnCurso) return;
       filtrandoEnCurso = true;
-      try { await filtrarPorCodigoInterno(autoRestaurada); }
-      finally { filtrandoEnCurso = false; }
+      try {
+        await Promise.race([
+          filtrarPorCodigoInterno(autoRestaurada),
+          new Promise(function(_, rej) { setTimeout(function() { rej(new Error('__lento')); }, 45000); })
+        ]);
+      } catch (e) {
+        if (e && e.message === '__lento') {
+          msg('La conexión con el servidor está muy lenta. Revisa tu señal e inténtalo de nuevo.', 'err');
+        } else {
+          console.error('filtrarPorCodigo:', e);
+          msg('Error al cargar: ' + (e && e.message ? e.message : 'desconocido'), 'err');
+        }
+      } finally { filtrandoEnCurso = false; }
     }
 
     async function filtrarPorCodigoInterno(autoRestaurada) {
@@ -1604,10 +1768,19 @@
           document.getElementById('mensajeExpiracion').textContent = 'Este formulario expiró el ' + new Date(recarga.config.expiration).toLocaleString() + '.';
           return;
         }
-        if (!recarga.ok) msg('Sin conexión para actualizar datos. Usando la última configuración cargada.', 'warn');
+        /* ★ PATCH T2 — mensaje claro cuando no hay conexión y no hay
+           configuracion cacheada (antes decía "Sin datos para asignar") */
+        if (!recarga.ok) {
+          if (!allItemsConfig.length) {
+            msg('No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo en unos segundos.', 'err');
+            return;
+          }
+          msg('Sin conexión para actualizar datos. Usando la última configuración cargada.', 'warn');
+        }
       }
 
-      var itemsFiltrados = allItemsConfig.filter(function(item) { return item.codigo.toLowerCase() === codigo.toLowerCase(); });
+      /* ★ PATCH T3 — String() en el filtro: codigo puede ser numero */
+      var itemsFiltrados = allItemsConfig.filter(function(item) { return String(item.codigo).toLowerCase() === codigo.toLowerCase(); });
       var hayNodoValidos = Object.keys(codigosValidosMap).length > 0;
       var estaEnValidos = true;
       if (hayNodoValidos) {
