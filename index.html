@@ -333,7 +333,12 @@
        T4 — SYNC DE REASIGNACIONES (monitor S6/S7): en cada guardado,
             la ruta absorbe las entregas nuevas reasignadas hacia ella
             (filas al final + aviso) y suelta las reasignadas a otra
-            ruta (nunca si tienen GPS local). Converge en ≤60 s. */
+            ruta (nunca si tienen GPS local). Converge en ≤60 s.
+       T6 — JORNADA COMPLETADA (criterio estricto): si la ruta de HOY
+            esta en estado 'completado' (por FIN DE RUTA o cierre del
+            supervisor S1), NO se recarga la lista aunque falten
+            capturas GPS. Las entregas sin captura de una ruta
+            completada son gestion del supervisor (reabrir con S3). */
 
     var FIREBASE_DB_URL_CONFIG = "https://datos-formulario-f3cde-default-rtdb.firebaseio.com/formConfig.json";
     var FIREBASE_DB_URL_BASE_USADOS = "https://datos-formulario-f3cde-default-rtdb.firebaseio.com/codigosUsados";
@@ -1803,6 +1808,31 @@
       if (resultado.usado && resultado.razon === 'desconocido') {
         msg('Sin datos para asignar', 'err');
         limpiarSesionDispositivo(); input.value = ''; input.focus(); return;
+      }
+
+      /* ============================================================
+         ★ PATCH T6 — JORNADA COMPLETADA (criterio estricto): si la
+         ruta de HOY esta en estado 'completado' (por FIN DE RUTA o
+         cierre del supervisor S1), NO se recarga la lista aunque
+         falten capturas GPS. Las entregas sin captura de una ruta
+         completada son gestion del supervisor (reabrir con S3).
+         verificarSiCodigoFueUsado ya consulto la carpeta de HOY, asi
+         que resultado.previo la trae cuando existe.
+         ============================================================ */
+      if (resultado.previo && resultado.previo.estado === 'completado') {
+        var itemsT6 = normalizarDatosFormulario(resultado.previo.datosFormulario);
+        var capturadasT6 = itemsT6.filter(function(it) {
+          return !!(it && it.gps && it.gps.origen === 'dispositivo' && num(it.gps.lat) !== null);
+        }).length;
+        msg('La ruta ' + codigo + ' ya fue finalizada en esta jornada (' + capturadasT6 + ' de ' + itemsT6.length + ' entregas capturadas). ' +
+            (capturadasT6 < itemsT6.length
+              ? 'Si falta alguna captura, pide al supervisor que reabra la ruta desde el panel de monitoreo. '
+              : '') +
+            'Espera a que el supervisor cargue los datos nuevos.', 'info');
+        limpiarSesionDispositivo();
+        input.value = '';
+        input.focus();
+        return;
       }
 
       if (resultado.puedeContinuar === true && resultado.previo && resultado.previo.dia && resultado.previo.dia !== claveDiaLocal()) {
