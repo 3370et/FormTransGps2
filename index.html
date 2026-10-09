@@ -335,15 +335,17 @@
             (filas al final + aviso) y suelta las reasignadas a otra
             ruta (nunca si tienen GPS local). Converge en ≤60 s.
        T6 — JORNADA COMPLETADA (criterio estricto): si la ruta de HOY
-            esta en estado 'completado' (por FIN DE RUTA o cierre del
-            supervisor S1), NO se recarga la lista aunque falten
-            capturas GPS. Las entregas sin captura de una ruta
-            completada son gestion del supervisor (reabrir con S3).
+            esta 'completado' y NO hay despachos nuevos de hoy
+            pendientes en formConfig, no se recarga la lista aunque
+            falten capturas GPS.
        T6b — CRUCE DE JORNADAS: si HOY no existe la ruta, revisa AYER;
             si ayer quedo 'completado' Y formConfig aun no tiene datos
             de hoy (fechas de ayer), no se recarga la lista vieja.
-            En cuanto el supervisor sube los datos nuevos (fechas de
-            hoy en formConfig), deja pasar normalmente. */
+       T6c — NUEVOS DESPACHOS DEL DIA: si la ruta de hoy fue
+            completada PERO el supervisor subio despachos nuevos de hoy
+            (otro cliente u otra hora, no incluidos en completadas),
+            la nueva tanda SI carga: es una segunda vuelta del dia.
+            Solo bloquea cuando no quedan despachos de hoy pendientes. */
 
     var FIREBASE_DB_URL_CONFIG = "https://datos-formulario-f3cde-default-rtdb.firebaseio.com/formConfig.json";
     var FIREBASE_DB_URL_BASE_USADOS = "https://datos-formulario-f3cde-default-rtdb.firebaseio.com/codigosUsados";
@@ -963,6 +965,11 @@
           });
           if (agregadas.length) {
             cambioSync = true;
+            /* ★ T4-amend: sumar las fechas de los despachos nuevos a la sesion */
+            agregadas.forEach(function(pi) {
+              var f = normalizarFechaDespacho(pi.fechaDespacho);
+              if (f && fechasRutaSesion.indexOf(f) === -1) fechasRutaSesion.push(f);
+            });
             msg(agregadas.length + ' entrega' + (agregadas.length !== 1 ? 's' : '') + ' reasignada' + (agregadas.length !== 1 ? 's' : '') + ' a tu ruta (desde la ruta ' + agregadas[0].reasignadoDe + '). Revisa tu lista.', 'info');
           }
         } catch (eSync) { console.error('sync reasignaciones:', eSync); }
@@ -1497,7 +1504,6 @@
         if (i && typeof i === 'object') return {name:String(i.name||''),codigo:String(i.codigo||''),sector:String(i.sector||''),ini:String(i.ini||''),fin:String(i.fin||''),codclnt:String(i.CODCLNT || i.codclnt || ''),fecha:String(i.fecha || i.Fecha || ''),gpsRegistrado:extraerGPSDeItem(i)};
         return {name:'',codigo:'',sector:'',ini:'',fin:'',codclnt:'',fecha:'',gpsRegistrado:null};
       }).filter(function(i){return i.name !== '';});
-      /* ★ PATCH T2 — el fetch que causaba el cuelgue eterno, ahora con timeout */
       try {
         var rCV = await fetchSeguro(FIREBASE_DB_URL_ROOT + '/codigosValidos.json', null, 8000);
         if (rCV.ok) codigosValidosMap = (await rCV.json()) || {};
@@ -1582,7 +1588,6 @@
           if (transcurrido > TIEMPO_LIBERAR_CODIGO_MS) {
             return { usado: false, liberado: true, completadas: completadas, tieneFechas: tieneFechas, previo: data };
           }
-          /* ★ PATCH T4 — datosPrevios normalizados */
           return { usado: false, puedeContinuar: true, datosPrevios: normalizarDatosFormulario(data.datosFormulario) || null, dispositivoId: data.dispositivoId || null, fechaInicio: data.fechaInicio || null, fechasRuta: Array.isArray(data.fechasRuta) ? data.fechasRuta : null, completadas: completadas, tieneFechas: tieneFechas, previo: data };
         }
         return { usado: true, razon: 'desconocido' };
@@ -1726,7 +1731,6 @@
         }
       }
 
-      /* ★ PATCH T3 — String() en el filtro */
       var itemsFiltrados = allItemsConfig.filter(function(item) { return String(item.codigo).toLowerCase() === codigo.toLowerCase(); });
       var hayNodoValidos = Object.keys(codigosValidosMap).length > 0;
       var estaEnValidos = true;
@@ -1753,49 +1757,66 @@
       }
 
       /* ============================================================
-         ★ PATCH T6 + T6b — JORNADA COMPLETADA (criterio estricto):
-         Si la ruta de HOY esta 'completado', no se recarga aunque
-         falten capturas GPS (T6). T6b: si HOY no existe la ruta,
-         revisa AYER — si ayer quedo 'completado' Y formConfig aun no
-         tiene datos de hoy (las fechas de los items siguen siendo de
-         ayer), no se recarga la lista vieja. En cuanto el supervisor
-         sube los datos nuevos (fechas de hoy), deja pasar.
+         ★ PATCH T6 + T6b + T6c — JORNADA COMPLETADA con matiz de
+         NUEVOS DESPACHOS DEL DIA:
+         - T6: si la ruta de HOY esta 'completado' pero formConfig
+           tiene despachos de HOY que no estan en completadas (nueva
+           tanda del mismo dia: otro cliente u otra hora), la nueva
+           ruta SI carga (segunda vuelta del dia). Solo bloquea si no
+           quedan despachos nuevos de hoy pendientes.
+         - T6b: si HOY no existe la ruta, revisa AYER; bloquea solo si
+           formConfig tampoco tiene datos de hoy para este codigo.
          ============================================================ */
+      var diaHoyT6 = claveDiaLocal();
+      var prefijoHoyT6 = diaHoyT6 + ' ';
+      var completadasT6 = resultado.completadas || {};
+
+      /* despachos de HOY en formConfig que no estan completados:
+         la tanda nueva del dia (otros clientes u otras horas) */
+      var nuevosDeHoy = itemsFiltrados.filter(function(it) {
+        var f = claveFechaItem(it);
+        return f.indexOf(prefijoHoyT6) === 0 && !completadasT6[f];
+      });
+
       var previoT6 = (resultado.previo && resultado.previo.estado === 'completado') ? resultado.previo : null;
       if (!previoT6 && !resultado.previo) {
-        /* HOY no existe la ruta: revisar la carpeta de AYER */
+        /* T6b: HOY no existe la ruta — revisar AYER */
         try {
           var diaAyerT6b = claveDiaLocal(-1);
           var rAyerT6b = await fetchSeguro(FIREBASE_DB_URL_BASE_USADOS + '/' + diaAyerT6b + '/' + encodeURIComponent(codigo) + '.json', null, 10000);
           if (rAyerT6b.ok) {
             var dAyerT6b = await rAyerT6b.json();
             if (dAyerT6b && dAyerT6b.estado === 'completado') {
-              /* Solo bloquear si formConfig sigue SIN datos de hoy:
-                 las fechas de los items siguen siendo de ayer */
-              var fechaHoyInicio = claveDiaLocal() + ' ';
-              var formConfigTieneHoy = allItemsConfig.some(function(it) {
-                return claveFechaItem(it).indexOf(fechaHoyInicio) === 0;
+              /* solo bloquear si formConfig sigue SIN datos de hoy
+                 para ESTE codigo (las fechas siguen siendo de ayer) */
+              var formConfigTieneHoy = itemsFiltrados.some(function(it) {
+                return claveFechaItem(it).indexOf(prefijoHoyT6) === 0;
               });
               if (!formConfigTieneHoy) previoT6 = dAyerT6b;
             }
           }
         } catch (eT6b) {}
       }
-      if (previoT6) {
+
+      if (previoT6 && nuevosDeHoy.length === 0) {
+        /* jornada realmente cerrada: sin despachos nuevos de hoy */
         var itemsT6 = normalizarDatosFormulario(previoT6.datosFormulario);
         var capturadasT6 = itemsT6.filter(function(it) {
           return !!(it && it.gps && it.gps.origen === 'dispositivo' && num(it.gps.lat) !== null);
         }).length;
-        msg('La ruta ' + codigo + ' ya fue finalizada (' + capturadasT6 + ' de ' + itemsT6.length + ' entregas capturadas). ' +
+        var diaRefT6 = (previoT6.dia || diaHoyT6);
+        msg('La ruta ' + codigo + ' ya fue finalizada el ' + diaRefT6 + ' (' + capturadasT6 + ' de ' + itemsT6.length + ' entregas capturadas). ' +
             (capturadasT6 < itemsT6.length
               ? 'Si falta alguna captura, pide al supervisor que reabra la ruta. '
               : '') +
-            'No hay datos nuevos para hoy aún: espera a que el supervisor cargue las entregas de la nueva jornada.', 'info');
+            'No hay despachos nuevos pendientes para hoy: espera a que el supervisor cargue los datos de la nueva jornada.', 'info');
         limpiarSesionDispositivo();
         input.value = '';
         input.focus();
         return;
       }
+      /* si previoT6 existe PERO hay nuevosDeHoy: NO bloquear —
+         el flujo de nuevaRuta abajo cargara la tanda nueva */
 
       if (resultado.puedeContinuar === true && resultado.previo && resultado.previo.dia && resultado.previo.dia !== claveDiaLocal()) {
         resultado.puedeContinuar = false;
