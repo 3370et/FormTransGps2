@@ -322,6 +322,12 @@
             se aborta sin escribir nada. Si la ruta ya fue cerrada,
             solo se sincronizan las entregas pendientes sin tocar
             estado ni fechaFin del cierre vigente.
+       T1e — TRANSICION A NUEVA TANDA: cuando la sesion se inicio
+            como nueva tanda sobre una ruta completada (validada por
+            T6c/T6d en la entrada, con la ruta cerrada ya archivada),
+            la PRIMERA escritura (en_proceso con la nueva tabla) es
+            legitima y el guard la permite. Tras esa escritura, el
+            guard vuelve a su criterio normal.
        T2 — TIMEOUTS: ningun fetch critico puede quedar esperando
             indefinidamente (falla visible en 8-15 s con el boton
             operativo), reintento con token fresco ante 401/403, y
@@ -346,9 +352,7 @@
             considera reorganizada; cuentan como pendientes de hoy
             todos los despachos que NO tengan captura GPS de
             dispositivo en la ruta cerrada (sin exigir fecha-hora
-            distinta). Los entregados con GPS siguen entregados; el
-            resto vuelve a estar disponible para la nueva tanda que
-            el supervisor asigne al transportista. */
+            distinta). Los entregados con GPS siguen entregados. */
 
     var FIREBASE_DB_URL_CONFIG = "https://datos-formulario-f3cde-default-rtdb.firebaseio.com/formConfig.json";
     var FIREBASE_DB_URL_BASE_USADOS = "https://datos-formulario-f3cde-default-rtdb.firebaseio.com/codigosUsados";
@@ -361,6 +365,7 @@
     var fechaInicioSesion = null;
     var timerInactividad = null;
     var guardadoPendiente = false;
+    var transicionNuevaRuta = false;   /* ★ T1e: sesion iniciada como nueva tanda sobre una ruta completada; la primera escritura tiene permitido reemplazar el nodo */
 
     var TIEMPO_LIBERAR_CODIGO_MS = 240 * 60 * 1000;
     var INACTIVIDAD_RESET_MS = 360 * 60 * 1000;
@@ -767,7 +772,7 @@
     }
 
     /* ============================================================
-       ★ PATCH T1 — GUARD DE DISPOSITIVO VIGENTE
+       ★ PATCH T1 — GUARD DE DISPOSITIVO VIGENTE (+ T1e transicion)
        ============================================================ */
     function normalizarDatosFormulario(j) {
       if (Array.isArray(j)) return j;
@@ -782,6 +787,12 @@
     }
     function vigenciaDesdePrevio(data) {
       if (data === null || data === undefined) return 'ok';
+      /* ★ T1e: transicion a nueva tanda: la entrada (T6c/T6d) ya
+         valido que hay despachos nuevos disponibles y la ruta cerrada
+         ya fue archivada. La PRIMERA escritura (en_proceso con la
+         nueva tabla) es legitima; tras ella el estado en la base ya
+         sera en_proceso y el guard vuelve a su criterio normal. */
+      if (data.estado === 'completado' && transicionNuevaRuta) return 'ok';
       if (data.estado === 'completado') return 'cerrada';
       var devId = data.dispositivoId || null;
       if (devId === null) return 'ok';
@@ -968,7 +979,6 @@
           });
           if (agregadas.length) {
             cambioSync = true;
-            /* ★ T4-amend: sumar las fechas de los despachos nuevos a la sesion */
             agregadas.forEach(function(pi) {
               var f = normalizarFechaDespacho(pi.fechaDespacho);
               if (f && fechasRutaSesion.indexOf(f) === -1) fechasRutaSesion.push(f);
@@ -990,6 +1000,7 @@
             status('⚠ Sin conexión — entregas pendientes de sincronizar', 'warn');
           } else {
             guardadoPendiente = false;
+            transicionNuevaRuta = false;   /* ★ T1e: la transicion ya se concreto; guard normal de aqui en adelante */
             var filas = document.querySelectorAll('#tbodyLineas tr');
             var entregadas = 0;
             filas.forEach(function(f) {
@@ -1412,10 +1423,8 @@
       pop.id = 'permPopover';
       pop.className = 'perm-popover';
       var titulo = document.createElement('div');
-      titre = null;
-      var t2 = document.createElement('div');
-      t2.className = 'perm-pop-title';
-      t2.innerHTML = '<i class="fa-solid fa-stopwatch"></i> Tiempo en la entrega';
+      titulo.className = 'perm-pop-title';
+      titulo.innerHTML = '<i class="fa-solid fa-stopwatch"></i> Tiempo en la entrega';
       var grid = document.createElement('div');
       grid.className = 'perm-grid';
       var html = '';
@@ -1432,7 +1441,7 @@
       quitar.type = 'button'; quitar.className = 'perm-quitar';
       quitar.innerHTML = '<i class="fa-solid fa-trash-can"></i> Quitar selección';
       quitar.onclick = quitarPermanenciaSel;
-      pop.appendChild(t2); pop.appendChild(grid); pop.appendChild(customRow); pop.appendChild(quitar);
+      pop.appendChild(titulo); pop.appendChild(grid); pop.appendChild(customRow); pop.appendChild(quitar);
       customRow.querySelector('.perm-custom-input').addEventListener('keydown', function(e) {
         if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); aplicarPermanenciaPersonalizada(); }
       });
@@ -1795,9 +1804,6 @@
             entregadasGpsT6d[f] = true;
           }
         });
-        /* rehacer completadas para este caso: rutas archivadas
-           completas ANTERIORES siguen contando; las fechas de la ruta
-           cerrada manualmente SOLO cuentan si tuvieron GPS */
         var completadasManualT6d = {};
         var rutasHistT6d = (Array.isArray(resultado.previo.rutas) ? resultado.previo.rutas : []);
         rutasHistT6d.forEach(function(h) {
@@ -1807,10 +1813,9 @@
           if (entregadasGpsT6d[f]) completadasManualT6d[f] = true;
         });
         completadasT6 = completadasManualT6d;
-        resultado.completadas = completadasT6; /* el filtro de abajo usa esta */
+        resultado.completadas = completadasT6;
       }
 
-      /* despachos de HOY en formConfig que no estan completados */
       var nuevosDeHoy = itemsFiltrados.filter(function(it) {
         var f = claveFechaItem(it);
         return f.indexOf(prefijoHoyT6) === 0 && !completadasT6[f];
@@ -1835,7 +1840,6 @@
       }
 
       if (previoT6 && nuevosDeHoy.length === 0) {
-        /* jornada realmente cerrada: sin despachos nuevos de hoy */
         var itemsT6 = normalizarDatosFormulario(previoT6.datosFormulario);
         var capturadasT6 = itemsT6.filter(function(it) {
           return !!(it && it.gps && it.gps.origen === 'dispositivo' && num(it.gps.lat) !== null);
@@ -1851,8 +1855,6 @@
         input.focus();
         return;
       }
-      /* si previoT6 existe PERO hay nuevosDeHoy: NO bloquear —
-         el flujo de nuevaRuta abajo cargara la tanda nueva */
 
       if (resultado.puedeContinuar === true && resultado.previo && resultado.previo.dia && resultado.previo.dia !== claveDiaLocal()) {
         resultado.puedeContinuar = false;
@@ -1908,6 +1910,10 @@
       }
 
       codigoTransporteActual = codigo;
+      /* ★ T1e: hay ruta previa (cerrada) que esta sesion reemplaza —
+         la primera escritura con estado en_proceso es legítima y el
+         guard la permite; tras ella vuelve al criterio normal */
+      transicionNuevaRuta = !!resultado.previo;
       diaSesionActual = (esContinuacion && resultado.previo && resultado.previo.dia) ? resultado.previo.dia : claveDiaLocal();
       fechasRutaSesion = fechasDeItems(itemsSesion);
       rutaIdActualSesion = calcularRutaId(itemsSesion);
@@ -2006,6 +2012,7 @@
     function resetearFormulario() {
       var input = document.getElementById('codigoTransporteInput');
       codigoTransporteActual = '';
+      transicionNuevaRuta = false;   /* ★ T1e */
       diaSesionActual = null;
       rutaIdActualSesion = null;
       fechasRutaSesion = [];
