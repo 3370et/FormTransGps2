@@ -334,18 +334,21 @@
             la ruta absorbe las entregas nuevas reasignadas hacia ella
             (filas al final + aviso) y suelta las reasignadas a otra
             ruta (nunca si tienen GPS local). Converge en ≤60 s.
-       T6 — JORNADA COMPLETADA (criterio estricto): si la ruta de HOY
-            esta 'completado' y NO hay despachos nuevos de hoy
-            pendientes en formConfig, no se recarga la lista aunque
-            falten capturas GPS.
+       T6 — JORNADA COMPLETADA: si la ruta de HOY esta 'completado' y
+            no hay despachos nuevos de hoy pendientes en formConfig,
+            no se recarga la lista aunque falten capturas GPS.
        T6b — CRUCE DE JORNADAS: si HOY no existe la ruta, revisa AYER;
-            si ayer quedo 'completado' Y formConfig aun no tiene datos
-            de hoy (fechas de ayer), no se recarga la lista vieja.
-       T6c — NUEVOS DESPACHOS DEL DIA: si la ruta de hoy fue
-            completada PERO el supervisor subio despachos nuevos de hoy
-            (otro cliente u otra hora, no incluidos en completadas),
-            la nueva tanda SI carga: es una segunda vuelta del dia.
-            Solo bloquea cuando no quedan despachos de hoy pendientes. */
+            bloquea solo si formConfig tampoco tiene datos de hoy.
+       T6c — NUEVOS DESPACHOS DEL DIA: despachos de hoy no incluidos
+            en completadas (otro cliente u otra hora) → la nueva tanda
+            SI carga (segunda vuelta del dia).
+       T6d — CIERRE DEL SUPERVISOR (cerradoManual, S1): la ruta se
+            considera reorganizada; cuentan como pendientes de hoy
+            todos los despachos que NO tengan captura GPS de
+            dispositivo en la ruta cerrada (sin exigir fecha-hora
+            distinta). Los entregados con GPS siguen entregados; el
+            resto vuelve a estar disponible para la nueva tanda que
+            el supervisor asigne al transportista. */
 
     var FIREBASE_DB_URL_CONFIG = "https://datos-formulario-f3cde-default-rtdb.firebaseio.com/formConfig.json";
     var FIREBASE_DB_URL_BASE_USADOS = "https://datos-formulario-f3cde-default-rtdb.firebaseio.com/codigosUsados";
@@ -1409,8 +1412,10 @@
       pop.id = 'permPopover';
       pop.className = 'perm-popover';
       var titulo = document.createElement('div');
-      titulo.className = 'perm-pop-title';
-      titulo.innerHTML = '<i class="fa-solid fa-stopwatch"></i> Tiempo en la entrega';
+      titre = null;
+      var t2 = document.createElement('div');
+      t2.className = 'perm-pop-title';
+      t2.innerHTML = '<i class="fa-solid fa-stopwatch"></i> Tiempo en la entrega';
       var grid = document.createElement('div');
       grid.className = 'perm-grid';
       var html = '';
@@ -1427,7 +1432,7 @@
       quitar.type = 'button'; quitar.className = 'perm-quitar';
       quitar.innerHTML = '<i class="fa-solid fa-trash-can"></i> Quitar selección';
       quitar.onclick = quitarPermanenciaSel;
-      pop.appendChild(titulo); pop.appendChild(grid); pop.appendChild(customRow); pop.appendChild(quitar);
+      pop.appendChild(t2); pop.appendChild(grid); pop.appendChild(customRow); pop.appendChild(quitar);
       customRow.querySelector('.perm-custom-input').addEventListener('keydown', function(e) {
         if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); aplicarPermanenciaPersonalizada(); }
       });
@@ -1757,22 +1762,55 @@
       }
 
       /* ============================================================
-         ★ PATCH T6 + T6b + T6c — JORNADA COMPLETADA con matiz de
-         NUEVOS DESPACHOS DEL DIA:
-         - T6: si la ruta de HOY esta 'completado' pero formConfig
-           tiene despachos de HOY que no estan en completadas (nueva
-           tanda del mismo dia: otro cliente u otra hora), la nueva
-           ruta SI carga (segunda vuelta del dia). Solo bloquea si no
-           quedan despachos nuevos de hoy pendientes.
-         - T6b: si HOY no existe la ruta, revisa AYER; bloquea solo si
-           formConfig tampoco tiene datos de hoy para este codigo.
+         ★ PATCH T6 + T6b + T6c + T6d — JORNADA COMPLETADA:
+         - T6: ruta de HOY 'completado' sin despachos nuevos de hoy
+           pendientes → no se recarga la lista.
+         - T6b: HOY vacía + AYER 'completado' + formConfig sin datos
+           de hoy → no se recarga.
+         - T6c: despachos nuevos de hoy (otro cliente u otra hora, no
+           en completadas) → la nueva tanda SÍ carga.
+         - T6d: cierre del SUPERVISOR (cerradoManual, S1): la ruta se
+           considera reorganizada; cuentan como pendientes de hoy
+           todos los despachos que NO tengan captura GPS de
+           dispositivo en la ruta cerrada (sin exigir fecha-hora
+           distinta). Los entregados con GPS siguen entregados.
          ============================================================ */
       var diaHoyT6 = claveDiaLocal();
       var prefijoHoyT6 = diaHoyT6 + ' ';
       var completadasT6 = resultado.completadas || {};
 
-      /* despachos de HOY en formConfig que no estan completados:
-         la tanda nueva del dia (otros clientes u otras horas) */
+      /* T6d: si el cierre fue manual del supervisor, las "completadas"
+         son solo las entregadas CON GPS de la ruta cerrada — el resto
+         vuelve a estar disponible para la nueva tanda */
+      var cierreManualT6d = !!(resultado.previo && resultado.previo.estado === 'completado' && resultado.previo.cerradoManual === true);
+      if (cierreManualT6d && resultado.previo) {
+        var itemsCerradosT6d = normalizarDatosFormulario(resultado.previo.datosFormulario);
+        var clavesRutaCerradaT6d = [];
+        var entregadasGpsT6d = {};
+        itemsCerradosT6d.forEach(function(it) {
+          if (!it || !it.item) return;
+          var f = normalizarFechaDespacho(it.fechaDespacho);
+          if (f) clavesRutaCerradaT6d.push(f);
+          if (it.gps && it.gps.origen === 'dispositivo' && num(it.gps.lat) !== null && f) {
+            entregadasGpsT6d[f] = true;
+          }
+        });
+        /* rehacer completadas para este caso: rutas archivadas
+           completas ANTERIORES siguen contando; las fechas de la ruta
+           cerrada manualmente SOLO cuentan si tuvieron GPS */
+        var completadasManualT6d = {};
+        var rutasHistT6d = (Array.isArray(resultado.previo.rutas) ? resultado.previo.rutas : []);
+        rutasHistT6d.forEach(function(h) {
+          (Array.isArray(h.fechas) ? h.fechas : []).forEach(function(f) { completadasManualT6d[f] = true; });
+        });
+        clavesRutaCerradaT6d.forEach(function(f) {
+          if (entregadasGpsT6d[f]) completadasManualT6d[f] = true;
+        });
+        completadasT6 = completadasManualT6d;
+        resultado.completadas = completadasT6; /* el filtro de abajo usa esta */
+      }
+
+      /* despachos de HOY en formConfig que no estan completados */
       var nuevosDeHoy = itemsFiltrados.filter(function(it) {
         var f = claveFechaItem(it);
         return f.indexOf(prefijoHoyT6) === 0 && !completadasT6[f];
@@ -1787,8 +1825,6 @@
           if (rAyerT6b.ok) {
             var dAyerT6b = await rAyerT6b.json();
             if (dAyerT6b && dAyerT6b.estado === 'completado') {
-              /* solo bloquear si formConfig sigue SIN datos de hoy
-                 para ESTE codigo (las fechas siguen siendo de ayer) */
               var formConfigTieneHoy = itemsFiltrados.some(function(it) {
                 return claveFechaItem(it).indexOf(prefijoHoyT6) === 0;
               });
