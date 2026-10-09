@@ -352,7 +352,14 @@
             considera reorganizada; cuentan como pendientes de hoy
             todos los despachos que NO tengan captura GPS de
             dispositivo en la ruta cerrada (sin exigir fecha-hora
-            distinta). Los entregados con GPS siguen entregados. */
+            distinta). Los entregados con GPS siguen entregados.
+       T7 — CAPTURAS SIN CONTAGIO: el merge y la restauracion de
+            capturas solo actuan sobre el MISMO despacho (clave de
+            negocio: nombre + fecha-hora exacta + codclnt). Un nuevo
+            despacho del mismo cliente con hora distinta NUNCA hereda
+            el GPS de la entrega anterior. Ademas, durante la
+            transicion a nueva tanda (T1e) el merge se salta por
+            completo: la tanda nueva arranca limpia. */
 
     var FIREBASE_DB_URL_CONFIG = "https://datos-formulario-f3cde-default-rtdb.firebaseio.com/formConfig.json";
     var FIREBASE_DB_URL_BASE_USADOS = "https://datos-formulario-f3cde-default-rtdb.firebaseio.com/codigosUsados";
@@ -859,6 +866,9 @@
 
     /* ============================================================
        ★ PATCH T4 — claves de negocio y fila nueva para reasignaciones
+       (la clave de negocio — nombre + fechaDespacho + codclnt — es
+       tambien la clave de matcheo del merge T7: identifica al MISMO
+       despacho, no a dos despachos distintos del mismo cliente)
        ============================================================ */
     function claveNegocioItem(it) {
       return String((it && it.item) || '').toLowerCase() + '|' + String((it && it.fechaDespacho) || '') + '|' + String((it && it.codclnt) || '');
@@ -926,29 +936,45 @@
         var prevItems = (prevData && prevData.datosFormulario) ? normalizarDatosFormulario(prevData.datosFormulario) : [];
         var nuevo = JSON.parse(cuerpo);
 
-        var localesPorClave = {};
+        /* ============================================================
+           ★ PATCH T7 — MERGE CON CLAVE DE NEGOCIO EXACTA + SIN
+           CONTAGIO EN TRANSICION:
+           - El merge solo restaura la captura de un item previo que
+             sea EL MISMO despacho (nombre + fecha-hora exacta +
+             codclnt via claveNegocioItem). Un nuevo despacho del
+             mismo cliente con hora distinta NO hereda el GPS.
+           - Durante la transicion a nueva tanda (T1e) el prevData es
+             de la ruta CERRADA: sus capturas no deben contagiarse a
+             la nueva tabla bajo ningun caso — merge saltado.
+           ============================================================ */
+        var enTransicionT7 = transicionNuevaRuta;
+        var localesPorClaveNegocio = {};
         nuevo.datosFormulario.forEach(function(it) {
-          localesPorClave[claveDato(it)] = it;
+          localesPorClaveNegocio[claveNegocioItem(it)] = it;
         });
 
-        var modificados = false;
-        prevItems.forEach(function(prevItem) {
-          if (!prevItem || !prevItem.item) return;
-          var prevTieneGps = !!(prevItem.gps && prevItem.gps.origen === 'dispositivo' && num(prevItem.gps.lat) !== null);
-          if (!prevTieneGps) return;
-          var local = localesPorClave[claveDato(prevItem)];
-          if (!local) return;
-          var localTieneGps = !!(local.gps && local.gps.origen === 'dispositivo' && num(local.gps.lat) !== null);
-          if (!localTieneGps) {
-            local.gps = prevItem.gps;
-            modificados = true;
+        if (!enTransicionT7) {
+          var modificados = false;
+          prevItems.forEach(function(prevItem) {
+            if (!prevItem || !prevItem.item) return;
+            var prevTieneGps = !!(prevItem.gps && prevItem.gps.origen === 'dispositivo' && num(prevItem.gps.lat) !== null);
+            if (!prevTieneGps) return;
+            /* ★ T7: matchear solo contra el MISMO despacho */
+            var local = localesPorClaveNegocio[claveNegocioItem(prevItem)];
+            if (!local) return;
+            var localTieneGps = !!(local.gps && local.gps.origen === 'dispositivo' && num(local.gps.lat) !== null);
+            if (!localTieneGps) {
+              local.gps = prevItem.gps;
+              modificados = true;
+            }
+            if (prevItem.permanencia && !local.permanencia) { local.permanencia = prevItem.permanencia; modificados = true; }
+          });
+
+          if (modificados) {
+            try { restaurarCapturasEnPantalla(nuevo.datosFormulario); } catch(e) {}
           }
-          if (prevItem.permanencia && !local.permanencia) { local.permanencia = prevItem.permanencia; modificados = true; }
-        });
-
-        if (modificados) {
-          try { restaurarCapturasEnPantalla(nuevo.datosFormulario); } catch(e) {}
         }
+        /* en transicion: sin merge — la tanda nueva arranca limpia */
 
         /* ★ PATCH T4 — SYNC DE REASIGNACIONES (monitor S6/S7) */
         var cambioSync = false;
@@ -1025,20 +1051,25 @@
       }
     }
 
+    /* ★ PATCH T7 — restauración con clave de negocio completa:
+       el fallback ya no cruza despachos distintos del mismo cliente */
     function restaurarCapturasEnPantalla(datos) {
       var filas = document.querySelectorAll('#tbodyLineas tr');
       filas.forEach(function(fila, idxFila) {
         var nombreEl = fila.querySelector('.item-name-text');
         if (!nombreEl) return;
-        var nombre = nombreEl.textContent.trim().toLowerCase();
         var reg = null;
+        /* 1ª clave: idxItem = posición en la ruta */
         for (var i = 0; i < datos.length; i++) {
           if (datos[i].idxItem === idxFila) { reg = datos[i]; break; }
         }
+        /* ★ T7 — Fallback: clave de negocio completa (nombre +
+           fechaDespacho exacta + codclnt) — nunca cruzar despachos
+           distintos del mismo cliente */
         if (!reg) {
-          var fechaFila = fila.dataset.fechaDespacho || '';
+          var claveFilaT7 = claveNegocioFila(fila);
           for (var j = 0; j < datos.length; j++) {
-            if (datos[j].idxItem === undefined && datos[j].item && datos[j].item.toLowerCase() === nombre && (datos[j].fechaDespacho || '') === fechaFila) { reg = datos[j]; break; }
+            if (datos[j].idxItem === undefined && claveNegocioItem(datos[j]) === claveFilaT7) { reg = datos[j]; break; }
           }
         }
         if (!reg || !reg.gps) return;
@@ -1967,8 +1998,16 @@
         var finValue = limpiarHora(item.fin);
         var datoPrevio = null;
         if (datosPrevios && Array.isArray(datosPrevios)) {
+          /* ★ FIX DUPLICADOS + T7 — 1ª clave: idxItem (posición en la
+             ruta); fallback: nombre + fecha EXACTA + codclnt — nunca
+             cruzar despachos distintos del mismo cliente */
           datoPrevio = datosPrevios.find(function(d) { return d.idxItem === idx; })
-                  || datosPrevios.find(function(d) { return d.idxItem === undefined && d.item && d.item.toLowerCase() === item.name.toLowerCase() && (d.fechaDespacho || '') === (item.fecha || ''); });
+                  || datosPrevios.find(function(d) {
+                       return d.idxItem === undefined
+                         && d.item && d.item.toLowerCase() === item.name.toLowerCase()
+                         && String(d.fechaDespacho || '') === String(item.fecha || '')
+                         && String(d.codclnt || '') === String(item.codclnt || '');
+                     });
         }
         var sectorR = sectorValue, iniR = iniValue, finR = finValue;
         if (datoPrevio) {
