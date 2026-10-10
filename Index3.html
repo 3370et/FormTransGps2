@@ -1,0 +1,2038 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 100'%3E%3Crect width='120' height='100' rx='22' fill='%2313161f'/%3E%3Cpath d='M44 20 L84 20 Q88 20 88 24 L88 56 Q88 60 84 60 L44 60 L34 56 L44 53 L23 49 L44 46 L32 42 L44 39 L20 35 L44 32 L28 28 L44 25 L21 21 Z' fill='%23e8913a'/%3E%3Ctext x='66' y='44' text-anchor='middle' font-family='Arial Black, Arial, sans-serif' font-weight='900' font-size='20' fill='%230f1117'%3EET%3C/text%3E%3Cpath d='M92 24 L106 24 L114 38 L114 60 L92 60 Z' fill='%23e8913a'/%3E%3Cpath d='M97 30 L104 30 L109 38 L97 38 Z' fill='%230f1117'/%3E%3Ccircle cx='48' cy='64' r='9' fill='%23ffffff'/%3E%3Ccircle cx='48' cy='64' r='4' fill='%230f1117'/%3E%3Ccircle cx='104' cy='64' r='9' fill='%23ffffff'/%3E%3Ccircle cx='104' cy='64' r='4' fill='%230f1117'/%3E%3Cg stroke='%23ffffff' stroke-width='4' stroke-linecap='round' opacity='0.75' fill='none'%3E%3Cpath d='M40 24 H78'/%3E%3Cpath d='M42 52 H74'/%3E%3Cpath d='M95 47 H111'/%3E%3C/g%3E%3C/svg%3E">
+  <title>Lista con código de transporte</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    :root {
+      --bg: #0c0e14; --bg-surface: #13161f; --card: #1a1e2b; --card-hover: #212637;
+      --border: #282d3e; --border-focus: #e8913a; --fg: #eaedf6; --fg-muted: #7b829a;
+      --accent: #e8913a; --accent-glow: rgba(232,145,58,0.12); --accent-hover: #f0a050;
+      --success: #34d399; --danger: #f87171; --info: #60a5fa; --warning: #fbbf24;
+      --purple: #a78bfa; --row-alt: rgba(255,255,255,0.015);
+    }
+    * { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; box-sizing: border-box; margin: 0; padding: 0; }
+    input, textarea, select { -webkit-user-select: text; -moz-user-select: text; -ms-user-select: text; user-select: text; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--fg); min-height: 100vh; padding: 24px 16px 60px; }
+    body::before { content: ''; position: fixed; top: -40%; left: -40%; width: 180%; height: 180%; background: radial-gradient(ellipse 500px 350px at 15% 15%, rgba(232,145,58,0.04), transparent), radial-gradient(ellipse 400px 400px at 85% 80%, rgba(167,139,250,0.03), transparent); pointer-events: none; z-index: 0; animation: bgDrift 25s ease-in-out infinite alternate; }
+    @keyframes bgDrift { 0% { transform: translate(0,0) rotate(0deg); } 100% { transform: translate(-20px,-15px) rotate(1.5deg); } }
+    ::-webkit-scrollbar { width: 5px; height: 5px; } ::-webkit-scrollbar-track { background: var(--bg); } ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    .container { max-width: 1100px; margin: auto; position: relative; z-index: 1; }
+    .page-header { text-align: center; margin-bottom: 32px; }
+    .page-header .badge { display: inline-flex; align-items: center; gap: 7px; padding: 5px 14px; border-radius: 999px; background: var(--card); border: 1px solid var(--border); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-muted); margin-bottom: 14px; }
+    .et-truck { width: 40px; height: auto; flex-shrink: 0; display: block; filter: drop-shadow(0 2px 6px rgba(232,145,58,0.35)); }
+    .et-truck .speed-lines line { stroke-dasharray: 5 7; animation: speedFlow 0.45s linear infinite; }
+    .et-truck .speed-lines .sl-2 { animation-delay: 0.16s; }
+    .et-truck .speed-lines .sl-3 { animation-delay: 0.32s; }
+    @keyframes speedFlow { to { stroke-dashoffset: 12; } }
+    @media (prefers-reduced-motion: reduce) { .et-truck .speed-lines line { animation: none; } }
+    .page-header h1 { font-family: 'Space Grotesk', sans-serif; font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; }
+    .page-header h1 span { color: var(--accent); }
+    .status { display: flex; align-items: center; gap: 10px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; margin-bottom: 24px; font-size: 13px; font-weight: 500; color: var(--fg-muted); animation: fadeUp 0.4s ease; }
+    .status.ok { padding: 8px 12px; width: auto; max-width: 100%; }
+    .status.ok span:empty { display: none; }
+    .status i { font-size: 14px; } .status.ok i { color: var(--success); } .status.warn i { color: var(--warning); } .status.err i { color: var(--danger); } .status.load i { color: var(--info); animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .code-section { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 24px; margin-bottom: 28px; animation: fadeUp 0.45s ease 0.05s both; }
+    .code-section-label { font-size: 13px; font-weight: 600; color: var(--fg-muted); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .code-row { display: flex; gap: 10px; align-items: stretch; }
+    .code-input { flex: 1; background: var(--bg); border: 1.5px solid var(--border); color: var(--fg); border-radius: 10px; padding: 12px 16px; font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; outline: none; transition: all 0.25s ease; }
+    .code-input::placeholder { color: var(--fg-muted); font-weight: 400; text-transform: none; letter-spacing: 0; }
+    .code-input:hover { border-color: #3a4060; } .code-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+    .code-input:disabled { background: var(--bg-surface); border-color: var(--border); color: var(--fg-muted); cursor: not-allowed; opacity: 0.6; }
+    .btn-cargar:disabled { background: var(--border); color: var(--fg-muted); cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 14px; padding: 11px 22px; border-radius: 10px; border: none; cursor: pointer; transition: all 0.25s ease; white-space: nowrap; text-decoration: none; }
+    .btn:active { transform: scale(0.97); } .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+    .btn-cargar { background: var(--accent); color: #0f1117; } .btn-cargar:hover { background: var(--accent-hover); box-shadow: 0 4px 20px rgba(232,145,58,0.3); transform: translateY(-1px); }
+    .btn-guardar { background: rgba(52,211,153,0.1); color: var(--success); border: 1.5px solid rgba(52,211,153,0.25); } .btn-guardar:hover { background: rgba(52,211,153,0.18); border-color: var(--success); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(52,211,153,0.15); }
+    .btn-guardar.guardando { pointer-events: none; opacity: 0.7; } .btn-guardar.guardando i { animation: spin 0.8s linear infinite; }
+    .section-title { font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 700; color: var(--fg); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .section-title .count { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; padding: 0 7px; border-radius: 999px; background: var(--accent-glow); border: 1px solid rgba(232,145,58,0.2); color: var(--accent); font-size: 12px; font-weight: 700; }
+    .inactividad-bar { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 8px; font-size: 11px; font-weight: 600; margin-bottom: 16px; animation: fadeUp 0.3s ease; }
+    .inactividad-bar.ok { background: rgba(52,211,153,0.06); border: 1px solid rgba(52,211,153,0.15); color: var(--success); }
+    .inactividad-bar.warn { background: rgba(251,191,36,0.06); border: 1px solid rgba(251,191,36,0.15); color: var(--warning); animation: inactPulse 2s ease-in-out infinite; }
+    .inactividad-bar.danger { background: rgba(248,113,113,0.06); border: 1px solid rgba(248,113,113,0.15); color: var(--danger); animation: inactPulse 1.5s ease-in-out infinite; }
+    @keyframes inactPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+    .inactividad-bar i { font-size: 12px; }
+    .inactividad-bar .inact-time { font-family: 'Space Grotesk', monospace; font-weight: 700; }
+    .table-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 24px; animation: fadeUp 0.45s ease 0.1s both; }
+    .table-scroll { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 560px; }
+    thead { background: var(--bg-surface); }
+    th { padding: 12px 12px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-muted); border-bottom: 1px solid var(--border); white-space: nowrap; }
+    th i { margin-right: 4px; font-size: 10px; opacity: 0.7; }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 14px; vertical-align: middle; }
+    tbody tr { transition: background 0.2s ease; } tbody tr:nth-child(even) { background: var(--row-alt); } tbody tr:hover { background: var(--card-hover); } tbody tr:last-child td { border-bottom: none; }
+    .row-num { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 13px; color: var(--fg-muted); background: var(--bg); border-radius: 6px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; }
+    td.celda-nombre { max-width: 250px; }
+    td.celda-nombre .item-name-text { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.35; word-wrap: break-word; font-weight: 500; color: var(--fg); }
+    .info-sector { color: #ffffff; font-size: 12.5px; font-weight: 600; letter-spacing: 0.03em; white-space: nowrap; }
+    .info-horario { color: #ffffff; font-size: 12.5px; font-weight: 500; font-family: 'Space Grotesk', sans-serif; white-space: nowrap; }
+    .gps-cell { display: flex; flex-direction: column; gap: 5px; min-width: 140px; }
+    .gps-btn-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .btn-gps { display: inline-flex; align-items: center; gap: 5px; font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 11px; padding: 6px 12px; border-radius: 7px; border: 1.5px solid rgba(96,165,250,0.25); background: rgba(96,165,250,0.08); color: var(--info); cursor: pointer; transition: all 0.25s ease; white-space: nowrap; width: fit-content; }
+    .btn-gps:hover { background: rgba(96,165,250,0.18); border-color: var(--info); transform: translateY(-1px); box-shadow: 0 3px 12px rgba(96,165,250,0.15); } .btn-gps:active { transform: scale(0.95); }
+    .btn-gps.capturando { pointer-events: none; opacity: 0.65; } .btn-gps.capturando i { animation: spin 1s linear infinite; }
+    .btn-gps.capturado { border-color: rgba(52,211,153,0.3); background: rgba(52,211,153,0.08); color: var(--success); cursor: pointer; } .btn-gps.capturado:hover { background: rgba(52,211,153,0.15); border-color: var(--success); }
+    .btn-gps.error-gps { border-color: rgba(248,113,113,0.3); background: rgba(248,113,113,0.08); color: var(--danger); }
+    .gps-mini { display: none; align-items: center; gap: 4px; font-family: 'Space Grotesk', monospace; font-size: 10px; line-height: 1.3; text-decoration: none; white-space: nowrap; }
+    .gps-mini.on { display: inline-flex; }
+    .gps-mini:hover { text-decoration: underline; }
+    .gps-mini-orig, .gps-mini-orig:hover { color: var(--accent); }
+    .gps-mini-nueva, .gps-mini-nueva:hover { color: var(--success); }
+    .gps-mini .mini-tag { font-weight: 700; font-size: 9px; padding: 1px 4px; border-radius: 3px; }
+    .gps-mini-orig .mini-tag { background: var(--accent-glow); color: var(--accent); }
+    .gps-mini-nueva .mini-tag { background: rgba(52,211,153,0.15); color: var(--success); }
+    .gps-mini-orig i { font-size: 13px; animation: origPulse 2.2s ease-in-out infinite; text-shadow: 0 0 8px rgba(232,145,58,0.55); }
+    @keyframes origPulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.25); opacity: 0.75; } }
+    @media (prefers-reduced-motion: reduce) { .gps-mini-orig i { animation: none; } }
+    .gps-mini-nueva i { font-size: 13px; text-shadow: 0 0 8px rgba(52,211,153,0.55); }
+    .gps-error-detail { font-size: 10px; color: var(--danger); line-height: 1.5; padding: 5px 7px; background: rgba(248,113,113,0.04); border-radius: 5px; border: 1px solid rgba(248,113,113,0.12); display: none; animation: fadeUp 0.3s ease; }
+    .gps-error-detail.visible { display: block; }
+    .gps-distancia { display: none; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 5px; width: fit-content; margin-top: 2px; }
+    .gps-distancia.visible { display: block; }
+    .gps-distancia.dist-ok { background: rgba(52,211,153,0.08); color: var(--success); border: 1px solid rgba(52,211,153,0.2); }
+    .gps-distancia.dist-warn { background: rgba(251,191,36,0.08); color: var(--warning); border: 1px solid rgba(251,191,36,0.2); }
+    .gps-distancia.dist-bad { background: rgba(248,113,113,0.08); color: var(--danger); border: 1px solid rgba(248,113,113,0.2); }
+    .gps-error-detail .gps-error-title { font-weight: 700; font-size: 10px; margin-bottom: 3px; display: flex; align-items: center; gap: 4px; }
+    .gps-error-detail .gps-error-title.gps-off { color: var(--warning); } .gps-error-detail .gps-error-title.perm-denied { color: var(--danger); } .gps-error-detail .gps-error-title.no-signal { color: var(--info); } .gps-error-detail .gps-error-title.timeout { color: var(--fg-muted); }
+    .gps-error-detail ul { margin: 3px 0 0 14px; padding: 0; list-style: disc; } .gps-error-detail li { margin-bottom: 2px; } .gps-error-detail strong { color: #fca5a5; }
+    .gps-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+    .gps-modal-overlay.visible { opacity: 1; pointer-events: auto; }
+    .gps-modal { background: var(--card); border: 1.5px solid rgba(251,191,36,0.25); border-radius: 18px; padding: 28px 24px; max-width: 380px; width: 100%; text-align: center; transform: scale(0.92); transition: transform 0.35s cubic-bezier(0.16,1,0.3,1); }
+    .gps-modal-overlay.visible .gps-modal { transform: scale(1); }
+    .gps-modal-icon { width: 64px; height: 64px; border-radius: 50%; background: rgba(251,191,36,0.08); border: 2px solid rgba(251,191,36,0.2); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
+    .gps-modal-icon i { font-size: 26px; color: var(--warning); animation: gpsPulseWarn 2s ease-in-out infinite; }
+    @keyframes gpsPulseWarn { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(0.9); } }
+    .gps-modal h3 { font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; color: var(--warning); margin-bottom: 10px; }
+    .gps-modal p { font-size: 13px; color: var(--fg-muted); line-height: 1.6; margin-bottom: 8px; }
+    .gps-modal .gps-steps { text-align: left; background: var(--bg); border-radius: 10px; padding: 12px 14px; margin: 12px 0 18px; border: 1px solid var(--border); }
+    .gps-modal .gps-steps-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--fg-muted); margin-bottom: 8px; }
+    .gps-modal .gps-steps ol { margin: 0; padding: 0 0 0 16px; font-size: 12px; color: var(--fg); line-height: 1.7; }
+    .gps-modal .gps-steps ol li strong { color: var(--warning); }
+    .gps-modal-btns { display: flex; gap: 8px; } .gps-modal-btns .btn { flex: 1; justify-content: center; font-size: 13px; padding: 10px 14px; }
+    .btn-modal-cancel { background: var(--bg); color: var(--fg-muted); border: 1.5px solid var(--border); } .btn-modal-cancel:hover { border-color: var(--fg-muted); color: var(--fg); }
+    .btn-modal-retry { background: rgba(251,191,36,0.12); color: var(--warning); border: 1.5px solid rgba(251,191,36,0.3); } .btn-modal-retry:hover { background: rgba(251,191,36,0.2); border-color: var(--warning); }
+    .gps-modal.confirm-variante { border-color: rgba(96,165,250,0.25); }
+    .gps-modal.confirm-variante h3 { color: var(--info); }
+    .gps-modal.confirm-variante .gps-modal-icon { background: rgba(96,165,250,0.08); border-color: rgba(96,165,250,0.2); }
+    .gps-modal.confirm-variante .gps-modal-icon i { color: var(--info); animation: none; }
+    .btn-modal-confirm { background: rgba(96,165,250,0.12); color: var(--info); border: 1.5px solid rgba(96,165,250,0.3); } .btn-modal-confirm:hover { background: rgba(96,165,250,0.2); border-color: var(--info); }
+    .acciones { display: flex; flex-wrap: wrap; gap: 10px; animation: fadeUp 0.45s ease 0.15s both; }
+    #mensaje { margin-top: 16px; font-size: 13px; font-weight: 500; padding: 10px 16px; border-radius: 8px; animation: fadeUp 0.3s ease; }
+    #mensaje:empty { display: none; }
+    #mensaje.ok { background: rgba(52,211,153,0.08); color: var(--success); border: 1px solid rgba(52,211,153,0.15); }
+    #mensaje.err { background: rgba(248,113,113,0.08); color: var(--danger); border: 1px solid rgba(248,113,113,0.15); }
+    #mensaje.info { background: rgba(96,165,250,0.08); color: var(--info); border: 1px solid rgba(96,165,250,0.15); }
+    #mensaje.warn { background: rgba(251,191,36,0.08); color: var(--warning); border: 1px solid rgba(251,191,36,0.15); }
+    .empty-state { text-align: center; padding: 48px 20px; color: var(--fg-muted); } .empty-state i { font-size: 36px; margin-bottom: 14px; opacity: 0.3; display: block; } .empty-state p { font-size: 14px; line-height: 1.6; }
+    .expired-container { max-width: 520px; margin: auto; position: relative; z-index: 1; animation: fadeUp 0.5s ease; }
+    .expired-card { background: var(--card); border: 1px solid rgba(248,113,113,0.2); border-radius: 20px; padding: 48px 32px; text-align: center; position: relative; overflow: hidden; }
+    .expired-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: repeating-linear-gradient(-45deg, var(--danger), var(--danger) 8px, transparent 8px, transparent 16px); opacity: 0.7; }
+    .expired-icon { width: 80px; height: 80px; border-radius: 50%; background: rgba(248,113,113,0.06); border: 2px solid rgba(248,113,113,0.15); display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; animation: expiredPulse 3s ease-in-out infinite; }
+    @keyframes expiredPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(248,113,113,0.12); } 50% { box-shadow: 0 0 0 18px rgba(248,113,113,0); } }
+    .expired-icon i { font-size: 30px; color: var(--danger); }
+    .expired-card h2 { font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 800; color: var(--danger); margin-bottom: 12px; }
+    .expired-card p { font-size: 15px; color: var(--fg-muted); line-height: 1.6; }
+    .hidden { display: none !important; }
+    .fdot { position: fixed; width: 2px; height: 2px; background: var(--accent); border-radius: 50%; opacity: 0.12; pointer-events: none; z-index: 0; animation: fDot linear infinite; }
+    @keyframes fDot { 0% { transform: translateY(100vh) scale(0); opacity: 0; } 10% { opacity: 0.12; } 90% { opacity: 0.12; } 100% { transform: translateY(-10vh) scale(1); opacity: 0; } }
+    .toast-guardado { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--card); border: 1.5px solid var(--success); border-radius: 12px; padding: 14px 24px; display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: var(--success); box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 20px rgba(52,211,153,0.1); z-index: 999; opacity: 0; pointer-events: none; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+    .toast-guardado.visible { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; } .toast-guardado i { font-size: 18px; }
+    .btn-mapa { background: rgba(96,165,250,0.1); color: var(--info); border: 1.5px solid rgba(96,165,250,0.25); }
+    .btn-mapa:hover { background: rgba(96,165,250,0.18); border-color: var(--info); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(96,165,250,0.15); }
+    .btn-mapa.disabled { pointer-events: none; opacity: 0.5; }
+    .btn-perm { display: inline-flex; align-items: center; gap: 5px; font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 11px; padding: 5px 10px; border-radius: 7px; border: 1.5px solid rgba(167,139,250,0.25); background: rgba(167,139,250,0.08); color: var(--purple); cursor: pointer; transition: all 0.25s ease; white-space: nowrap; width: fit-content; font-variant-numeric: tabular-nums; }
+    .btn-perm:hover { background: rgba(167,139,250,0.16); border-color: var(--purple); transform: translateY(-1px); }
+    .btn-perm:active { transform: scale(0.95); }
+    .btn-perm.completada { border-color: rgba(52,211,153,0.3); background: rgba(52,211,153,0.08); color: var(--success); }
+    .perm-popover { position: fixed; z-index: 1200; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px; box-shadow: 0 14px 40px rgba(0,0,0,0.55); display: none; flex-direction: column; gap: 10px; width: min(268px, calc(100vw - 24px)); }
+    .perm-popover.visible { display: flex; animation: fadeUp 0.2s ease; }
+    .perm-pop-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--purple); display: flex; align-items: center; gap: 6px; }
+    .perm-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+    .perm-chip { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 12px; padding: 7px 0; border-radius: 7px; border: 1.5px solid var(--border); background: var(--bg); color: var(--fg); cursor: pointer; transition: all 0.15s ease; }
+    .perm-chip small { font-size: 9px; font-weight: 600; margin-left: 1px; opacity: 0.6; }
+    .perm-chip:hover { border-color: var(--purple); color: var(--purple); background: rgba(167,139,250,0.08); }
+    .perm-chip.sel { border-color: var(--success); background: rgba(52,211,153,0.12); color: var(--success); }
+    .perm-quitar { align-self: flex-start; display: none; align-items: center; gap: 5px; font-family: 'DM Sans', sans-serif; font-size: 10.5px; font-weight: 600; color: var(--danger); background: rgba(248,113,113,0.07); border: 1px solid rgba(248,113,113,0.25); padding: 4px 10px; border-radius: 6px; cursor: pointer; }
+    .perm-quitar:hover { background: rgba(248,113,113,0.15); }
+    .perm-custom-row { display: flex; gap: 5px; align-items: center; }
+    .perm-custom-label { font-size: 10px; font-weight: 600; color: var(--fg-muted); white-space: nowrap; }
+    .perm-custom-input { width: 70px; background: var(--bg); border: 1.5px solid var(--border); color: var(--fg); border-radius: 6px; padding: 5px 8px; font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700; text-align: center; outline: none; }
+    .perm-custom-input:focus { border-color: var(--purple); }
+    .perm-custom-input::placeholder { color: var(--fg-muted); font-weight: 400; }
+    .perm-custom-btn { padding: 5px 10px; border-radius: 6px; border: 1.5px solid rgba(167,139,250,0.3); background: rgba(167,139,250,0.08); color: var(--purple); font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+    .perm-custom-btn:hover { background: rgba(167,139,250,0.16); border-color: var(--purple); }
+    .input-com { flex: 1; min-width: 130px; background: var(--bg); border: 1.5px solid var(--border); color: var(--fg); border-radius: 7px; padding: 5px 10px; font-family: 'DM Sans', sans-serif; font-size: 11.5px; font-weight: 500; outline: none; transition: border-color 0.25s ease, box-shadow 0.25s ease; }
+    .input-com:focus { border-color: var(--info); box-shadow: 0 0 0 3px rgba(96,165,250,0.12); }
+    .input-com::placeholder { color: var(--fg-muted); font-weight: 400; }
+    .gps-sub-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-height: 16px; }
+    .sep-dot { color: var(--fg-muted); opacity: 0.45; font-size: 10px; }
+    @media (max-width: 640px) {
+      body { padding: 16px 10px 40px; } .code-row { flex-direction: column; } .btn { width: 100%; justify-content: center; } .acciones { flex-direction: column; }
+      th, td { padding: 8px 8px; font-size: 12px; }
+      td.celda-nombre { max-width: 126px; }
+      .expired-card { padding: 36px 20px; } .expired-card h2 { font-size: 22px; }
+      .toast-guardado { left: 16px; right: 16px; transform: translateX(0) translateY(20px); } .toast-guardado.visible { transform: translateX(0) translateY(0); }
+      .gps-cell { min-width: 120px; } .btn-gps { font-size: 10px; padding: 5px 9px; } .gps-mini { font-size: 9px; } .gps-error-detail { font-size: 9px; }
+      .gps-modal { padding: 22px 18px; } .gps-modal h3 { font-size: 16px; }
+      .info-sector, .info-horario { font-size: 11px; }
+      .et-truck { width: 34px; }
+      .btn-perm { font-size: 10px; padding: 4px 8px; }
+      .input-com { flex-basis: 100%; min-width: 100%; }
+      .perm-grid { grid-template-columns: repeat(5, 1fr); }
+      .perm-custom-label { font-size: 9px; }
+    }
+  </style>
+</head>
+<body>
+
+  <script>
+    document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'F12') { e.preventDefault(); return false; }
+      if (e.ctrlKey && e.shiftKey && /I|J|C/i.test(e.key)) { e.preventDefault(); return false; }
+      if (e.ctrlKey && /U|S/i.test(e.key)) { e.preventDefault(); return false; }
+      if (e.metaKey && e.altKey && /I|U|J/i.test(e.key)) { e.preventDefault(); return false; }
+      if (e.metaKey && /S/i.test(e.key)) { e.preventDefault(); return false; }
+    });
+    (function(){ try { console.clear(); } catch(e){} })();
+    (function(){ for(var i=0;i<8;i++){ var d=document.createElement('div'); d.classList.add('fdot'); d.style.left=Math.random()*100+'%'; d.style.animationDuration=(16+Math.random()*14)+'s'; d.style.animationDelay=(Math.random()*10)+'s'; document.body.appendChild(d); } })();
+  </script>
+
+  <div class="gps-modal-overlay" id="gpsModal">
+    <div class="gps-modal">
+      <div class="gps-modal-icon"><i class="fa-solid fa-location-crosshairs"></i></div>
+      <h3>La ubicación está desactivada</h3>
+      <p>Parece que el GPS está apagado. Actívalo para registrar la posición.</p>
+      <div class="gps-steps"><div class="gps-steps-title">Cómo activarlo</div><ol id="gpsStepsList"></ol></div>
+      <div class="gps-modal-btns">
+        <button class="btn btn-modal-cancel" onclick="cerrarModalGPS()"><i class="fa-solid fa-xmark"></i> Cancelar</button>
+        <button class="btn btn-modal-retry" onclick="reintentarDesdeModal()"><i class="fa-solid fa-rotate-right"></i> Reintentar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="gps-modal-overlay" id="confirmModal">
+    <div class="gps-modal confirm-variante">
+      <div class="gps-modal-icon"><i class="fa-solid fa-location-dot"></i></div>
+      <h3>¿Volver a capturar la ubicación?</h3>
+      <p>La entrega ya está marcada como <strong>Entregado</strong>.<br>La ubicación actual será reemplazada por la nueva captura.</p>
+      <div class="gps-modal-btns">
+        <button class="btn btn-modal-cancel" onclick="cerrarConfirmRecaptura()"><i class="fa-solid fa-xmark"></i> Cancelar</button>
+        <button class="btn btn-modal-confirm" onclick="confirmarRecaptura()"><i class="fa-solid fa-satellite-dish"></i> Sí, capturar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-guardado" id="toastGuardado">
+    <i class="fa-solid fa-circle-check"></i>
+    <span id="toastTexto">Guardado correctamente</span>
+  </div>
+
+  <div class="container" id="mainContent">
+    <header class="page-header">
+      <div class="badge">
+        <svg class="et-truck" viewBox="-8 0 116 56" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path class="camion-body" fill="#e8913a"
+            d="M22 4 L74 4 Q78 4 78 8 L78 40 Q78 44 74 44 L22 44 L12 40 L22 37 L1 33 L22 30 L10 26 L22 23 L-2 19 L22 16 L6 12 L22 9 L-1 5 Z">
+            <animate attributeName="d" dur="0.45s" repeatCount="indefinite"
+              values="M22 4 L74 4 Q78 4 78 8 L78 40 Q78 44 74 44 L22 44 L12 40 L22 37 L1 33 L22 30 L10 26 L22 23 L-2 19 L22 16 L6 12 L22 9 L-1 5 Z;
+                      M22 4 L74 4 Q78 4 78 8 L78 40 Q78 44 74 44 L22 44 L10 40 L22 37 L-3 33 L22 30 L8 26 L22 23 L-6 19 L22 16 L1 12 L22 9 L-2 5 Z;
+                      M22 4 L74 4 Q78 4 78 8 L78 40 Q78 44 74 44 L22 44 L12 40 L22 37 L1 33 L22 30 L10 26 L22 23 L-2 19 L22 16 L6 12 L22 9 L-1 5 Z"/>
+          </path>
+          <path d="M78 12 L94 12 L102 27 L102 44 L78 44 Z" fill="#e8913a"/>
+          <path d="M83 18 L90 18 L95 27 L83 27 Z" fill="#0f1117"/>
+          <text x="50" y="31" text-anchor="middle" font-family="Space Grotesk, Arial, sans-serif" font-weight="700" font-size="20" fill="#0f1117">ET</text>
+          <circle cx="36" cy="48" r="8" fill="#ffffff"/><circle cx="36" cy="48" r="3.5" fill="#0f1117"/>
+          <circle cx="94" cy="48" r="8" fill="#ffffff"/><circle cx="94" cy="48" r="3.5" fill="#0f1117"/>
+          <g class="speed-lines" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity="0.7">
+            <line class="sl-1" x1="28" y1="10" x2="68" y2="10"/>
+            <line class="sl-2" x1="30" y1="36" x2="66" y2="36"/>
+            <line class="sl-3" x1="82" y1="33" x2="98" y2="33"/>
+          </g>
+        </svg>
+        Gestión de entregas
+      </div>
+      <h1>* <span>Transporte</span></h1>
+    </header>
+    <div class="status load" id="estadoServidor"><i class="fa-solid fa-circle-notch"></i><span>Conectando con el servidor...</span></div>
+    <div class="code-section">
+      <div class="code-section-label"><i class="fa-solid fa-key"></i> Introduce tu código de transporte</div>
+      <div class="code-row">
+        <input type="text" class="code-input" id="codigoTransporteInput" autocomplete="off" spellcheck="false">
+        <button class="btn btn-cargar" id="btnCargar" onclick="filtrarPorCodigo()"><i class="fa-solid fa-magnifying-glass"></i> Cargar datos</button>
+      </div>
+    </div>
+    <div class="inactividad-bar hidden" id="inactividadBar">
+      <i class="fa-solid fa-clock"></i>
+      <span>Sesión activa — </span>
+      <span class="inact-time" id="inactTime">120:00</span>
+    </div>
+    <div class="section-title"><i class="fa-solid fa-list-check" style="color:var(--accent);"></i> Clientes asignados <span class="count" id="itemCount">0</span></div>
+    <div class="table-wrap" id="tableWrap">
+      <div class="table-scroll">
+        <table id="tablaItems">
+          <thead><tr>
+            <th style="width:44px">#</th>
+            <th style="width:250px"><i class="fa-solid fa-box"></i> Nombre</th>
+            <th><i class="fa-solid fa-satellite-dish"></i> Entrega</th>
+          </tr></thead>
+          <tbody id="tbodyLineas"></tbody>
+        </table>
+      </div>
+      <div class="empty-state" id="emptyState"><i class="fa-solid fa-inbox"></i><p>Escribe un código de transporte<br>para ver los datos asignados.</p></div>
+    </div>
+    <div class="acciones">
+      <button class="btn btn-guardar" id="btnGuardar" onclick="ejecutarGuardado()" disabled><i class="fa-solid fa-floppy-disk"></i> FIN DE RUTA</button>
+      <a class="btn btn-mapa disabled" id="btnMapa" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-map-location-dot"></i> Ver mapa completo</a>
+    </div>
+    <div id="mensaje"></div>
+  </div>
+
+  <div class="expired-container hidden" id="expiredScreen">
+    <div class="expired-card">
+      <div class="expired-icon"><i class="fa-solid fa-lock"></i></div>
+      <h2>Formulario no disponible</h2>
+      <p id="mensajeExpiracion">Este formulario ha caducado.</p>
+    </div>
+  </div>
+
+  <div class="expired-container hidden" id="tamperedScreen">
+    <div class="expired-card">
+      <div class="expired-icon"><i class="fa-solid fa-shield-halved"></i></div>
+      <h2>Diseño no autorizado</h2>
+      <p>Este formulario ha sido modificado y no puede continuar.<br>Comunícate con el administrador del sistema.</p>
+    </div>
+  </div>
+
+  <script>
+    /* ★ PATCHES INTEGRADOS:
+       T1 — GUARD DE DISPOSITIVO VIGENTE: ninguna escritura se hace a
+            ciegas. Antes de cada guardado se verifica en la base que
+            dispositivoId sea null (ruta reabierta por el supervisor o
+            sin reclamar: el que escribe reclama) o el id de ESTE
+            dispositivo. Si otro dispositivo es el vigente, la sesion
+            se aborta sin escribir nada. Si la ruta ya fue cerrada,
+            solo se sincronizan las entregas pendientes sin tocar
+            estado ni fechaFin del cierre vigente.
+       T1e — TRANSICION A NUEVA TANDA: cuando la sesion se inicio
+            como nueva tanda sobre una ruta completada (validada por
+            T6 en la entrada, con la ruta cerrada ya archivada), la
+            PRIMERA escritura (en_proceso con la nueva tabla) es
+            legitima y el guard la permite. Tras esa escritura, el
+            guard vuelve a su criterio normal.
+       T2 — TIMEOUTS: ningun fetch critico puede quedar esperando
+            indefinidamente (falla visible en 8-15 s con el boton
+            operativo), reintento con token fresco ante 401/403, y
+            valvula de escape de 45 s en la carga del codigo.
+       T3 — codigos numericos: formConfig puede traer codigo como
+            numero (ej. 102 sin comillas); todo se normaliza a String
+            en el mapeo y en el filtro.
+       T4 — SYNC DE REASIGNACIONES (monitor S6/S7): en cada guardado,
+            la ruta absorbe las entregas nuevas reasignadas hacia ella
+            (filas al final + aviso) y suelta las reasignadas a otra
+            ruta (nunca si tienen GPS local). Converge en ≤60 s.
+       T6 — REGLA UNICA DE CARGA: no se cargan datos de rutas
+            completadas (con o sin GPS, por FIN DE RUTA o cierre del
+            supervisor). Las entregas nuevas de hoy (despachos de
+            formConfig cuya fecha-hora no esta en las completadas) SI
+            cargan: son la nueva tanda del dia. Si HOY no existe la
+            ruta, se revisa AYER con el mismo criterio.
+       T7 — CAPTURAS SIN CONTAGIO: el merge y la restauracion de
+            capturas solo actuan sobre el MISMO despacho (clave de
+            negocio: nombre + fecha-hora exacta + codclnt). Un nuevo
+            despacho del mismo cliente con hora distinta NUNCA hereda
+            el GPS de la entrega anterior. Ademas, durante la
+            transicion a nueva tanda (T1e) el merge se salta por
+            completo: la tanda nueva arranca limpia.
+       T8 — AVISO INFORMATIVO DE DESPACHOS EN ESPERA: si la ruta
+            esta EN CURSO y el supervisor sube nuevos despachos,
+            estos NO se integran a la sesion: el transportista debe
+            completar la ruta en curso y volver a entrar el codigo
+            para tomar la nueva tanda (que T6 cargara). Mientras
+            tanto, la app informa cuantos despachos esperan. */
+
+    var FIREBASE_DB_URL_CONFIG = "https://datos-formulario-f3cde-default-rtdb.firebaseio.com/formConfig.json";
+    var FIREBASE_DB_URL_BASE_USADOS = "https://datos-formulario-f3cde-default-rtdb.firebaseio.com/codigosUsados";
+    var FIREBASE_DB_URL_ROOT = "https://datos-formulario-f3cde-default-rtdb.firebaseio.com";
+
+    var allItemsConfig = [];
+    var codigoTransporteActual = '';
+    var botonGPSPendiente = null;
+    var botonConfirmPendiente = null;
+    var fechaInicioSesion = null;
+    var timerInactividad = null;
+    var guardadoPendiente = false;
+    var transicionNuevaRuta = false;   /* ★ T1e: sesion iniciada como nueva tanda sobre una ruta completada; la primera escritura tiene permitido reemplazar el nodo */
+
+    var TIEMPO_LIBERAR_CODIGO_MS = 240 * 60 * 1000;
+    var INACTIVIDAD_RESET_MS = 360 * 60 * 1000;
+    var INACTIVIDAD_BLOQUEO_MS = 240 * 60 * 1000;
+    var LS_KEY = 'transporte_sesion';
+    var LS_DEVICE_KEY = 'transporte_dispositivo_id';
+
+    var codigosValidosMap = {};
+
+    var FIREBASE_APP_CONFIG = {
+      apiKey: "AIzaSyCrnroA2yd2coEVyn6Jm-q8sM6rvOb6Y3k",
+      authDomain: "datos-formulario-f3cde.firebaseapp.com",
+      databaseURL: "https://datos-formulario-f3cde-default-rtdb.firebaseio.com",
+      projectId: "datos-formulario-f3cde",
+      storageBucket: "datos-formulario-f3cde.firebasestorage.app",
+      messagingSenderId: "1060204671476",
+      appId: "1:1060204671476:web:a476539fa122fd04fa89a1"
+    };
+    var fbAuthToken = null;
+
+    function conAuth(url) {
+      if (FIREBASE_APP_CONFIG && fbAuthToken) {
+        return url + (url.indexOf('?') === -1 ? '?' : '&') + 'auth=' + fbAuthToken;
+      }
+      return url;
+    }
+    function cargarScriptAsync(src) {
+      return new Promise(function(resolver, rechazar) {
+        var s = document.createElement('script');
+        s.src = src; s.onload = resolver;
+        s.onerror = function() { rechazar(new Error('No se pudo cargar ' + src)); };
+        document.head.appendChild(s);
+      });
+    }
+    function iniciarFirebaseAuth() {
+      if (!FIREBASE_APP_CONFIG) return Promise.resolve(false);
+      var base = 'https://www.gstatic.com/firebasejs/10.12.0/';
+      return Promise.race([
+        cargarScriptAsync(base + 'firebase-app-compat.js')
+          .then(function() { return cargarScriptAsync(base + 'firebase-auth-compat.js'); })
+          .then(function() {
+            if (!firebase.apps.length) firebase.initializeApp(FIREBASE_APP_CONFIG);
+            firebase.auth().onIdTokenChanged(function(user) {
+              if (user) { user.getIdToken().then(function(t) { fbAuthToken = t; }).catch(function(){}); }
+              else { fbAuthToken = null; }
+            });
+            return firebase.auth().signInAnonymously().then(function() {
+              var u = firebase.auth().currentUser;
+              if (u) return u.getIdToken().then(function(t) { fbAuthToken = t; return true; });
+              return true;
+            }).catch(function(e) {
+              console.warn('Auth anónima no disponible:', e && e.message);
+              return false;
+            });
+          }),
+        new Promise(function(resolver) { setTimeout(function() { resolver(false); }, 12000); })
+      ]).catch(function() { return false; });
+    }
+    setInterval(function() {
+      if (!FIREBASE_APP_CONFIG) return;
+      try {
+        if (window.firebase && firebase.apps && firebase.apps.length) {
+          var u = firebase.auth().currentUser;
+          if (u) u.getIdToken(true).then(function(t) { fbAuthToken = t; }).catch(function(){});
+        }
+      } catch(e) {}
+    }, 45 * 60 * 1000);
+
+    /* ============================================================
+       ★ PATCH T2 — FETCH SEGURO: timeout + reintento con token fresco.
+       ============================================================ */
+    async function refrescarTokenFb() {
+      try {
+        if (window.firebase && firebase.apps && firebase.apps.length) {
+          var u = firebase.auth().currentUser;
+          if (u) fbAuthToken = await u.getIdToken(true);
+        }
+      } catch (e) {}
+    }
+    function intentarFetch(url, opts, timeoutMs) {
+      return new Promise(function(resolver, rechazar) {
+        var c = new AbortController();
+        var t = setTimeout(function() { c.abort(); }, timeoutMs || 12000);
+        fetch(conAuth(url), Object.assign({}, opts, { signal: c.signal }))
+          .then(function(r) { clearTimeout(t); resolver(r); })
+          .catch(function(e) {
+            clearTimeout(t);
+            if (e && e.name === 'AbortError') rechazar(new Error('tiempo_agotado'));
+            else rechazar(e);
+          });
+      });
+    }
+    async function fetchSeguro(url, opts, timeoutMs) {
+      opts = opts || {};
+      var r = await intentarFetch(url, opts, timeoutMs);
+      if (r.status === 401 || r.status === 403) {
+        await refrescarTokenFb();
+        r = await intentarFetch(url, opts, timeoutMs);
+      }
+      return r;
+    }
+
+    function esc(s) {
+      return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, function(c) {
+        return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+      });
+    }
+
+    function claveDiaLocal(offsetDias) {
+      var d = new Date();
+      if (offsetDias) d.setDate(d.getDate() + offsetDias);
+      function p(n) { return String(n).padStart(2, '0'); }
+      return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+    }
+    var diaSesionActual = null;
+    function urlCodigoDia(codigo) {
+      var dia = diaSesionActual || claveDiaLocal();
+      return FIREBASE_DB_URL_BASE_USADOS + '/' + dia + '/' + encodeURIComponent(codigo);
+    }
+
+    function normalizarFechaDespacho(s) {
+      if (s === null || s === undefined) return '';
+      var t = String(s).trim().replace(/\s+/g, ' ');
+      if (!t) return '';
+      var m = t.match(/^(\d{1,4})[\/\-.](\d{1,2})[\/\-.](\d{1,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+      if (!m) return t.toLowerCase();
+      var dia, mes, anio;
+      if (m[1].length === 4) { anio = parseInt(m[1], 10); mes = parseInt(m[2], 10); dia = parseInt(m[3], 10); }
+      else { dia = parseInt(m[1], 10); mes = parseInt(m[2], 10); anio = parseInt(m[3], 10); if (anio < 100) anio += 2000; }
+      function p(n) { return String(n).padStart(2, '0'); }
+      var hora = (m[4] !== undefined) ? (p(parseInt(m[4], 10)) + ':' + m[5] + ':' + (m[6] || '00')) : '00:00:00';
+      return anio + '-' + p(mes) + '-' + p(dia) + ' ' + hora;
+    }
+    function claveFechaItem(item) {
+      var f = normalizarFechaDespacho(item && (item.fecha || item.Fecha));
+      return f || 'sin-fecha';
+    }
+    function fechasDeItems(items) {
+      var vistos = {};
+      items.forEach(function(it) { vistos[claveFechaItem(it)] = true; });
+      return Object.keys(vistos).sort();
+    }
+    function calcularRutaId(items) {
+      var s = fechasDeItems(items).join('|');
+      var h = 5381;
+      for (var i = 0; i < s.length; i++) { h = ((h << 5) + h + s.charCodeAt(i)) & 0xFFFFFFFF; }
+      return (h >>> 0).toString(36) + '-' + items.length;
+    }
+    var rutaIdActualSesion = null;
+    var fechasRutaSesion = [];
+
+    var disenoIntacto = null;
+    function normAtt(s) { return (s || '').replace(/\s+/g,''); }
+    function verificarDiseno() {
+      try {
+        var svg = document.querySelector('.et-truck');
+        if (!svg) return false;
+        if ((svg.getAttribute('viewBox') || '') !== '-8 0 116 56') return false;
+        var paths = svg.querySelectorAll('path');
+        if (paths.length !== 3) return false;
+        var body = svg.querySelector('.camion-body');
+        if (!body || body.getAttribute('fill') !== '#e8913a') return false;
+        var anim = body.querySelector('animate');
+        if (!anim) return false;
+        var vals = normAtt(anim.getAttribute('values')).split(';');
+        if (vals.length !== 3 || vals[0] !== vals[2]) return false;
+        var d = vals[0];
+        if (d.indexOf('M224L744') === -1) return false;
+        var dientes = ['L1240','L133','L1026','L-219','L612','L-15Z'];
+        for (var i = 0; i < dientes.length; i++) { if (d.indexOf(dientes[i]) === -1) return false; }
+        var valles = d.match(/L22\d+/g) || [];
+        if (valles.length !== 6) return false;
+        var d2 = vals[1];
+        if (d2.indexOf('L-619') === -1 || d2.indexOf('L-25Z') === -1) return false;
+        if (normAtt(paths[1].getAttribute('d')) !== 'M7812L9412L10227L10244L7844Z' || paths[1].getAttribute('fill') !== '#e8913a') return false;
+        if (normAtt(paths[2].getAttribute('d')) !== 'M8318L9018L9527L8327Z' || paths[2].getAttribute('fill') !== '#0f1117') return false;
+        var txt = svg.querySelector('text');
+        if (!txt || txt.textContent !== 'ET' || txt.getAttribute('fill') !== '#0f1117' || txt.getAttribute('font-size') !== '20') return false;
+        var circles = svg.querySelectorAll('circle');
+        if (circles.length !== 4) return false;
+        var r8 = 0, r35 = 0;
+        for (var c = 0; c < circles.length; c++) {
+          var r = circles[c].getAttribute('r'), f = circles[c].getAttribute('fill');
+          if (r === '8') { if (f !== '#ffffff') return false; r8++; }
+          else if (r === '3.5') { if (f !== '#0f1117') return false; r35++; }
+          else return false;
+        }
+        if (r8 !== 2 || r35 !== 2) return false;
+        var g = svg.querySelector('g.speed-lines');
+        if (!g || g.getAttribute('stroke') !== '#ffffff') return false;
+        var lines = g.querySelectorAll('line');
+        if (lines.length !== 3) return false;
+        var coords = [[28,10,68,10],[30,36,66,36],[82,33,98,33]];
+        for (var l = 0; l < lines.length; l++) {
+          var ln = lines[l];
+          if (ln.getAttribute('class') !== 'sl-' + (l + 1)) return false;
+          if (parseInt(ln.getAttribute('x1'),10) !== coords[l][0] || parseInt(ln.getAttribute('y1'),10) !== coords[l][1] ||
+              parseInt(ln.getAttribute('x2'),10) !== coords[l][2] || parseInt(ln.getAttribute('y2'),10) !== coords[l][3]) return false;
+        }
+        var badge = document.querySelector('.page-header .badge');
+        if (!badge || normAtt(badge.textContent) !== 'ETGestióndeentregas') return false;
+        var ico = document.querySelector('link[rel="icon"]');
+        if (!ico) return false;
+        var ih = ico.getAttribute('href') || '';
+        if (ih.indexOf('%23e8913a') === -1 || ih.indexOf('%230f1117') === -1 || ih.indexOf('ET') === -1) return false;
+        return true;
+      } catch (e) { return false; }
+    }
+    function activarBloqueoDiseno() {
+      if (disenoIntacto === false) return;
+      disenoIntacto = false;
+      codigoTransporteActual = '';
+      fechaInicioSesion = null;
+      detenerTimerInactividad();
+      try { localStorage.removeItem(LS_KEY); } catch(e) {}
+      document.getElementById('mainContent').classList.add('hidden');
+      document.getElementById('expiredScreen').classList.add('hidden');
+      document.getElementById('tamperedScreen').classList.remove('hidden');
+    }
+    setInterval(function() { if (disenoIntacto === true && !verificarDiseno()) activarBloqueoDiseno(); }, 5000);
+    window.addEventListener('focus', function() { if (disenoIntacto === true && !verificarDiseno()) activarBloqueoDiseno(); });
+
+    function obtenerIdDispositivo() {
+      try {
+        var id = localStorage.getItem(LS_DEVICE_KEY);
+        if (!id) {
+          id = 'dev-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 10);
+          localStorage.setItem(LS_DEVICE_KEY, id);
+        }
+        return id;
+      } catch(e) {
+        return 'dev-temp-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 10);
+      }
+    }
+
+    function guardarSesionEnDispositivo(codigo) {
+      try {
+        var previa = null;
+        var raw = localStorage.getItem(LS_KEY);
+        if (raw) {
+          var d = JSON.parse(raw);
+          if (d.codigo === codigo && d.ultimaActividad && (Date.now() - d.ultimaActividad) < INACTIVIDAD_RESET_MS) {
+            previa = d.ultimaActividad;
+          }
+        }
+        localStorage.setItem(LS_KEY, JSON.stringify({ codigo: codigo, ultimaActividad: previa || Date.now() }));
+      } catch(e) {
+        try { localStorage.setItem(LS_KEY, JSON.stringify({ codigo: codigo, ultimaActividad: Date.now() })); } catch(e2) {}
+      }
+    }
+    function actualizarActividadEnDispositivo() {
+      if (!codigoTransporteActual) return;
+      try {
+        var raw = localStorage.getItem(LS_KEY);
+        if (raw) { var d = JSON.parse(raw); if (d.codigo === codigoTransporteActual) { d.ultimaActividad = Date.now(); localStorage.setItem(LS_KEY, JSON.stringify(d)); } }
+      } catch(e) {}
+    }
+    function obtenerSesionRecordada() {
+      try {
+        var raw = localStorage.getItem(LS_KEY);
+        if (!raw) return null;
+        var d = JSON.parse(raw);
+        if (!d.codigo || !d.ultimaActividad) { localStorage.removeItem(LS_KEY); return null; }
+        var inactividad = Date.now() - d.ultimaActividad;
+        if (inactividad > INACTIVIDAD_BLOQUEO_MS) { localStorage.removeItem(LS_KEY); return null; }
+        return { codigo: d.codigo, ultimaActividad: d.ultimaActividad, inactividadMs: inactividad };
+      } catch(e) { localStorage.removeItem(LS_KEY); return null; }
+    }
+    function limpiarSesionDispositivo() {
+      try { localStorage.removeItem(LS_KEY); } catch(e) {}
+      detenerTimerInactividad();
+    }
+
+    /* ============================================================
+       ★ BUFFER OFFLINE — persistir estado en localStorage
+       ============================================================ */
+    var LS_BUFFER_KEY = 'transporte_buffer_offline';
+
+    function guardarBufferOffline() {
+      if (!codigoTransporteActual || disenoIntacto !== true) return;
+      try {
+        var datos = recopilarDatosFormulario();
+        if (!datos.length) return;
+        localStorage.setItem(LS_BUFFER_KEY, JSON.stringify({
+          codigo: codigoTransporteActual,
+          dia: diaSesionActual || claveDiaLocal(),
+          rutaId: rutaIdActualSesion || null,
+          fechasRuta: fechasRutaSesion || [],
+          fechaInicio: fechaInicioSesion || new Date().toISOString(),
+          dispositivoId: obtenerIdDispositivo(),
+          datos: datos,
+          guardadoEn: new Date().toISOString()
+        }));
+      } catch(e) {}
+    }
+
+    function leerBufferOffline() {
+      try {
+        var raw = localStorage.getItem(LS_BUFFER_KEY);
+        if (!raw) return null;
+        var b = JSON.parse(raw);
+        if (!b || !b.codigo || !Array.isArray(b.datos) || !b.datos.length) return null;
+        if (Date.now() - new Date(b.guardadoEn).getTime() > 8 * 60 * 60 * 1000) {
+          localStorage.removeItem(LS_BUFFER_KEY);
+          return null;
+        }
+        return b;
+      } catch(e) { return null; }
+    }
+
+    function limpiarBufferOffline() {
+      try { localStorage.removeItem(LS_BUFFER_KEY); } catch(e) {}
+    }
+
+    function iniciarTimerInactividad() {
+      detenerTimerInactividad();
+      timerInactividad = setInterval(verificarInactividad, 15000);
+      verificarInactividad();
+    }
+    function detenerTimerInactividad() {
+      if (timerInactividad) { clearInterval(timerInactividad); timerInactividad = null; }
+      document.getElementById('inactividadBar').classList.add('hidden');
+    }
+    function verificarInactividad() {
+      if (!codigoTransporteActual) { detenerTimerInactividad(); return; }
+      var sesion = obtenerSesionRecordada();
+      if (!sesion) { forzarResetPorInactividad('bloqueo'); return; }
+      var inactividad = sesion.inactividadMs;
+      var barra = document.getElementById('inactividadBar');
+      var tiempoEl = document.getElementById('inactTime');
+      if (inactividad >= INACTIVIDAD_BLOQUEO_MS) { forzarResetPorInactividad('bloqueo'); return; }
+      if (inactividad >= INACTIVIDAD_RESET_MS) { forzarResetPorInactividad('reset'); return; }
+      var restanteReset = INACTIVIDAD_RESET_MS - inactividad;
+      var minR = Math.floor(restanteReset / 60000);
+      var segR = Math.floor((restanteReset % 60000) / 1000);
+      tiempoEl.textContent = String(minR).padStart(2,'0') + ':' + String(segR).padStart(2,'0');
+      barra.classList.remove('hidden', 'ok', 'warn', 'danger');
+      if (restanteReset < 10 * 60 * 1000) {
+        barra.classList.add('danger');
+        barra.querySelector('i').className = 'fa-solid fa-triangle-exclamation';
+        barra.querySelector('span').textContent = 'Inactividad — se cerrará en ';
+      } else if (restanteReset < 30 * 60 * 1000) {
+        barra.classList.add('warn');
+        barra.querySelector('i').className = 'fa-solid fa-clock';
+        barra.querySelector('span').textContent = 'Inactividad — se cerrará en ';
+      } else {
+        barra.classList.add('ok');
+        barra.querySelector('i').className = 'fa-solid fa-circle-check';
+        barra.querySelector('span').textContent = 'Sesión activa — ';
+      }
+    }
+
+    function forzarResetPorInactividad(tipo) {
+      detenerTimerInactividad();
+      var codigoPrevio = codigoTransporteActual;
+      if (codigoTransporteActual && disenoIntacto === true) guardarEstadoActualEnFirebase();
+      try { localStorage.removeItem(LS_KEY); } catch(e) {}
+      resetearFormulario();
+      if (tipo === 'bloqueo') {
+        msg('Sesión expirada por inactividad (4 horas sin capturas). El código "' + codigoPrevio + '" se ha bloqueado.', 'err');
+      } else {
+        msg('Sesión cerrada por inactividad (6 horas sin capturas). Vuelve a ingresar el código "' + codigoPrevio + '".', 'warn');
+      }
+    }
+
+    window.addEventListener('beforeunload', function() {
+      if (codigoTransporteActual && disenoIntacto === true) guardarEstadoActualEnFirebase();
+    });
+    window.addEventListener('online', function() {
+      if (guardadoPendiente && codigoTransporteActual && disenoIntacto === true) guardarEstadoActualEnFirebase();
+    });
+    setInterval(function() {
+      if (guardadoPendiente && navigator.onLine && codigoTransporteActual && disenoIntacto === true) guardarEstadoActualEnFirebase();
+    }, 30000);
+
+    document.addEventListener('visibilitychange', function() {
+      if (!codigoTransporteActual || disenoIntacto !== true) return;
+      guardarEstadoActualEnFirebase();
+    });
+
+    setInterval(function() {
+      if (codigoTransporteActual && disenoIntacto === true && navigator.onLine && document.visibilityState === 'visible') {
+        guardarEstadoActualEnFirebase();
+      }
+    }, 60000);
+
+    function despuesDeCapturarGPS() {
+      actualizarActividadEnDispositivo();
+      guardarEstadoActualEnFirebase();
+    }
+
+    /* ============================================================
+       ★ PROTECCION CAPTURAS + BUFFER OFFLINE + FIX DUPLICADOS
+       ============================================================ */
+    function guardarEstadoActualEnFirebase() {
+      if (!codigoTransporteActual || disenoIntacto !== true) return;
+      var datos;
+      try { datos = recopilarDatosFormulario(); } catch(e) { console.error('Error recopilando datos:', e); return; }
+      var cuerpo = JSON.stringify({ estado: 'en_proceso', dia: diaSesionActual || claveDiaLocal(), rutaId: rutaIdActualSesion || null, fechasRuta: fechasRutaSesion || [], fechaInicio: fechaInicioSesion || new Date().toISOString(), ultimaActividad: new Date().toISOString(), dispositivoId: obtenerIdDispositivo(), datosFormulario: datos });
+      guardarConProteccionCapturas(cuerpo);
+    }
+
+    /* ============================================================
+       ★ PATCH T1 — GUARD DE DISPOSITIVO VIGENTE (+ T1e transicion)
+       ============================================================ */
+    function normalizarDatosFormulario(j) {
+      if (Array.isArray(j)) return j;
+      if (j && typeof j === 'object') {
+        var out = [];
+        Object.keys(j).filter(function(k){ return /^\d+$/.test(k); })
+          .sort(function(a,b){ return (+a) - (+b); })
+          .forEach(function(k){ if (j[k] && typeof j[k] === 'object') out.push(j[k]); });
+        return out;
+      }
+      return [];
+    }
+    function vigenciaDesdePrevio(data) {
+      if (data === null || data === undefined) return 'ok';
+      if (data.estado === 'completado' && transicionNuevaRuta) return 'ok';
+      if (data.estado === 'completado') return 'cerrada';
+      var devId = data.dispositivoId || null;
+      if (devId === null) return 'ok';
+      return (devId === obtenerIdDispositivo()) ? 'ok' : 'bloqueado';
+    }
+    async function verificarVigenciaDispositivo(codigo) {
+      try {
+        var r = await fetchSeguro(urlCodigoDia(codigo) + '.json', null, 10000);
+        if (!r.ok) return { vigencia: 'error' };
+        var data = await r.json();
+        return { vigencia: vigenciaDesdePrevio(data), previo: data };
+      } catch (e) { return { vigencia: 'error' }; }
+    }
+    function abortarSesionPorVigencia(tipo) {
+      var codigoPrevio = codigoTransporteActual;
+      if (!codigoPrevio) return;
+      guardadoPendiente = false;
+      limpiarBufferOffline();
+      limpiarSesionDispositivo();
+      resetearFormulario();
+      status('', 'ok');
+      if (tipo === 'bloqueado') {
+        msg('El código "' + codigoPrevio + '" fue tomado por otro dispositivo. Esta sesión se cerró para proteger los datos.', 'err');
+      } else {
+        msg('La ruta del código "' + codigoPrevio + '" ya fue finalizada (desde el panel o en otro dispositivo). Esta sesión se cerró.', 'warn');
+      }
+    }
+    async function sincronizarSoloEntregas(codigo, entregas) {
+      try {
+        var rPrev = await fetchSeguro(urlCodigoDia(codigo) + '/datosFormulario.json', null, 10000);
+        if (!rPrev.ok) return false;
+        var j = await rPrev.json();
+        var prevItems = normalizarDatosFormulario(j);
+        if (!prevItems.length) return true;
+        var localesPorClave = {};
+        entregas.forEach(function(it) { localesPorClave[claveDato(it)] = it; });
+        var enviados = 0, fallos = 0;
+        for (var i = 0; i < prevItems.length; i++) {
+          var p = prevItems[i];
+          if (!p || !p.item) continue;
+          var local = localesPorClave[claveDato(p)];
+          if (!local) continue;
+          var prevTieneGps = !!(p.gps && p.gps.origen === 'dispositivo' && num(p.gps.lat) !== null);
+          var localTieneGps = !!(local.gps && local.gps.origen === 'dispositivo' && num(local.gps.lat) !== null);
+          var reg = null;
+          if (!prevTieneGps && localTieneGps) { reg = JSON.parse(JSON.stringify(p)); reg.gps = local.gps; }
+          if (!p.permanencia && local.permanencia) { if (!reg) reg = JSON.parse(JSON.stringify(p)); reg.permanencia = local.permanencia; }
+          if (!p.comentario && local.comentario) { if (!reg) reg = JSON.parse(JSON.stringify(p)); reg.comentario = local.comentario; }
+          if (!reg) continue;
+          var clave = (p.idxItem !== undefined) ? p.idxItem : i;
+          var r = await fetchSeguro(urlCodigoDia(codigo) + '/datosFormulario/' + clave + '.json', {
+            method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(reg)
+          }, 10000);
+          if (r.ok) enviados++; else fallos++;
+        }
+        return fallos === 0;
+      } catch (e) { return false; }
+    }
+
+    function claveDato(d) {
+      return (d.idxItem !== undefined) ? 'idx:' + d.idxItem : 'nf:' + (d.item || '').toLowerCase() + '|' + (d.fechaDespacho || '');
+    }
+
+    /* ============================================================
+       ★ PATCH T4 — claves de negocio y fila nueva para reasignaciones
+       (la clave de negocio — nombre + fechaDespacho + codclnt — es
+       tambien la clave de matcheo del merge T7: identifica al MISMO
+       despacho, no a dos despachos distintos del mismo cliente)
+       ============================================================ */
+    function claveNegocioItem(it) {
+      return String((it && it.item) || '').toLowerCase() + '|' + String((it && it.fechaDespacho) || '') + '|' + String((it && it.codclnt) || '');
+    }
+    function claveNegocioFila(fila) {
+      var nEl = fila.querySelector('.item-name-text');
+      return String(nEl ? nEl.textContent.trim().toLowerCase() : '') + '|' + String(fila.dataset.fechaDespacho || '') + '|' + String(fila.dataset.codclnt || '');
+    }
+    function insertarFilaLocal(pi) {
+      var tbody = document.getElementById('tbodyLineas');
+      var fila = document.createElement('tr');
+      fila.dataset.codclnt = pi.codclnt || '';
+      fila.dataset.fechaDespacho = pi.fechaDespacho || '';
+      var sectorR = esc((pi.sector || '').toUpperCase());
+      var iniR = limpiarHora(pi.inicio);
+      var finR = limpiarHora(pi.fin);
+      var horarioTxt = (iniR || finR) ? ((iniR || '--:--') + ' – ' + (finR || '--:--')) : '—';
+      fila.innerHTML =
+        '<td><span class="row-num">' + (tbody.children.length + 1) + '</span></td>' +
+        '<td class="celda-nombre"><span class="item-name-text">' + esc(pi.item || '') + '</span></td>' +
+        '<td><div class="gps-cell">' +
+          '<div class="gps-btn-row">' +
+            '<button type="button" class="btn-gps" onclick="capturarGPS(this)"><i class="fa-solid fa-satellite-dish"></i> Entrega Pendiente</button>' +
+            '<button type="button" class="btn-perm" onclick="togglePermanencia(this)" title="Registrar tiempo de permanencia"><i class="fa-solid fa-stopwatch"></i> Permanencia</button>' +
+            '<input type="text" class="input-com" maxlength="500" placeholder="Comentario..." autocomplete="off">' +
+          '</div>' +
+          '<div class="gps-sub-row">' +
+            '<a class="gps-mini gps-mini-orig" target="_blank" rel="noopener noreferrer"></a>' +
+            '<a class="gps-mini gps-mini-nueva" target="_blank" rel="noopener noreferrer"></a>' +
+            '<span class="info-sector" data-sector="' + sectorR + '">' + (sectorR || '—') + '</span>' +
+            '<span class="sep-dot">·</span>' +
+            '<span class="info-horario" data-inicio="' + esc(iniR || '') + '" data-fin="' + esc(finR || '') + '">' + esc(horarioTxt) + '</span>' +
+          '</div>' +
+          '<div class="gps-error-detail"></div>' +
+          '<div class="gps-distancia"></div>' +
+        '</div></td>';
+      tbody.appendChild(fila);
+      if (pi.gpsOriginal) { try { aplicarGPSOriginal(fila, pi.gpsOriginal); } catch (e) {} }
+      if (pi.gps) { try { aplicarGPSCapturada(fila, pi.gps); } catch (e) {} }
+      if (pi.comentario) { try { aplicarComentario(fila, pi.comentario); } catch (e) {} }
+      document.getElementById('itemCount').textContent = tbody.children.length;
+    }
+
+    async function guardarConProteccionCapturas(cuerpo) {
+      try {
+        guardarBufferOffline();
+        var rPrev = await fetchSeguro(urlCodigoDia(codigoTransporteActual) + '.json', null, 10000);
+        if (!rPrev.ok) throw new Error('sin respuesta del servidor');
+        var prevData = await rPrev.json();
+
+        var vigencia = vigenciaDesdePrevio(prevData);
+        if (vigencia === 'bloqueado') {
+          abortarSesionPorVigencia('bloqueado');
+          return;
+        }
+        if (vigencia === 'cerrada') {
+          try {
+            var n0 = JSON.parse(cuerpo);
+            await sincronizarSoloEntregas(codigoTransporteActual, n0.datosFormulario || []);
+          } catch (eSync) {}
+          abortarSesionPorVigencia('cerrada');
+          return;
+        }
+
+        var prevItems = (prevData && prevData.datosFormulario) ? normalizarDatosFormulario(prevData.datosFormulario) : [];
+        var nuevo = JSON.parse(cuerpo);
+
+        /* ============================================================
+           ★ PATCH T7 — MERGE CON CLAVE DE NEGOCIO EXACTA + SIN
+           CONTAGIO EN TRANSICION
+           ============================================================ */
+        var enTransicionT7 = transicionNuevaRuta;
+        var localesPorClaveNegocio = {};
+        nuevo.datosFormulario.forEach(function(it) {
+          localesPorClaveNegocio[claveNegocioItem(it)] = it;
+        });
+
+        if (!enTransicionT7) {
+          var modificados = false;
+          prevItems.forEach(function(prevItem) {
+            if (!prevItem || !prevItem.item) return;
+            var prevTieneGps = !!(prevItem.gps && prevItem.gps.origen === 'dispositivo' && num(prevItem.gps.lat) !== null);
+            if (!prevTieneGps) return;
+            var local = localesPorClaveNegocio[claveNegocioItem(prevItem)];
+            if (!local) return;
+            var localTieneGps = !!(local.gps && local.gps.origen === 'dispositivo' && num(local.gps.lat) !== null);
+            if (!localTieneGps) {
+              local.gps = prevItem.gps;
+              modificados = true;
+            }
+            if (prevItem.permanencia && !local.permanencia) { local.permanencia = prevItem.permanencia; modificados = true; }
+          });
+
+          if (modificados) {
+            try { restaurarCapturasEnPantalla(nuevo.datosFormulario); } catch(e) {}
+          }
+        }
+
+        /* ★ PATCH T4 — SYNC DE REASIGNACIONES (monitor S6/S7) */
+        var cambioSync = false;
+        try {
+          var salidas = (prevData && Array.isArray(prevData.reasignadasSalida)) ? prevData.reasignadasSalida : [];
+          if (salidas.length) {
+            var aQuitar = [];
+            document.querySelectorAll('#tbodyLineas tr').forEach(function(fila) {
+              var bG = fila.querySelector('.btn-gps');
+              if (bG && bG.dataset.origen === 'dispositivo' && bG.dataset.lat) return;
+              if (salidas.indexOf(claveNegocioFila(fila)) !== -1) aQuitar.push(fila);
+            });
+            if (aQuitar.length) {
+              aQuitar.forEach(function(fila) { fila.remove(); });
+              document.getElementById('itemCount').textContent = document.querySelectorAll('#tbodyLineas tr').length;
+              cambioSync = true;
+              msg(aQuitar.length + ' entrega' + (aQuitar.length !== 1 ? 's' : '') + ' de tu lista fue reasignada a otro transporte.', 'warn');
+            }
+          }
+          var localesNg = {};
+          document.querySelectorAll('#tbodyLineas tr').forEach(function(fila) { localesNg[claveNegocioFila(fila)] = true; });
+          var agregadas = [];
+          prevItems.forEach(function(pi) {
+            if (!pi || !pi.item || !pi.reasignadoDe) return;
+            if (localesNg[claveNegocioItem(pi)]) return;
+            insertarFilaLocal(pi);
+            agregadas.push(pi);
+          });
+          if (agregadas.length) {
+            cambioSync = true;
+            agregadas.forEach(function(pi) {
+              var f = normalizarFechaDespacho(pi.fechaDespacho);
+              if (f && fechasRutaSesion.indexOf(f) === -1) fechasRutaSesion.push(f);
+            });
+            msg(agregadas.length + ' entrega' + (agregadas.length !== 1 ? 's' : '') + ' reasignada' + (agregadas.length !== 1 ? 's' : '') + ' a tu ruta (desde la ruta ' + agregadas[0].reasignadoDe + '). Revisa tu lista.', 'info');
+          }
+        } catch (eSync) { console.error('sync reasignaciones:', eSync); }
+        if (cambioSync) nuevo.datosFormulario = recopilarDatosFormulario();
+
+        var cuerpoFinal = JSON.stringify(nuevo);
+        fetchSeguro(urlCodigoDia(codigoTransporteActual) + '.json', {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: cuerpoFinal,
+          keepalive: cuerpoFinal.length < 60000
+        }, 15000).then(function(r){
+          if (!r.ok) {
+            console.error('Firebase respondió HTTP', r.status);
+            guardadoPendiente = true;
+            status('⚠ Sin conexión — entregas pendientes de sincronizar', 'warn');
+          } else {
+            guardadoPendiente = false;
+            transicionNuevaRuta = false;   /* ★ T1e: la transicion ya se concreto */
+            var filas = document.querySelectorAll('#tbodyLineas tr');
+            var entregadas = 0;
+            filas.forEach(function(f) {
+              var b = f.querySelector('.btn-gps');
+              if (b && b.dataset.origen === 'dispositivo' && b.dataset.lat) entregadas++;
+            });
+            if (filas.length > 0) {
+              status(entregadas + ' de ' + filas.length + ' entregas sincronizadas ✓', 'ok');
+            } else {
+              status('', 'ok');
+            }
+          }
+        }).catch(function(e){
+          console.error('Error de red guardando:', e);
+          guardadoPendiente = true;
+          status('⚠ Sin conexión — entregas pendientes de sincronizar', 'warn');
+        });
+      } catch(e) {
+        console.error('Guard omitido (sin datos de vigencia):', e);
+        guardadoPendiente = true;
+        status('⚠ Sin conexión — entregas pendientes de sincronizar', 'warn');
+      }
+    }
+
+    /* ★ PATCH T7 — restauración con clave de negocio completa */
+    function restaurarCapturasEnPantalla(datos) {
+      var filas = document.querySelectorAll('#tbodyLineas tr');
+      filas.forEach(function(fila, idxFila) {
+        var nombreEl = fila.querySelector('.item-name-text');
+        if (!nombreEl) return;
+        var reg = null;
+        for (var i = 0; i < datos.length; i++) {
+          if (datos[i].idxItem === idxFila) { reg = datos[i]; break; }
+        }
+        if (!reg) {
+          var claveFilaT7 = claveNegocioFila(fila);
+          for (var j = 0; j < datos.length; j++) {
+            if (datos[j].idxItem === undefined && claveNegocioItem(datos[j]) === claveFilaT7) { reg = datos[j]; break; }
+          }
+        }
+        if (!reg || !reg.gps) return;
+        var btn = fila.querySelector('.btn-gps');
+        if (!btn || (btn.dataset.origen === 'dispositivo' && btn.dataset.lat)) return;
+        aplicarGPSCapturada(fila, reg.gps);
+        if (reg.permanencia) aplicarPermanencia(fila, reg.permanencia);
+      });
+    }
+
+    function recopilarDatosFormulario() {
+      var filas = document.querySelectorAll('#tbodyLineas tr');
+      var entregas = [];
+      var tieneCalcDist = (typeof distanciaMetros === 'function' && typeof num === 'function' && typeof formatearDistancia === 'function');
+      var idxItem = -1;
+      filas.forEach(function(fila) {
+        idxItem++;
+        var nombre = fila.querySelector('.item-name-text') ? fila.querySelector('.item-name-text').textContent.trim() : '';
+        var sectorEl = fila.querySelector('.info-sector');
+        var sector = sectorEl ? (sectorEl.dataset.sector || '') : '';
+        var horEl = fila.querySelector('.info-horario');
+        var inicio = horEl ? (horEl.dataset.inicio || '') : '';
+        var fin = horEl ? (horEl.dataset.fin || '') : '';
+        var btnGPS = fila.querySelector('.btn-gps');
+        var reg = { idxItem: idxItem, item: nombre, codclnt: fila.dataset.codclnt || '', sector: sector, inicio: inicio, fin: fin, fechaDespacho: fila.dataset.fechaDespacho || '' };
+        if (btnGPS && btnGPS.dataset.origLat && btnGPS.dataset.origLng) {
+          reg.gpsOriginal = {
+            lat: num(btnGPS.dataset.origLat), lng: num(btnGPS.dataset.origLng),
+            fechaCaptura: btnGPS.dataset.origFecha || null
+          };
+        }
+        if (btnGPS && btnGPS.dataset.lat && btnGPS.dataset.lng) {
+          var nLat = num(btnGPS.dataset.lat), nLng = num(btnGPS.dataset.lng);
+          var nAcc = btnGPS.dataset.accuracy ? num(btnGPS.dataset.accuracy) : null;
+          var distOrig = null;
+          if (tieneCalcDist && btnGPS.dataset.origLat && btnGPS.dataset.origLng) {
+            try { distOrig = Math.round(distanciaMetros(num(btnGPS.dataset.origLat), num(btnGPS.dataset.origLng), nLat, nLng)); } catch(e) { distOrig = null; }
+          }
+          var gpsLean = {
+            lat: nLat, lng: nLng,
+            accuracy: (nAcc !== null) ? Math.round(nAcc * 10) / 10 : null,
+            origen: 'dispositivo',
+            fechaCaptura: btnGPS.dataset.fecha || new Date().toISOString(),
+            distanciaOriginal: distOrig
+          };
+          if (btnGPS.dataset.recapturado) gpsLean.recapturado = true;
+          reg.gps = gpsLean;
+        }
+        var btnPerm = fila.querySelector('.btn-perm');
+        if (btnPerm && btnPerm.dataset.permMin) {
+          var mins = num(btnPerm.dataset.permMin);
+          if (mins !== null && mins > 0) {
+            reg.permanencia = { minutos: mins, registradoEn: btnPerm.dataset.permFecha || new Date().toISOString() };
+          }
+        }
+        var taCom = fila.querySelector('.input-com');
+        reg.comentario = taCom ? String(taCom.value || '').trim() : '';
+        entregas.push(reg);
+      });
+      return entregas;
+    }
+
+    function msg(text, type) { var el = document.getElementById('mensaje'); el.textContent = text; el.className = type || ''; }
+    function status(text, type) {
+      var el = document.getElementById('estadoServidor');
+      var icons = { load: 'fa-circle-notch', ok: 'fa-circle-check', warn: 'fa-triangle-exclamation', err: 'fa-circle-xmark' };
+      el.className = 'status ' + type;
+      el.innerHTML = '<i class="fa-solid ' + (icons[type] || icons.load) + '"></i><span>' + esc(text || '') + '</span>';
+    }
+    function mostrarToast(texto) {
+      var t = document.getElementById('toastGuardado');
+      document.getElementById('toastTexto').textContent = texto;
+      t.classList.add('visible');
+      setTimeout(function() { t.classList.remove('visible'); }, 3000);
+    }
+    function limpiarHora(s) { if (!s) return ''; var l = String(s).replace(/[hH]/g,':'); if (/^\d{1,2}:$/.test(l)) l += '00'; return l; }
+
+    function eliminarGPS(botonEliminar) { return; }
+
+    function detectarPlataforma() { var u = navigator.userAgent || ''; if (/iPhone|iPad|iPod/.test(u)) return 'ios'; if (/Android/.test(u)) return 'android'; return 'otro'; }
+    function obtenerPasosActivarGPS() {
+      var p = detectarPlataforma();
+      if (p === 'android') return ['Desliza la <strong>barra de notificaciones</strong>','Busca <strong>Ubicación</strong>','Tócalo para <strong>activarlo</strong>','Vuelve y presiona <strong>Reintentar</strong>'];
+      if (p === 'ios') return ['Ve a <strong>Ajustes</strong>','<strong>Privacidad y seguridad</strong>','<strong>Ubicación</strong> → activar','Vuelve y presiona <strong>Reintentar</strong>'];
+      return ['Activa <strong>ubicación</strong> en configuración','Vuelve y presiona <strong>Reintentar</strong>'];
+    }
+    function abrirModalGPS(b) { botonGPSPendiente = b; document.getElementById('gpsStepsList').innerHTML = obtenerPasosActivarGPS().map(function(s){return '<li>'+s+'</li>';}).join(''); document.getElementById('gpsModal').classList.add('visible'); }
+    function cerrarModalGPS() {
+      document.getElementById('gpsModal').classList.remove('visible');
+      if (botonGPSPendiente) {
+        botonGPSPendiente.classList.remove('capturando');
+        if (botonGPSPendiente.dataset.origen === 'dispositivo' && botonGPSPendiente.dataset.lat) {
+          botonGPSPendiente.classList.add('capturado');
+          botonGPSPendiente.innerHTML = '<i class="fa-solid fa-check"></i> Entregado';
+        } else {
+          botonGPSPendiente.innerHTML = '<i class="fa-solid fa-satellite-dish"></i> Entrega Pendiente';
+        }
+      }
+      botonGPSPendiente = null;
+    }
+    function reintentarDesdeModal() { document.getElementById('gpsModal').classList.remove('visible'); var b = botonGPSPendiente; botonGPSPendiente = null; if (b) setTimeout(function(){ ejecutarCapturaGPS(b); }, 500); }
+    function esGPSApagado(error) {
+      if (error.code !== error.PERMISSION_DENIED) return false;
+      var m = (error.message || '').toLowerCase();
+      if (['user denied','denied by user','permission denied','user blocked','access denied'].some(function(p){return m.includes(p);})) return false;
+      if (['location service is not available','location services are not available','location service has been disabled','location not available','no location provider','location provider','gps not available','location is not enabled','location is disabled','location setting','network location provider','location provider at','not available on this device','location access is turned off','location is turned off','location services is off','location service is off'].some(function(p){return m.includes(p);})) return true;
+      if (m.length === 0 || m === 'permission denied') return detectarPlataforma() === 'android';
+      return false;
+    }
+
+    function capturarGPS(boton) {
+      if (disenoIntacto !== true) return;
+      if (boton.classList.contains('capturando')) return;
+      if (boton.dataset.origen === 'dispositivo' && boton.dataset.lat) {
+        botonConfirmPendiente = boton;
+        document.getElementById('confirmModal').classList.add('visible');
+        return;
+      }
+      ejecutarCapturaGPS(boton);
+    }
+    function cerrarConfirmRecaptura() {
+      document.getElementById('confirmModal').classList.remove('visible');
+      botonConfirmPendiente = null;
+    }
+    function confirmarRecaptura() {
+      var b = botonConfirmPendiente;
+      botonConfirmPendiente = null;
+      document.getElementById('confirmModal').classList.remove('visible');
+      if (b) setTimeout(function(){ ejecutarCapturaGPS(b); }, 250);
+    }
+
+    function ejecutarCapturaGPS(boton) {
+      if (disenoIntacto !== true) return;
+      var celda = boton.closest('.gps-cell');
+      var errorEl = celda.querySelector('.gps-error-detail');
+      var teniaEntrega = (boton.dataset.origen === 'dispositivo' && !!boton.dataset.lat);
+      boton.classList.remove('capturado','error-gps');
+      boton.classList.add('capturando');
+      boton.innerHTML = '<i class="fa-solid fa-circle-notch"></i> Ubicando...';
+      errorEl.classList.remove('visible'); errorEl.innerHTML = '';
+      if (!navigator.geolocation) { boton.classList.remove('capturando'); boton.classList.add('error-gps'); boton.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> No soportado'; errorEl.innerHTML = '<div class="gps-error-title no-signal"><i class="fa-solid fa-circle-info"></i> Navegador incompatible</div>'; errorEl.classList.add('visible'); return; }
+      if (!window.isSecureContext) { boton.classList.remove('capturando'); boton.classList.add('error-gps'); boton.innerHTML = '<i class="fa-solid fa-lock"></i> Sin HTTPS'; errorEl.innerHTML = '<div class="gps-error-title perm-denied"><i class="fa-solid fa-lock"></i> Sin HTTPS</div>'; errorEl.classList.add('visible'); return; }
+      navigator.geolocation.getCurrentPosition(
+        function(pos) {
+          if (teniaEntrega) {
+            boton.dataset.recapturado = '1';
+          }
+          boton.classList.remove('capturando'); boton.classList.add('capturado');
+          boton.innerHTML = '<i class="fa-solid fa-check"></i> Entregado';
+          var fechaCapturaISO = new Date().toISOString();
+          boton.dataset.lat = pos.coords.latitude; boton.dataset.lng = pos.coords.longitude; boton.dataset.accuracy = pos.coords.accuracy;
+          boton.dataset.origen = 'dispositivo';
+          boton.dataset.fecha = fechaCapturaISO;
+          pintarMini(celda.querySelector('.gps-mini-nueva'), pos.coords.latitude, pos.coords.longitude, fechaCapturaISO, teniaEntrega ? 'nueva' : 'entrega', pos.coords.accuracy, true);
+          celda.querySelector('.gps-btn-row').classList.add('tiene-gps');
+          despuesDeCapturarGPS();
+          if (typeof mostrarDistanciaCaptura === 'function') mostrarDistanciaCaptura(celda, boton);
+        },
+        function(error) {
+          boton.classList.remove('capturando');
+          if (esGPSApagado(error)) { boton.innerHTML = '<i class="fa-solid fa-location-crosshairs"></i> GPS apagado'; abrirModalGPS(boton); return; }
+          boton.classList.add('error-gps'); var t='',d='';
+          switch(error.code) {
+            case error.PERMISSION_DENIED: t='<i class="fa-solid fa-ban"></i> Permiso denegado'; d='<div class="gps-error-title perm-denied"><i class="fa-solid fa-ban"></i> Permiso denegado</div>El navegador bloqueó el acceso.<ul><li>Toca el <strong>candado</strong> junto a la dirección</li><li>Busca <strong>Ubicación</strong> → <strong>Permitir</strong></li><li>Recarga y reintenta</li></ul>'; break;
+            case error.POSITION_UNAVAILABLE: t='<i class="fa-solid fa-satellite-dish"></i> Sin señal'; d='<div class="gps-error-title no-signal"><i class="fa-solid fa-satellite-dish"></i> Sin señal GPS</div>Verifica GPS y reintenta.'; break;
+            case error.TIMEOUT: t='<i class="fa-solid fa-clock"></i> Tiempo agotado'; d='<div class="gps-error-title timeout"><i class="fa-solid fa-clock"></i> Tiempo agotado</div>Verifica GPS y reintenta.'; break;
+            default: t='<i class="fa-solid fa-xmark"></i> Error'; d='<div class="gps-error-title perm-denied"><i class="fa-solid fa-xmark"></i> Error</div>';
+          }
+          boton.innerHTML=t; errorEl.innerHTML=d; errorEl.classList.add('visible');
+          if (teniaEntrega) {
+            boton.classList.remove('error-gps');
+            boton.classList.add('capturado');
+            boton.innerHTML = '<i class="fa-solid fa-check"></i> Entregado';
+          } else {
+            delete boton.dataset.lat; delete boton.dataset.lng; delete boton.dataset.accuracy; delete boton.dataset.origen; delete boton.dataset.fecha;
+            var miniNueva = celda.querySelector('.gps-mini-nueva');
+            if (miniNueva) { miniNueva.classList.remove('on'); miniNueva.innerHTML=''; miniNueva.removeAttribute('href'); }
+            celda.querySelector('.gps-btn-row').classList.remove('tiene-gps');
+            var elDist = celda.querySelector('.gps-distancia');
+            if (elDist) { elDist.classList.remove('visible', 'dist-ok', 'dist-warn', 'dist-bad'); elDist.textContent = ''; }
+          }
+        },
+        { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+      );
+    }
+
+    function num(v) {
+      if (v === null || v === undefined || v === '') return null;
+      var n = (typeof v === 'number') ? v : parseFloat(String(v).trim().replace(',', '.'));
+      return (isFinite(n)) ? n : null;
+    }
+    function distanciaMetros(lat1, lng1, lat2, lng2) {
+      var R = 6371000;
+      var rad = Math.PI / 180;
+      var dLat = (lat2 - lat1) * rad;
+      var dLng = (lng2 - lng1) * rad;
+      var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * rad) * Math.cos(lat2 * rad) *
+              Math.sin(dLng/2) * Math.sin(dLng/2);
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+    function formatearDistancia(m) {
+      if (m < 1000) return Math.round(m) + ' m';
+      return (m / 1000).toFixed(2) + ' km';
+    }
+    function mostrarDistanciaCaptura(celda, btn) {
+      if (!celda || !btn) return;
+      if (!btn.dataset.origLat || !btn.dataset.origLng || !btn.dataset.lat || !btn.dataset.lng) return;
+      var dist = distanciaMetros(num(btn.dataset.origLat), num(btn.dataset.origLng), num(btn.dataset.lat), num(btn.dataset.lng));
+      var elDist = celda.querySelector('.gps-distancia');
+      if (!elDist) return;
+      elDist.textContent = 'Distancia del original: ~' + formatearDistancia(dist);
+      elDist.classList.remove('dist-ok', 'dist-warn', 'dist-bad');
+      if (dist < 100) elDist.classList.add('dist-ok');
+      else if (dist < 500) elDist.classList.add('dist-warn');
+      else elDist.classList.add('dist-bad');
+      elDist.classList.add('visible');
+    }
+    function formatearFechaHora(iso) {
+      var d = new Date(iso);
+      if (!iso || isNaN(d.getTime())) return '';
+      function p(n){ return String(n).padStart(2,'0'); }
+      return p(d.getDate()) + '/' + p(d.getMonth()+1) + '/' + d.getFullYear() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+    }
+    function formatearFechaCorta(iso) {
+      var d = new Date(iso);
+      if (!iso || isNaN(d.getTime())) return '';
+      function p(n){ return String(n).padStart(2,'0'); }
+      return p(d.getDate()) + '/' + p(d.getMonth()+1) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+    }
+    function pintarMini(miniEl, lat, lng, fechaISO, etiqueta, accuracy, conFecha) {
+      if (!miniEl) return;
+      var latN = num(lat), lngN = num(lng);
+      if (latN === null || lngN === null) { miniEl.classList.remove('on'); miniEl.innerHTML=''; miniEl.removeAttribute('href'); miniEl.removeAttribute('title'); return; }
+      var partes = [];
+      if (num(accuracy) !== null && num(accuracy) > 0) partes.push('~' + Math.round(num(accuracy)) + 'm');
+      if (conFecha !== false && fechaISO) partes.push(formatearFechaCorta(fechaISO));
+      var html = '<i class="fa-solid fa-location-dot"></i>' + (partes.length ? ' ' + partes.join(' · ') : '');
+      if (etiqueta) html += ' <span class="mini-tag">' + etiqueta + '</span>';
+      miniEl.innerHTML = html;
+      miniEl.href = 'https://www.google.com/maps?q=' + latN + ',' + lngN;
+      miniEl.title = 'Ver en Google Maps' + ((conFecha !== false && fechaISO) ? ' — ' + formatearFechaHora(fechaISO) : '') + ' · ' + latN.toFixed(5) + ', ' + lngN.toFixed(5);
+      miniEl.classList.add('on');
+    }
+    function pintarMiniIcono(miniEl, lat, lng, fechaISO, etiqueta) {
+      if (!miniEl) return;
+      var latN = num(lat), lngN = num(lng);
+      if (latN === null || lngN === null) { miniEl.classList.remove('on'); miniEl.innerHTML=''; miniEl.removeAttribute('href'); miniEl.removeAttribute('title'); return; }
+      miniEl.innerHTML = '<i class="fa-solid fa-location-dot"></i> <span class="mini-tag">' + etiqueta + '</span>';
+      miniEl.href = 'https://www.google.com/maps?q=' + latN + ',' + lngN;
+      miniEl.title = 'Ver punto asignado en Google Maps' + (fechaISO ? ' — ' + formatearFechaHora(fechaISO) : '');
+      miniEl.classList.add('on');
+    }
+    function extraerGPSDeItem(item) {
+      if (!item || typeof item !== 'object') return null;
+      var lat = num(item.Latitud);
+      var lng = num(item.Longitud);
+      if (lat === 0 && lng === 0) return null;
+      if (lat !== null && lng !== null && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+        var fecha = item.FechaCaptura || null;
+        return { lat: lat, lng: lng, accuracy: null, origen: 'firebase', fechaCaptura: fecha };
+      }
+      return null;
+    }
+
+    function aplicarGPSOriginal(fila, gpsData) {
+      if (!gpsData) return;
+      var lat = num(gpsData.lat), lng = num(gpsData.lng);
+      if (lat === null || lng === null) return;
+      if (lat === 0 && lng === 0) return;
+      var btn = fila.querySelector('.btn-gps');
+      if (!btn) return;
+      var fechaISO = gpsData.fechaCaptura || new Date().toISOString();
+      btn.dataset.origLat = lat;
+      btn.dataset.origLng = lng;
+      btn.dataset.origFecha = fechaISO;
+      pintarMiniIcono(fila.querySelector('.gps-mini-orig'), lat, lng, fechaISO, 'original');
+    }
+
+    function aplicarGPSCapturada(fila, gpsData) {
+      if (!gpsData) return;
+      var lat = num(gpsData.lat), lng = num(gpsData.lng);
+      if (lat === null || lng === null) return;
+      if (lat === 0 && lng === 0) return;
+      var btn = fila.querySelector('.btn-gps');
+      if (!btn) return;
+      var fechaISO = gpsData.fechaCaptura || new Date().toISOString();
+      btn.classList.remove('error-gps');
+      btn.classList.add('capturado');
+      btn.innerHTML = '<i class="fa-solid fa-check"></i> Entregado';
+      btn.dataset.lat = lat; btn.dataset.lng = lng;
+      btn.dataset.accuracy = (num(gpsData.accuracy) !== null) ? num(gpsData.accuracy) : '';
+      btn.dataset.origen = 'dispositivo';
+      btn.dataset.fecha = fechaISO;
+      if (gpsData.recapturado) btn.dataset.recapturado = '1';
+      pintarMini(fila.querySelector('.gps-mini-nueva'), lat, lng, fechaISO, (gpsData.recapturado ? 'nueva' : 'entrega'), gpsData.accuracy, true);
+      fila.querySelector('.gps-btn-row').classList.add('tiene-gps');
+      if (typeof mostrarDistanciaCaptura === 'function') mostrarDistanciaCaptura(fila, btn);
+    }
+
+    function formatearMinutos(m) {
+      m = Math.round(num(m) || 0);
+      if (m < 60) return m + ' min';
+      var h = Math.floor(m / 60), r = m % 60;
+      return h + ' h' + (r > 0 ? ' ' + r + ' min' : '');
+    }
+
+    var permBotonActivo = null;
+    function togglePermanencia(boton) {
+      if (disenoIntacto !== true) return;
+      var pop = document.getElementById('permPopover');
+      if (pop.classList.contains('visible') && permBotonActivo === boton) { cerrarPopoverPerm(); return; }
+      permBotonActivo = boton;
+      var sel = boton.dataset.permMin ? num(boton.dataset.permMin) : null;
+      pop.querySelectorAll('.perm-chip').forEach(function(ch) {
+        ch.classList.toggle('sel', num(ch.getAttribute('data-min')) === sel);
+      });
+      pop.querySelector('.perm-quitar').style.display = (sel !== null) ? 'inline-flex' : 'none';
+      var inp = pop.querySelector('.perm-custom-input');
+      if (inp) inp.value = '';
+      posicionarPopoverPerm(boton);
+    }
+    function cerrarPopoverPerm() {
+      document.getElementById('permPopover').classList.remove('visible');
+      permBotonActivo = null;
+    }
+    function posicionarPopoverPerm(boton) {
+      var pop = document.getElementById('permPopover');
+      pop.classList.remove('visible');
+      pop.style.visibility = 'hidden';
+      pop.style.display = 'flex';
+      var rect = boton.getBoundingClientRect();
+      var w = pop.offsetWidth, h = pop.offsetHeight;
+      var left = Math.max(8, Math.min(rect.left, window.innerWidth - w - 8));
+      var top = rect.bottom + 6;
+      if (top + h > window.innerHeight - 8) top = Math.max(8, rect.top - h - 6);
+      pop.style.left = left + 'px';
+      pop.style.top = top + 'px';
+      pop.style.display = '';
+      pop.style.visibility = '';
+      pop.classList.add('visible');
+    }
+    function seleccionarPermanencia(min) {
+      if (disenoIntacto !== true || !permBotonActivo) return;
+      var btn = permBotonActivo;
+      btn.dataset.permMin = String(min);
+      btn.dataset.permFecha = new Date().toISOString();
+      btn.classList.add('completada');
+      btn.innerHTML = '<i class="fa-solid fa-flag-checkered"></i> ' + formatearMinutos(min);
+      btn.title = 'Cambiar tiempo de permanencia';
+      cerrarPopoverPerm();
+      actualizarActividadEnDispositivo();
+      guardarEstadoActualEnFirebase();
+    }
+    function aplicarPermanenciaPersonalizada() {
+      var pop = document.getElementById('permPopover');
+      var inp = pop.querySelector('.perm-custom-input');
+      if (!inp) return;
+      var v = parseInt(inp.value.trim(), 10);
+      if (isNaN(v) || v < 1 || v > 480) {
+        inp.style.borderColor = 'var(--danger)';
+        inp.focus();
+        setTimeout(function(){ inp.style.borderColor = ''; }, 1200);
+        return;
+      }
+      seleccionarPermanencia(v);
+    }
+    function quitarPermanenciaSel() {
+      if (disenoIntacto !== true || !permBotonActivo) return;
+      var btn = permBotonActivo;
+      delete btn.dataset.permMin;
+      delete btn.dataset.permFecha;
+      btn.classList.remove('completada');
+      btn.innerHTML = '<i class="fa-solid fa-stopwatch"></i> Permanencia';
+      btn.title = 'Registrar tiempo de permanencia';
+      cerrarPopoverPerm();
+      guardarEstadoActualEnFirebase();
+    }
+
+    (function crearPopoverPerm() {
+      var pop = document.createElement('div');
+      pop.id = 'permPopover';
+      pop.className = 'perm-popover';
+      var titulo = document.createElement('div');
+      titulo.className = 'perm-pop-title';
+      titulo.innerHTML = '<i class="fa-solid fa-stopwatch"></i> Tiempo en la entrega';
+      var grid = document.createElement('div');
+      grid.className = 'perm-grid';
+      var html = '';
+      for (var m = 5; m <= 120; m += 5) {
+        html += '<button type="button" class="perm-chip" data-min="' + m + '" onclick="seleccionarPermanencia(' + m + ')">' + m + '<small>m</small></button>';
+      }
+      grid.innerHTML = html;
+      var customRow = document.createElement('div');
+      customRow.className = 'perm-custom-row';
+      customRow.innerHTML = '<span class="perm-custom-label">Más de 120m:</span>' +
+        '<input type="number" class="perm-custom-input" min="1" max="480" placeholder="180" inputmode="numeric">' +
+        '<button type="button" class="perm-custom-btn" onclick="aplicarPermanenciaPersonalizada()"><i class="fa-solid fa-check"></i> OK</button>';
+      var quitar = document.createElement('button');
+      quitar.type = 'button'; quitar.className = 'perm-quitar';
+      quitar.innerHTML = '<i class="fa-solid fa-trash-can"></i> Quitar selección';
+      quitar.onclick = quitarPermanenciaSel;
+      pop.appendChild(titulo); pop.appendChild(grid); pop.appendChild(customRow); pop.appendChild(quitar);
+      customRow.querySelector('.perm-custom-input').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); aplicarPermanenciaPersonalizada(); }
+      });
+      document.body.appendChild(pop);
+      document.addEventListener('click', function(e) {
+        if (!pop.classList.contains('visible')) return;
+        if (pop.contains(e.target)) return;
+        if (e.target.closest && e.target.closest('.btn-perm')) return;
+        cerrarPopoverPerm();
+      }, true);
+
+      var customInput = customRow.querySelector('.perm-custom-input');
+      function inputActivo() {
+        return document.activeElement === customInput;
+      }
+      window.addEventListener('scroll', function() {
+        if (inputActivo()) return;
+        cerrarPopoverPerm();
+      }, true);
+      window.addEventListener('resize', function() {
+        if (inputActivo()) return;
+        cerrarPopoverPerm();
+      });
+
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', function() {
+          if (!pop.classList.contains('visible') || inputActivo()) return;
+          if (permBotonActivo && typeof posicionarPopoverPerm === 'function') {
+            posicionarPopoverPerm(permBotonActivo);
+          }
+        });
+      }
+    })();
+
+    document.getElementById('tbodyLineas').addEventListener('change', function(e) {
+      if (!e.target || !e.target.classList || !e.target.classList.contains('input-com')) return;
+      guardarEstadoActualEnFirebase();
+    });
+
+    function aplicarPermanencia(fila, permData) {
+      if (!permData) return;
+      var mins = num(permData.minutos);
+      if (mins === null || mins <= 0) return;
+      var btn = fila.querySelector('.btn-perm');
+      if (!btn) return;
+      btn.dataset.permMin = String(mins);
+      if (permData.registradoEn) btn.dataset.permFecha = permData.registradoEn;
+      btn.classList.add('completada');
+      btn.innerHTML = '<i class="fa-solid fa-flag-checkered"></i> ' + (permData.duracionTxt || formatearMinutos(mins));
+      btn.title = 'Cambiar tiempo de permanencia';
+    }
+    function aplicarComentario(fila, texto) {
+      if (!texto) return;
+      var inp = fila.querySelector('.input-com');
+      if (inp) inp.value = String(texto).substring(0, 500);
+    }
+
+    async function cargarConfiguracionRemota() {
+      var r = await fetchSeguro(FIREBASE_DB_URL_CONFIG, null, 8000);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return await r.json();
+    }
+    function verificarExpiracion(c) { if (!c||!c.expiration) return false; return new Date()>new Date(c.expiration); }
+
+    async function recargarConfiguracion() {
+      var config = null;
+      try { config = await cargarConfiguracionRemota(); } catch(e) { config = null; }
+      if (!config) return { ok: false, expirado: false, config: null };
+      if (verificarExpiracion(config)) return { ok: true, expirado: true, config: config };
+      var raw = config.items && Array.isArray(config.items) ? config.items : [];
+      /* ★ PATCH T3 — todo a String */
+      allItemsConfig = raw.map(function(i) {
+        if (typeof i === 'string') return {name:i,codigo:'',sector:'',ini:'',fin:'',codclnt:'',fecha:'',gpsRegistrado:null};
+        if (i && typeof i === 'object') return {name:String(i.name||''),codigo:String(i.codigo||''),sector:String(i.sector||''),ini:String(i.ini||''),fin:String(i.fin||''),codclnt:String(i.CODCLNT || i.codclnt || ''),fecha:String(i.fecha || i.Fecha || ''),gpsRegistrado:extraerGPSDeItem(i)};
+        return {name:'',codigo:'',sector:'',ini:'',fin:'',codclnt:'',fecha:'',gpsRegistrado:null};
+      }).filter(function(i){return i.name !== '';});
+      try {
+        var rCV = await fetchSeguro(FIREBASE_DB_URL_ROOT + '/codigosValidos.json', null, 8000);
+        if (rCV.ok) codigosValidosMap = (await rCV.json()) || {};
+      } catch(e) {}
+      return { ok: true, expirado: false, config: config };
+    }
+
+    async function inicializarApp() {
+      if (!verificarDiseno()) { activarBloqueoDiseno(); return; }
+      disenoIntacto = true;
+      status('Conectando con el servidor...','load');
+      await iniciarFirebaseAuth();
+      try {
+        var recarga = await recargarConfiguracion();
+        if (!recarga.ok) throw new Error('Sin conexión con el servidor');
+        if (recarga.expirado) {
+          status('Formulario expirado.','err');
+          document.getElementById('mainContent').classList.add('hidden');
+          document.getElementById('expiredScreen').classList.remove('hidden');
+          document.getElementById('mensajeExpiracion').textContent = 'Este formulario expiró el ' + new Date(recarga.config.expiration).toLocaleString() + '.';
+          return;
+        }
+        status('', 'ok');
+        document.getElementById('mainContent').classList.remove('hidden');
+        document.getElementById('expiredScreen').classList.add('hidden');
+        limpiarTabla();
+        var recordado = obtenerSesionRecordada();
+        if (recordado) {
+          document.getElementById('codigoTransporteInput').value = recordado.codigo;
+          setTimeout(function() { filtrarPorCodigo(true); }, 800);
+        }
+      } catch(e) {
+        status('Sin conexión — modo offline', 'warn');
+        document.getElementById('mainContent').classList.remove('hidden');
+        document.getElementById('expiredScreen').classList.add('hidden');
+        var buffer = leerBufferOffline();
+        if (buffer) {
+          codigoTransporteActual = buffer.codigo;
+          diaSesionActual = buffer.dia || claveDiaLocal();
+          rutaIdActualSesion = buffer.rutaId || null;
+          fechasRutaSesion = buffer.fechasRuta || [];
+          fechaInicioSesion = buffer.fechaInicio || null;
+          document.getElementById('codigoTransporteInput').value = buffer.codigo;
+          var itemsBuffer = buffer.datos.map(function(d) {
+            return { name: d.item || '', codigo: buffer.codigo, sector: d.sector || '', ini: d.inicio || '', fin: d.fin || '', codclnt: d.codclnt || '', fecha: d.fechaDespacho || '', gpsRegistrado: null };
+          });
+          poblarTabla(itemsBuffer, buffer.datos);
+          iniciarTimerInactividad();
+          msg('Modo offline — ' + buffer.datos.length + ' entregas recuperadas del dispositivo. Se sincronizarán al reconectar.', 'info');
+        } else {
+          limpiarTabla();
+        }
+      }
+    }
+
+    async function verificarSiCodigoFueUsado(codigo) {
+      try {
+        var diaHoy = claveDiaLocal();
+        var r = await fetchSeguro(FIREBASE_DB_URL_BASE_USADOS + '/' + diaHoy + '/' + encodeURIComponent(codigo) + '.json', null, 10000);
+        if (!r.ok) return { usado: true, razon: 'error_red' };
+        var data = await r.json();
+        if (data === null) return { usado: false };
+        var completadas = {};
+        var tieneFechas = false;
+        if (Array.isArray(data.rutas)) {
+          data.rutas.forEach(function(h) {
+            if (h && h.incompleta === true) return;
+            if (Array.isArray(h.fechas) && h.fechas.length) tieneFechas = true;
+            (Array.isArray(h.fechas) ? h.fechas : []).forEach(function(f) { completadas[f] = true; });
+          });
+        }
+        if (Array.isArray(data.fechasRuta) && data.fechasRuta.length) tieneFechas = true;
+        if (data.estado === 'completado' && Array.isArray(data.fechasRuta)) {
+          data.fechasRuta.forEach(function(f) { completadas[f] = true; });
+        }
+        if (data.estado === 'completado') {
+          return { usado: false, nuevaRuta: true, completadas: completadas, tieneFechas: tieneFechas, previo: data };
+        }
+        if (data.estado === 'en_proceso' && data.fechaInicio) {
+          var refTiempo = data.ultimaActividad || data.fechaInicio;
+          var transcurrido = Date.now() - new Date(refTiempo).getTime();
+          if (transcurrido > TIEMPO_LIBERAR_CODIGO_MS) {
+            return { usado: false, liberado: true, completadas: completadas, tieneFechas: tieneFechas, previo: data };
+          }
+          return { usado: false, puedeContinuar: true, datosPrevios: normalizarDatosFormulario(data.datosFormulario) || null, dispositivoId: data.dispositivoId || null, fechaInicio: data.fechaInicio || null, fechasRuta: Array.isArray(data.fechasRuta) ? data.fechasRuta : null, completadas: completadas, tieneFechas: tieneFechas, previo: data };
+        }
+        return { usado: true, razon: 'desconocido' };
+      } catch(e) { return { usado: true, razon: 'error_red' }; }
+    }
+
+    async function archivarRutaAnterior(codigo, previo) {
+      if (!previo || !Array.isArray(previo.datosFormulario) || !previo.datosFormulario.length) return;
+      try {
+        var diaArchivo = previo.dia || diaSesionActual || claveDiaLocal();
+        var urlArchivo = FIREBASE_DB_URL_BASE_USADOS + '/' + diaArchivo + '/' + encodeURIComponent(codigo);
+        var rutas = [];
+        var rr = await fetchSeguro(urlArchivo + '/rutas.json', null, 10000);
+        if (rr.ok) { var j = await rr.json(); if (Array.isArray(j)) rutas = j; }
+        if (previo.rutaId) rutas = rutas.filter(function(h){ return h.rutaId !== previo.rutaId; });
+        rutas.push({
+          rutaId: previo.rutaId || null,
+          fechas: Array.isArray(previo.fechasRuta) ? previo.fechasRuta : [],
+          fechaInicio: previo.fechaInicio || null,
+          fechaFin: previo.fechaFin || new Date().toISOString(),
+          clientes: previo.datosFormulario.length,
+          datosFormulario: previo.datosFormulario,
+          incompleta: previo.estado !== 'completado'
+        });
+        if (rutas.length > 5) rutas = rutas.slice(-5);
+        await fetchSeguro(urlArchivo + '/rutas.json', {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(rutas)
+        }, 10000);
+      } catch(e) { console.error('No se pudo archivar la ruta anterior:', e); }
+    }
+
+    async function guardarFormularioCompleto() {
+      if (disenoIntacto !== true) return { ok: false, razon: 'diseno' };
+      var filas = document.querySelectorAll('#tbodyLineas tr');
+      if (filas.length === 0 || !codigoTransporteActual) return { ok: false, razon: 'vacio' };
+
+      var v = await verificarVigenciaDispositivo(codigoTransporteActual);
+      if (v.vigencia === 'bloqueado') return { ok: false, razon: 'bloqueado' };
+      if (v.vigencia === 'error') return { ok: false, razon: 'red' };
+      if (v.vigencia === 'cerrada') {
+        var sinc = await sincronizarSoloEntregas(codigoTransporteActual, recopilarDatosFormulario());
+        return { ok: true, yaCerrada: true, sincronizo: sinc };
+      }
+
+      var entregas = recopilarDatosFormulario();
+      var historial = [];
+      try {
+        var rPrev = await fetchSeguro(urlCodigoDia(codigoTransporteActual) + '/rutas.json', null, 10000);
+        if (rPrev.ok) { var j = await rPrev.json(); if (Array.isArray(j)) historial = j; }
+      } catch(e) {}
+      try {
+        var r = await fetchSeguro(urlCodigoDia(codigoTransporteActual) + '.json', {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ estado: 'completado', dia: diaSesionActual || claveDiaLocal(), rutaId: rutaIdActualSesion || null, fechasRuta: fechasRutaSesion || [], rutas: historial, fechaInicio: fechaInicioSesion || null, fechaFin: new Date().toISOString(), dispositivoId: obtenerIdDispositivo(), datosFormulario: entregas })
+        }, 15000);
+        if (!r.ok) throw new Error('HTTP'); return { ok: true };
+      } catch(e) { return { ok: false, razon: 'red' }; }
+    }
+    async function ejecutarGuardado() {
+      if (disenoIntacto !== true) { msg('Formulario no disponible.','err'); return; }
+      var filas = document.querySelectorAll('#tbodyLineas tr');
+      var btn = document.getElementById('btnGuardar');
+      if (filas.length === 0) { msg('No hay datos para guardar.','err'); return; }
+      if (!codigoTransporteActual) { msg('No se ha definido un código.','err'); return; }
+      btn.disabled = true; btn.classList.add('guardando');
+      msg('Guardando fin de ruta en el servidor...','info');
+      try {
+        var res = await guardarFormularioCompleto();
+        if (res.ok) {
+          if (res.yaCerrada) {
+            if (res.sincronizo === false) {
+              guardadoPendiente = true;
+              msg('La ruta ya fue finalizada, pero no se pudieron sincronizar tus entregas (sin conexión). Se enviarán al reconectar.', 'warn');
+              btn.disabled = false; btn.classList.remove('guardando');
+              return;
+            }
+            msg('La ruta ya había sido finalizada anteriormente. Tus entregas fueron sincronizadas.', 'warn');
+            mostrarToast('Entregas sincronizadas');
+          } else {
+            msg('Fin de ruta. Código ' + codigoTransporteActual + ' guardado con éxito.', 'ok');
+            mostrarToast('Fin de ruta guardado');
+          }
+          codigoTransporteActual = '';
+          guardadoPendiente = false;
+          limpiarBufferOffline();
+          limpiarSesionDispositivo();
+          setTimeout(resetearFormulario, 1500);
+        } else if (res.razon === 'bloqueado') {
+          msg('El código está en uso en otro dispositivo. No se puede cerrar la ruta desde aquí.', 'err');
+          abortarSesionPorVigencia('bloqueado');
+        } else {
+          msg('Error de red al guardar. No cierres esta página: tus entregas están guardadas en el dispositivo y se sincronizarán al reconectar.', 'err');
+          btn.disabled=false; btn.classList.remove('guardando');
+        }
+      } catch(e) { msg('Error inesperado.','err'); btn.disabled=false; btn.classList.remove('guardando'); }
+    }
+
+    var filtrandoEnCurso = false;
+    async function filtrarPorCodigo(autoRestaurada) {
+      if (filtrandoEnCurso) return;
+      filtrandoEnCurso = true;
+      try {
+        await Promise.race([
+          filtrarPorCodigoInterno(autoRestaurada),
+          new Promise(function(_, rej) { setTimeout(function() { rej(new Error('__lento')); }, 45000); })
+        ]);
+      } catch (e) {
+        if (e && e.message === '__lento') {
+          msg('La conexión con el servidor está muy lenta. Revisa tu señal e inténtalo de nuevo.', 'err');
+        } else {
+          console.error('filtrarPorCodigo:', e);
+          msg('Error al cargar: ' + (e && e.message ? e.message : 'desconocido'), 'err');
+        }
+      } finally { filtrandoEnCurso = false; }
+    }
+
+    async function filtrarPorCodigoInterno(autoRestaurada) {
+      if (disenoIntacto !== true) return;
+      var input = document.getElementById('codigoTransporteInput');
+      var btnCargar = document.getElementById('btnCargar');
+      var codigo = input.value.trim();
+      if (!codigo) { msg('Escribe un código de transporte.','warn'); input.focus(); return; }
+
+      if (autoRestaurada !== true) {
+        msg('Actualizando datos del servidor...','info');
+        var recarga = await recargarConfiguracion();
+        if (recarga.expirado) {
+          status('Formulario expirado.','err');
+          document.getElementById('mainContent').classList.add('hidden');
+          document.getElementById('expiredScreen').classList.remove('hidden');
+          document.getElementById('mensajeExpiracion').textContent = 'Este formulario expiró el ' + new Date(recarga.config.expiration).toLocaleString() + '.';
+          return;
+        }
+        if (!recarga.ok) {
+          if (!allItemsConfig.length) {
+            msg('No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo en unos segundos.', 'err');
+            return;
+          }
+          msg('Sin conexión para actualizar datos. Usando la última configuración cargada.', 'warn');
+        }
+      }
+
+      var itemsFiltrados = allItemsConfig.filter(function(item) { return String(item.codigo).toLowerCase() === codigo.toLowerCase(); });
+      var hayNodoValidos = Object.keys(codigosValidosMap).length > 0;
+      var estaEnValidos = true;
+      if (hayNodoValidos) {
+        estaEnValidos = false;
+        for (var k in codigosValidosMap) { if (String(k).toLowerCase() === codigo.toLowerCase()) { estaEnValidos = true; break; } }
+      }
+      if (itemsFiltrados.length === 0 || !estaEnValidos) {
+        msg('Sin datos para asignar', 'err');
+        limpiarSesionDispositivo();
+        input.select(); input.focus();
+        return;
+      }
+
+      msg('Verificando estado del código...','info');
+      var resultado = await verificarSiCodigoFueUsado(codigo);
+      if (resultado.usado && resultado.razon === 'error_red') {
+        msg('No se pudo verificar el estado del código (sin conexión al servidor). Reintenta en unos segundos.', 'err');
+        return;
+      }
+      if (resultado.usado && resultado.razon === 'desconocido') {
+        msg('Sin datos para asignar', 'err');
+        limpiarSesionDispositivo(); input.value = ''; input.focus(); return;
+      }
+
+      /* ============================================================
+         ★ PATCH T6 — REGLA UNICA DE CARGA:
+         No se cargan datos de rutas completadas (con o sin GPS, por
+         FIN DE RUTA o cierre del supervisor). Las entregas nuevas de
+         hoy (despachos de formConfig cuya fecha-hora no está en las
+         completadas) SÍ cargan: son la nueva tanda del día. Si HOY
+         no existe la ruta, se revisa AYER con el mismo criterio.
+         ============================================================ */
+      var diaHoyT6 = claveDiaLocal();
+      var prefijoHoyT6 = diaHoyT6 + ' ';
+      var completadasT6 = resultado.completadas || {};
+
+      /* entregas nuevas de hoy: despachos de formConfig con fecha de
+         hoy que no están en las completadas de la(s) ruta(s) previa(s) */
+      var nuevosDeHoy = itemsFiltrados.filter(function(it) {
+        var f = claveFechaItem(it);
+        return f.indexOf(prefijoHoyT6) === 0 && !completadasT6[f];
+      });
+
+      /* ruta completada: la de HOY si existe, sino la de AYER */
+      var rutaCompletadaT6 = (resultado.previo && resultado.previo.estado === 'completado') ? resultado.previo : null;
+      if (!rutaCompletadaT6 && !resultado.previo) {
+        try {
+          var diaAyerT6 = claveDiaLocal(-1);
+          var rAyerT6 = await fetchSeguro(FIREBASE_DB_URL_BASE_USADOS + '/' + diaAyerT6 + '/' + encodeURIComponent(codigo) + '.json', null, 10000);
+          if (rAyerT6.ok) {
+            var dAyerT6 = await rAyerT6.json();
+            if (dAyerT6 && dAyerT6.estado === 'completado') rutaCompletadaT6 = dAyerT6;
+          }
+        } catch (eT6b) {}
+      }
+
+      if (rutaCompletadaT6 && nuevosDeHoy.length === 0) {
+        var itemsT6 = normalizarDatosFormulario(rutaCompletadaT6.datosFormulario);
+        var capturadasT6 = itemsT6.filter(function(it) {
+          return !!(it && it.gps && it.gps.origen === 'dispositivo' && num(it.gps.lat) !== null);
+        }).length;
+        msg('La ruta ' + codigo + ' ya fue finalizada (' + capturadasT6 + ' de ' + itemsT6.length + ' entregas capturadas) y no hay entregas nuevas para hoy. ' +
+            (capturadasT6 < itemsT6.length
+              ? 'Si falta alguna captura, pide al supervisor que reabra la ruta. '
+              : '') +
+            'Espera a que el supervisor cargue los datos de la nueva jornada.', 'info');
+        limpiarSesionDispositivo();
+        input.value = '';
+        input.focus();
+        return;
+      }
+
+      if (resultado.puedeContinuar === true && resultado.previo && resultado.previo.dia && resultado.previo.dia !== claveDiaLocal()) {
+        resultado.puedeContinuar = false;
+        resultado.nuevaRuta = true;
+        if (Array.isArray(resultado.previo.datosFormulario) && resultado.previo.datosFormulario.length) {
+          await archivarRutaAnterior(codigo, resultado.previo);
+        }
+      }
+
+      var completadas = resultado.completadas || {};
+      var itemsSesion = null;
+      var datosPrevios = null;
+      var esContinuacion = false;
+      var esLiberado = resultado.liberado === true;
+
+      if (resultado.puedeContinuar === true) {
+        var miDispositivo = obtenerIdDispositivo();
+        if (resultado.dispositivoId && resultado.dispositivoId !== miDispositivo) {
+          msg('El código "' + codigo + '" está en uso en otro dispositivo. Si la ruta debe continuar aquí, pide al supervisor que la reabra desde el panel de monitoreo.', 'err');
+          limpiarSesionDispositivo();
+          input.value = '';
+          input.focus();
+          return;
+        }
+        if (resultado.fechasRuta && resultado.fechasRuta.length) {
+          /* ★ Solo los items TOMADOS en esta tanda: los despachos nuevos
+             subidos durante la ruta NO se integran — se informan cuantos
+             esperan (T8) y se cargan al completar y volver a entrar (T6) */
+          var restaurar = itemsFiltrados.filter(function(it) { return resultado.fechasRuta.indexOf(claveFechaItem(it)) !== -1; });
+          if (restaurar.length > 0) {
+            itemsSesion = restaurar;
+            datosPrevios = resultado.datosPrevios || null;
+            esContinuacion = true;
+          }
+        } else if (resultado.datosPrevios && resultado.datosPrevios.length) {
+          itemsSesion = itemsFiltrados.filter(function(it) { return !completadas[claveFechaItem(it)]; });
+          if (itemsSesion.length === 0) itemsSesion = itemsFiltrados;
+          datosPrevios = resultado.datosPrevios;
+          esContinuacion = true;
+        }
+      }
+
+      if (!itemsSesion) {
+        var hayItemsConFecha = itemsFiltrados.some(function(it) { return claveFechaItem(it) !== 'sin-fecha'; });
+        if (resultado.nuevaRuta === true && resultado.tieneFechas !== true && !hayItemsConFecha) {
+          msg('Sin datos para asignar', 'err');
+          limpiarSesionDispositivo(); input.value = ''; input.focus();
+          return;
+        }
+        itemsSesion = itemsFiltrados.filter(function(it) { return !completadas[claveFechaItem(it)]; });
+        if (itemsSesion.length === 0) {
+          msg('Sin datos para asignar', 'err');
+          limpiarSesionDispositivo(); input.value = ''; input.focus();
+          return;
+        }
+      }
+
+      /* ============================================================
+         ★ PATCH T8 — AVISO INFORMATIVO DE DESPACHOS EN ESPERA:
+         si la ruta esta EN CURSO y hay despachos nuevos de hoy que
+         no pertenecen a la tanda tomada, se informa cuantos esperan.
+         NO se integran: el transportista completa la ruta en curso
+         y vuelve a entrar el codigo para tomar la nueva tanda (T6).
+         ============================================================ */
+      var avisoEsperaT8 = '';
+      if (esContinuacion && resultado.fechasRuta && resultado.fechasRuta.length) {
+        var esperandoT8 = nuevosDeHoy.filter(function(it) {
+          return resultado.fechasRuta.indexOf(claveFechaItem(it)) === -1;
+        }).length;
+        if (esperandoT8 > 0) {
+          avisoEsperaT8 = ' Hay ' + esperandoT8 + ' despacho(s) nuevo(s) en espera: se cargarán al completar esta ruta y volver a ingresar el código.';
+        }
+      }
+
+      codigoTransporteActual = codigo;
+      /* ★ T1e: hay ruta previa (cerrada) que esta sesion reemplaza —
+         la primera escritura con estado en_proceso es legítima y el
+         guard la permite; tras ella vuelve al criterio normal */
+      transicionNuevaRuta = !!resultado.previo;
+      diaSesionActual = (esContinuacion && resultado.previo && resultado.previo.dia) ? resultado.previo.dia : claveDiaLocal();
+      fechasRutaSesion = fechasDeItems(itemsSesion);
+      rutaIdActualSesion = calcularRutaId(itemsSesion);
+
+      if (!esContinuacion && resultado.previo && Array.isArray(resultado.previo.datosFormulario) && resultado.previo.datosFormulario.length) {
+        await archivarRutaAnterior(codigo, resultado.previo);
+      }
+
+      if (esContinuacion) {
+        msg('Continuando sesión. Datos restaurados.' + avisoEsperaT8, 'info');
+      }
+      else if (esLiberado) { msg('Sesión anterior liberada. Iniciando nueva.', 'warn'); }
+      else if (resultado.nuevaRuta) { msg('Nueva ruta detectada: ' + itemsSesion.length + ' despacho(s) pendiente(s).', 'warn'); }
+      else msg('Mostrando ' + itemsSesion.length + ' ítem(s).', 'ok');
+
+      if (autoRestaurada === true) {
+        document.querySelector('.code-section').classList.add('hidden');
+        msg('Sesión restaurada. Continúa donde quedaste.' + avisoEsperaT8, 'info');
+      }
+
+      guardarSesionEnDispositivo(codigo);
+      input.disabled = true; btnCargar.disabled = true;
+      document.getElementById('btnGuardar').disabled = true;
+      fechaInicioSesion = esContinuacion ? (resultado.fechaInicio || new Date().toISOString()) : new Date().toISOString();
+      poblarTabla(itemsSesion, datosPrevios);
+      document.getElementById('btnGuardar').disabled = false;
+      if (!esContinuacion) guardarEstadoActualEnFirebase();
+      iniciarTimerInactividad();
+    }
+
+    document.getElementById('codigoTransporteInput').addEventListener('keydown', function(e) { if (e.key === 'Enter') filtrarPorCodigo(); });
+
+    function limpiarTabla() {
+      document.getElementById('tbodyLineas').innerHTML = '';
+      document.getElementById('itemCount').textContent = '0';
+      document.getElementById('emptyState').classList.remove('hidden');
+      document.getElementById('tablaItems').querySelector('thead').style.display = 'none';
+    }
+    function poblarTabla(items, datosPrevios) {
+      var tbody = document.getElementById('tbodyLineas');
+      tbody.innerHTML = '';
+      var contador = 0;
+      document.getElementById('emptyState').classList.add('hidden');
+      document.getElementById('tablaItems').querySelector('thead').style.display = '';
+      items.forEach(function(item, idx) {
+        contador++;
+        var fila = document.createElement('tr');
+        fila.dataset.codclnt = item.codclnt || '';
+        fila.dataset.fechaDespacho = item.fecha || '';
+        fila.style.animation = 'fadeUp 0.35s ease ' + Math.min(idx * 30, 400) + 'ms both';
+        var sectorValue = esc((item.sector || '').toUpperCase());
+        var iniValue = limpiarHora(item.ini);
+        var finValue = limpiarHora(item.fin);
+        var datoPrevio = null;
+        if (datosPrevios && Array.isArray(datosPrevios)) {
+          /* ★ FIX DUPLICADOS + T7 — 1ª clave: idxItem; fallback:
+             nombre + fecha EXACTA + codclnt — nunca cruzar despachos
+             distintos del mismo cliente */
+          datoPrevio = datosPrevios.find(function(d) { return d.idxItem === idx; })
+                  || datosPrevios.find(function(d) {
+                       return d.idxItem === undefined
+                         && d.item && d.item.toLowerCase() === item.name.toLowerCase()
+                         && String(d.fechaDespacho || '') === String(item.fecha || '')
+                         && String(d.codclnt || '') === String(item.codclnt || '');
+                     });
+        }
+        var sectorR = sectorValue, iniR = iniValue, finR = finValue;
+        if (datoPrevio) {
+          if (datoPrevio.sector) sectorR = esc(datoPrevio.sector.toUpperCase());
+          if (datoPrevio.inicio) iniR = datoPrevio.inicio;
+          if (datoPrevio.fin) finR = datoPrevio.fin;
+        }
+        var horarioTxt = (iniR || finR) ? ((iniR || '--:--') + ' – ' + (finR || '--:--')) : '—';
+
+        fila.innerHTML =
+          '<td><span class="row-num">' + contador + '</span></td>' +
+          '<td class="celda-nombre"><span class="item-name-text">' + esc(item.name) + '</span></td>' +
+          '<td><div class="gps-cell">' +
+            '<div class="gps-btn-row">' +
+              '<button type="button" class="btn-gps" onclick="capturarGPS(this)"><i class="fa-solid fa-satellite-dish"></i> Entrega Pendiente</button>' +
+              '<button type="button" class="btn-perm" onclick="togglePermanencia(this)" title="Registrar tiempo de permanencia"><i class="fa-solid fa-stopwatch"></i> Permanencia</button>' +
+              '<input type="text" class="input-com" maxlength="500" placeholder="Comentario..." autocomplete="off">' +
+            '</div>' +
+            '<div class="gps-sub-row">' +
+              '<a class="gps-mini gps-mini-orig" target="_blank" rel="noopener noreferrer"></a>' +
+              '<a class="gps-mini gps-mini-nueva" target="_blank" rel="noopener noreferrer"></a>' +
+              '<span class="info-sector" data-sector="' + sectorR + '">' + (sectorR || '—') + '</span>' +
+              '<span class="sep-dot">·</span>' +
+              '<span class="info-horario" data-inicio="' + esc(iniR || '') + '" data-fin="' + esc(finR || '') + '">' + esc(horarioTxt) + '</span>' +
+            '</div>' +
+            '<div class="gps-error-detail"></div>' +
+            '<div class="gps-distancia"></div>' +
+          '</div></td>';
+        tbody.appendChild(fila);
+
+        var gpsOrig = (datoPrevio && datoPrevio.gpsOriginal) ? datoPrevio.gpsOriginal : (item.gpsRegistrado || null);
+        try { if (gpsOrig) aplicarGPSOriginal(fila, gpsOrig); } catch(e) { console.error('Error GPS original fila ' + contador, e); }
+        try { if (datoPrevio && datoPrevio.gps) aplicarGPSCapturada(fila, datoPrevio.gps); } catch(e) { console.error('Error restaurando GPS fila ' + contador, e); }
+        try { if (datoPrevio && datoPrevio.permanencia) aplicarPermanencia(fila, datoPrevio.permanencia); } catch(e) { console.error('Error restaurando permanencia fila ' + contador, e); }
+        try { if (datoPrevio && datoPrevio.comentario) aplicarComentario(fila, datoPrevio.comentario); } catch(e) { console.error('Error restaurando comentario fila ' + contador, e); }
+      });
+      document.getElementById('itemCount').textContent = contador;
+      document.getElementById('btnMapa').href = 'mapa.html?codigo=' + encodeURIComponent(codigoTransporteActual) + '&dia=' + (diaSesionActual || claveDiaLocal());
+      document.getElementById('btnMapa').classList.remove('disabled');
+    }
+    function resetearFormulario() {
+      var input = document.getElementById('codigoTransporteInput');
+      codigoTransporteActual = '';
+      transicionNuevaRuta = false;   /* ★ T1e */
+      diaSesionActual = null;
+      rutaIdActualSesion = null;
+      fechasRutaSesion = [];
+      fechaInicioSesion = null;
+      document.querySelector('.code-section').classList.remove('hidden');
+      input.value = ''; input.disabled = false;
+      document.getElementById('btnCargar').disabled = false;
+      document.getElementById('btnGuardar').disabled = true;
+      document.getElementById('btnGuardar').classList.remove('guardando');
+      var bm = document.getElementById('btnMapa');
+      bm.removeAttribute('href'); bm.classList.add('disabled');
+      limpiarTabla();
+      document.getElementById('mensaje').textContent = '';
+      document.getElementById('mensaje').className = '';
+      input.focus();
+    }
+
+    document.getElementById('gpsModal').addEventListener('click', function(e) { if (e.target === this) cerrarModalGPS(); });
+    document.getElementById('confirmModal').addEventListener('click', function(e) { if (e.target === this) cerrarConfirmRecaptura(); });
+    window.addEventListener('DOMContentLoaded', inicializarApp);
+  </script>
+<a href="monitor.html" style="font-size:10px;color:#555;text-decoration:none;position:fixed;bottom:8px;right:12px;">Monitor</a>
+</body>
+</html>
